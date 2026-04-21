@@ -1,0 +1,16 @@
+export const queryKeys = {
+  profile: ["profile"] as const,
+  pricing: ["pricing"] as const,
+  reviews: ["reviews"] as const,
+  blog: ["blog"] as const,
+  courses: ["courses"] as const,
+  trades: (filters?: Record<string, unknown>) => ["trades", filters] as const,
+  accounts: ["accounts"] as const,
+  botStatus: ["bot-status"] as const,
+  martingale: ["martingale"] as const,
+  adminUsers: ["admin-users"] as const,
+  adminBots: ["admin-bots"] as const,
+  adminReviews: ["admin-reviews"] as const,
+  balanceHistory: (period: string) => ["balance-history", period] as const,
+  onboardingSurvey: ["onboarding-survey"] as const,
+};

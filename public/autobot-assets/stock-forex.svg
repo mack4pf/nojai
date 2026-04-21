@@ -1,0 +1,9 @@
+<svg width="200" height="48" viewBox="0 0 200 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="48" height="48" rx="12" fill="#0F62FE"/>
+  <path d="M10 32 L18 22 L24 26 L34 14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="34" cy="14" r="3" fill="#42BE65"/>
+  <circle cx="10" cy="32" r="3" fill="#FF8389"/>
+  <path d="M36 32 L38 34 M36 36 L38 34 M40 34 L38 34" stroke="white" stroke-width="2" stroke-linecap="round"/>
+  <text x="58" y="20" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#0F62FE">Stock &amp; Forex</text>
+  <text x="58" y="38" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="white">Brokers</text>
+</svg>
