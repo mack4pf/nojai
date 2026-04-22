@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { EmailNotice } from "@/components/ui/email-notice";
 import { api, getPricingPlans, normalizeUserProfile } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, normalizeCurrencyCode } from "@/lib/utils";
 import type { PlanTier, UserProfile } from "@/types";
 
 interface VerifyResult {
@@ -92,6 +92,7 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
   });
 
   const safePricing = pricing.filter((plan): plan is typeof plan & { tier: PaidPlanTier } => isPaidPlanTier(plan.tier));
+  const getPlanCurrency = (currency?: string | null) => normalizeCurrencyCode(currency) ?? "USD";
   const normalizedSelectedPlan = String(selectedPlan ?? "").trim().toUpperCase();
   const currentPlanTier = profile?.subscription?.active ? profile?.subscription?.plan : "NONE";
 
@@ -182,6 +183,7 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
             const tier = plan.tier;
             const style = planStyles[tier];
             const Icon = style.icon;
+            const currency = getPlanCurrency(plan.currency);
             const isCurrent = currentPlanTier === tier;
             const isHighlighted = normalizedSelectedPlan === tier;
             const isLower = (PLAN_RANK[tier] ?? 0) < (PLAN_RANK[currentPlanTier] ?? 0);
@@ -210,7 +212,10 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                       {tier === "PRO" && !isCurrent && !isLocked ? <Badge>Popular</Badge> : null}
                       {isLocked ? <Badge variant="secondary">Locked</Badge> : null}
                     </div>
-                    <p className="mt-2 font-display text-3xl font-semibold">{formatCurrency(plan.price, plan.currency)}</p>
+                    <div className="mt-2 flex items-end gap-2">
+                      <p className="font-display text-3xl font-semibold">{formatCurrency(plan.price, currency)}</p>
+                      <span className="pb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{currency}</span>
+                    </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">every {plan.durationInDays} days</p>
                   </div>
                   <div className={`flex h-10 w-10 items-center justify-center rounded-xl border ${style.bg}`}>

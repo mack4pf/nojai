@@ -18,7 +18,7 @@ export function AdminPricingManager() {
 
   const mutation = useMutation({
     mutationFn: async (payload: { id: string; planKey: string; price: number }) =>
-      api.put(`/admin/pricing/${payload.planKey}`, { price: payload.price }),
+      api.put(`/admin/pricing/${payload.planKey}`, { priceUSD: payload.price }),
     onSuccess: () => {
       toast.success("Pricing updated");
       queryClient.invalidateQueries({ queryKey: queryKeys.pricing });
@@ -37,7 +37,11 @@ export function AdminPricingManager() {
             <Input
               type="number"
               defaultValue={plan.price}
-              onBlur={(event) => mutation.mutate({ id: plan._id, planKey: plan.planKey ?? plan.slug, price: Number(event.target.value) })}
+              onBlur={(event) => {
+                const nextPrice = Number(event.target.value);
+                if (!Number.isFinite(nextPrice) || nextPrice < 0) return;
+                mutation.mutate({ id: plan._id, planKey: plan.planKey ?? plan.slug, price: nextPrice });
+              }}
             />
             <p className="text-sm text-muted-foreground">Duration: {plan.durationInDays} days</p>
             <Button variant="outline" onClick={() => mutation.mutate({ id: plan._id, planKey: plan.planKey ?? plan.slug, price: plan.price })}>Save current value</Button>

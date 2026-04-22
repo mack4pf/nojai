@@ -20,9 +20,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { VideoResources } from "@/components/marketing/video-resources";
-import { WorkflowShowcase } from "@/components/marketing/workflow-showcase";
-import { academyLink, faqItems, featureList, howItWorks, publicPricingPlans } from "@/lib/marketing";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { academyLink, faqItems, featureList, publicPricingPlans } from "@/lib/marketing";
+import { formatCurrency, formatDate, normalizeCurrencyCode } from "@/lib/utils";
 import type { PricingPlan, Review } from "@/types";
 
 const brokerData: Array<{
@@ -128,9 +127,15 @@ interface LandingPageProps {
 
 export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
   const plansToShow = pricingPlans?.length ? pricingPlans : publicPricingPlans;
+
+  const getPlanCurrency = (currency?: string | null) => normalizeCurrencyCode(currency) ?? "USD";
+
   const pricingSummary = plansToShow
     .slice(0, 3)
-    .map((plan) => `${plan.name} ${formatCurrency(plan.price, plan.currency)}`)
+    .map((plan) => {
+      const currency = getPlanCurrency(plan.currency);
+      return `${plan.name} ${formatCurrency(plan.price, currency)} ${currency}`;
+    })
     .join(", ");
 
   return (
@@ -225,28 +230,16 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
         </Card>
       </section>
 
-      <WorkflowShowcase
-        eyebrow="How It Works"
-        title="From TradingView signal to IQ Option execution"
-        description="TradingView sends the signal, NOJAI checks it, and IQ Option places the trade while the dashboard shows the result."
-      />
-
-      <section id="features" className="mx-auto max-w-7xl px-6 py-8 lg:px-8 lg:py-10">
-        <div className="max-w-2xl">
-          <Badge variant="outline">Quick Breakdown</Badge>
-          <h2 className="mt-4 font-display text-4xl font-semibold tracking-tight">How the software works in 3 simple steps</h2>
-        </div>
-        <div className="mt-10 grid gap-6 lg:grid-cols-3">
-          {howItWorks.map((item) => (
-            <Card key={item.step}>
-              <CardHeader>
-                <Badge className="w-fit">{item.step}</Badge>
-                <CardTitle>{item.title}</CardTitle>
-                <CardDescription>{item.description}</CardDescription>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
+      <section className="mx-auto max-w-7xl px-6 py-6 lg:px-8 lg:py-8">
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/10 via-transparent to-accent/10">
+          <CardHeader>
+            <Badge variant="outline" className="w-fit">Our Strategy</Badge>
+            <CardTitle className="mt-2">Signal sourcing with instant execution</CardTitle>
+            <CardDescription className="max-w-3xl text-base leading-7">
+              Our strategy sources trades from one of the best charting platforms into NOJAI, and execution is then triggered instantly on your preferred broker.
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </section>
 
       <section className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
@@ -410,6 +403,7 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
             const cfg = planConfig[plan.tier as keyof typeof planConfig] ?? planConfig.PRO;
             const compareAt = cfg.compareAt;
             const Icon = cfg.icon;
+            const currency = getPlanCurrency(plan.currency);
 
             return (
               <div
@@ -449,14 +443,15 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                   <div className="mt-7">
                     <div className="flex items-end gap-3">
                       <p className="font-display text-6xl font-black text-white">
-                        {formatCurrency(plan.price, plan.currency)}
+                        {formatCurrency(plan.price, currency)}
                       </p>
+                      <span className="pb-2 text-xs font-bold uppercase tracking-[0.2em] text-white/70">{currency}</span>
                       <div className="pb-2">
-                        <p className="text-2xl font-semibold text-white/30 line-through">{formatCurrency(compareAt, plan.currency)}</p>
+                        <p className="text-2xl font-semibold text-white/30 line-through">{formatCurrency(compareAt, currency)}</p>
                       </div>
                     </div>
                     <p className="mt-2 text-sm" style={{ color: "#a8a8b3" }}>
-                      Every {plan.durationInDays} days · You save {formatCurrency(compareAt - plan.price, plan.currency)}
+                      Every {plan.durationInDays} days · You save {formatCurrency(compareAt - plan.price, currency)}
                     </p>
                   </div>
 
@@ -503,37 +498,6 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
         title="Watch the free course and free script walkthrough"
         description="Watch the free course and the free script setup here on the page."
       />
-
-      <section className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
-        <Card className="overflow-hidden border-primary/25 bg-gradient-to-br from-primary/10 via-transparent to-accent/10">
-          <div className="grid gap-8 p-6 lg:grid-cols-[0.9fr_1.1fr] lg:p-10">
-            <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-black/20 p-3">
-              <Image
-                src="/profile.jpg"
-                alt="Nathaniel Onoja"
-                width={960}
-                height={960}
-                className="h-full w-full rounded-[1.5rem] object-cover object-top"
-              />
-            </div>
-            <div className="flex flex-col justify-center">
-              <Badge variant="outline" className="w-fit">Founder</Badge>
-              <h2 className="mt-4 font-display text-4xl font-semibold tracking-tight">Built by Nathaniel Onoja</h2>
-              <p className="mt-4 max-w-2xl text-lg text-muted-foreground">
-                NOJAI was built to make automated trading easier to set up and manage.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-4">
-                <Button asChild>
-                  <Link href="/about">Read the full story</Link>
-                </Button>
-                <Button asChild variant="outline">
-                  <Link href="/contact">Contact us</Link>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </Card>
-      </section>
 
       <section className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
         <div className="max-w-2xl">
