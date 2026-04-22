@@ -25,9 +25,34 @@ import { contactChannels } from "@/lib/marketing";
 const icons = [Mail, UserCircle2, MessageCircleMore] as const;
 
 export default function ContactPage() {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://nojai.io";
+  const contactJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ContactPage",
+    name: "Contact NOJAI",
+    url: `${siteUrl}/contact`,
+    about: {
+      "@type": "Organization",
+      name: "NOJAI",
+      url: siteUrl,
+      contactPoint: [
+        {
+          "@type": "ContactPoint",
+          contactType: "customer support",
+          email: "support@nojai.app",
+          availableLanguage: ["English"],
+        },
+      ],
+    },
+  };
+
   return (
     <MarketingShell>
       <section className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(contactJsonLd) }}
+        />
         <div className="max-w-3xl">
           <Badge>Contact Us</Badge>
           <h1 className="mt-6 font-display text-5xl font-semibold tracking-tight sm:text-6xl">

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Space_Grotesk } from "next/font/google";
 
 import { AppProviders } from "@/components/providers/app-providers";
+import { WebVitalsReporter } from "@/components/providers/web-vitals-reporter";
 
 import "./globals.css";
 
@@ -89,6 +90,14 @@ export const metadata: Metadata = {
   alternates: {
     canonical: SITE_URL,
   },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION,
+    other: process.env.BING_SITE_VERIFICATION
+      ? {
+          "msvalidate.01": process.env.BING_SITE_VERIFICATION,
+        }
+      : undefined,
+  },
   category: "finance",
 };
 
@@ -144,7 +153,10 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full font-sans">
-        <AppProviders>{children}</AppProviders>
+        <AppProviders>
+          <WebVitalsReporter />
+          {children}
+        </AppProviders>
       </body>
     </html>
   );

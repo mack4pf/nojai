@@ -17,6 +17,10 @@ export function SiteFooter() {
           <Link href="/#brokers">Our Brokers</Link>
           <Link href="/about">About</Link>
           <Link href="/contact">Contact</Link>
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+          <Link href="/risk-disclosure">Risk</Link>
+          <Link href="/ai">AI</Link>
         </div>
       </div>
     </footer>

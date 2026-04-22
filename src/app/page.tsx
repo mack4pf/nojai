@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { LandingPage } from "@/components/marketing/landing-page";
 import { getPricingPlans, getPublicReviews } from "@/lib/api";
+import { faqItems } from "@/lib/marketing";
 import type { PricingPlan, Review } from "@/types";
 
 export const metadata: Metadata = {
@@ -110,11 +111,62 @@ export default async function Home() {
         : undefined,
   };
 
+  // Add high-intent SEO questions
+  const seoQuestions = [
+    {
+      question: "Need help to start trading?",
+      answer: "NOJAI makes it easy for beginners. Connect your broker, set your amount, and let the bot trade for you automatically.",
+    },
+    {
+      question: "How to become a profitable trader?",
+      answer: "Use automation, risk management, and copy trading features to improve your results. NOJAI helps you learn and earn at the same time.",
+    },
+    {
+      question: "How to copy trade expert traders?",
+      answer: "With NOJAI Pro and VIP plans, you can copy trades from top strategies and automate your trading 24/7.",
+    },
+    {
+      question: "What is a trading bot?",
+      answer: "A trading bot is software that executes trades for you based on your chosen strategy. NOJAI handles everything from signals to execution.",
+    },
+    {
+      question: "Need help?",
+      answer: "Our support team is available 24/7. Contact us anytime for setup or trading questions.",
+    },
+  ];
+
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      ...seoQuestions.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.answer,
+        },
+      })),
+      ...faqItems.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.answer,
+        },
+      })),
+    ],
+  };
+
   return (
     <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <LandingPage pricingPlans={pricingPlans} reviews={reviews} />
     </>

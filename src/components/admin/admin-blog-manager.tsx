@@ -32,6 +32,35 @@ const emptyPost: BlogFormValues = {
   published: true,
 };
 
+const seoBlogTemplate = `## Overview
+Explain the problem this article solves in simple terms.
+
+## Why this matters
+Describe the impact for users and what changes when this is done correctly.
+
+## Step-by-step setup
+1. Step one with exact action.
+2. Step two with exact action.
+3. Step three with exact action.
+
+## Common mistakes
+- Mistake one and how to avoid it.
+- Mistake two and how to avoid it.
+
+## Best practices
+- Clear, factual guidance.
+- Risk notes where needed.
+
+## FAQ
+### Question 1
+Answer with direct, concise details.
+
+### Question 2
+Answer with direct, concise details.
+
+## Conclusion
+Summarize key takeaways and next action.`;
+
 function toSlug(title: string) {
   return title
     .toLowerCase()
@@ -193,6 +222,15 @@ export function AdminBlogManager() {
             value={values.content}
             onChange={(e) => setValues((v) => ({ ...v, content: e.target.value }))}
           />
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setValues((v) => ({ ...v, content: v.content.trim() ? v.content : seoBlogTemplate }))}
+          >
+            Insert SEO content template
+          </Button>
 
           <label className="flex cursor-pointer items-center gap-3 text-sm text-foreground">
             <input

@@ -45,9 +45,46 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
   const course = await getCourse(params.slug).catch(() => null);
   if (!course) notFound();
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://nojai.io";
+  const courseUrl = `${siteUrl}/courses/${params.slug}`;
+  const courseJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    name: course.title,
+    description: course.description ?? `Learn from the NOJAI course: ${course.title}.`,
+    provider: {
+      "@type": "Organization",
+      name: "NOJAI",
+      sameAs: siteUrl,
+    },
+    url: courseUrl,
+    ...(course.coverImage ? { image: [course.coverImage] } : {}),
+    ...(course.accessType === "paid"
+      ? {
+          offers: {
+            "@type": "Offer",
+            category: "Paid",
+            price: Number(course.price ?? 0),
+            priceCurrency: String(course.currency ?? "USD").toUpperCase(),
+          },
+        }
+      : {
+          offers: {
+            "@type": "Offer",
+            category: "Free",
+            price: 0,
+            priceCurrency: "USD",
+          },
+        }),
+  };
+
   return (
     <MarketingShell>
       <section className="mx-auto max-w-4xl px-6 py-16 lg:px-8">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd) }}
+        />
         {/* Cover */}
         {course.coverImage && (
           <div className="mb-8 overflow-hidden rounded-3xl border border-white/10">

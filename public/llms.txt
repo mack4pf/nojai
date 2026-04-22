@@ -1,0 +1,22 @@
+# NOJAI
+
+NOJAI is an automated trading platform focused on broker connectivity, controlled execution, and dashboard-based plan access.
+
+Primary URLs:
+- https://nojai.io/
+- https://nojai.io/about
+- https://nojai.io/contact
+- https://nojai.io/courses
+- https://nojai.io/blog
+- https://nojai.io/pricing (pricing section on homepage)
+
+Trust URLs:
+- https://nojai.io/privacy
+- https://nojai.io/terms
+- https://nojai.io/risk-disclosure
+
+AI reference URL:
+- https://nojai.io/ai
+
+Sitemap:
+- https://nojai.io/sitemap.xml
