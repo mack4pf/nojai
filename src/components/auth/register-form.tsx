@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Eye, EyeOff, ArrowLeft, ChevronRight, Check,
   ExternalLink, Copy, Sparkles,
@@ -184,6 +184,15 @@ export function RegisterForm({ selectedPlan }: RegisterFormProps) {
   const [level, setLevel]   = useState<Level | null>(null);
   const [usage, setUsage]   = useState<Usage | null>(null);
 
+  // Affiliate code
+  const searchParams = useSearchParams();
+  const [affiliateCode, setAffiliateCode] = useState("");
+
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) setAffiliateCode(ref);
+  }, [searchParams]);
+
   const form = useForm<RegisterValues>({
     resolver: zodResolver(schema),
     defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
@@ -195,7 +204,12 @@ export function RegisterForm({ selectedPlan }: RegisterFormProps) {
       const res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName: values.name, email: values.email, password: values.password }),
+        body: JSON.stringify({
+          fullName: values.name,
+          email: values.email,
+          password: values.password,
+          affiliateCode: affiliateCode || undefined,
+        }),
       });
       const payload = await res.json().catch(() => null);
 
@@ -338,6 +352,15 @@ export function RegisterForm({ selectedPlan }: RegisterFormProps) {
               {errors.confirmPassword && <p className="text-xs text-danger">{errors.confirmPassword.message}</p>}
             </div>
 
+            <div className="space-y-1.5">
+              <Label htmlFor="affiliateCode">Have a referral code? (Optional)</Label>
+              <Input
+                id="affiliateCode"
+                placeholder="Enter referral code"
+                value={affiliateCode}
+                onChange={(e) => setAffiliateCode(e.target.value)}
+              />
+            </div>
             <Button type="submit" className="mt-2 w-full gap-2" disabled={isSubmitting}>
               {isSubmitting ? "Creating account…" : <><span>Continue</span><ChevronRight className="h-4 w-4" /></>}
             </Button>

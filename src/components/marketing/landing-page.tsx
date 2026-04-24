@@ -1,3 +1,5 @@
+"use client";
+import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -23,6 +25,7 @@ import { VideoResources } from "@/components/marketing/video-resources";
 import { academyLink, faqItems, featureList, publicPricingPlans } from "@/lib/marketing";
 import { formatCurrency, formatDate, normalizeCurrencyCode } from "@/lib/utils";
 import type { PricingPlan, Review } from "@/types";
+import { AffiliatePromoModal } from "@/components/modals/affiliate-promo-modal";
 
 const brokerData: Array<{
   name: string;
@@ -138,8 +141,17 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
     })
     .join(", ");
 
+
+  const [showAffiliateModal, setShowAffiliateModal] = React.useState(false);
+  React.useEffect(() => {
+    // Show the affiliate modal on first load (can add logic for only new users if needed)
+    setShowAffiliateModal(true);
+  }, []);
+
   return (
     <MarketingShell>
+      {/* Affiliate Promo Modal */}
+      <AffiliatePromoModal open={showAffiliateModal} onClose={() => setShowAffiliateModal(false)} />
       <section className="surface-grid relative overflow-hidden">
         <div className="mx-auto grid max-w-7xl gap-12 px-6 py-20 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-24">
           <div className="animate-fade-up">

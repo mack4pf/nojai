@@ -52,6 +52,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   review: Star,
   courses: GraduationCap,
   payments: Receipt,
+  affiliate: Users,
 };
 
 function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick?: () => void }) {
@@ -91,6 +92,17 @@ export function DashboardNav({ items, sessionName, roleLabel }: DashboardNavProp
   const bottomItemHrefs = new Set(bottomItems.map((item) => item.href));
   const drawerItems = items.filter((item) => !bottomItemHrefs.has(item.href));
 
+  // Add affiliate dashboard link if not present
+  const navItems = items.some((item) => item.href === "/dashboard/affiliate")
+    ? items
+    : [
+        ...items,
+        {
+          href: "/dashboard/affiliate",
+          label: "Affiliate",
+          icon: "affiliate",
+        },
+      ];
   return (
     <>
       {/* ── Mobile top bar (fixed at top) ── */}
@@ -193,7 +205,7 @@ export function DashboardNav({ items, sessionName, roleLabel }: DashboardNavProp
           </div>
 
           <nav className="flex-1 space-y-0.5 px-3">
-            {items.map((item) => (
+            {navItems.map((item) => (
               <NavLink key={item.href} item={item} active={currentPath === item.href} />
             ))}
           </nav>

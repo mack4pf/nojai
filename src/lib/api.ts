@@ -111,10 +111,19 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const data = error.response?.data;
     const message =
-      error.response?.data?.message ?? error.message ?? "Request failed";
+      (typeof data === "string" ? data : null)
+      ?? data?.message
+      ?? data?.error
+      ?? (Array.isArray(data?.errors) ? data.errors.map((e: any) => e?.msg ?? e).join(", ") : null)
+      ?? error.message
+      ?? "Request failed";
 
-    return Promise.reject(new Error(message));
+    const err = new Error(message) as any;
+    err.status = error.response?.status;
+    err.data = data;
+    return Promise.reject(err);
   },
 );
 

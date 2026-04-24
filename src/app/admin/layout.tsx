@@ -7,6 +7,7 @@ const items = [
   { href: "/admin/trades", label: "Trades", icon: "trades", mobileBottom: true },
   { href: "/admin/copy-trade", label: "Accounts", icon: "broker", mobileBottom: true },
   { href: "/admin/settings", label: "Settings", icon: "settings", mobileBottom: true },
+  { href: "/admin/affiliate", label: "Affiliate", icon: "plans" },
   { href: "/admin/pricing", label: "Pricing", icon: "plans" },
   { href: "/admin/bots", label: "Bots", icon: "broker" },
   { href: "/admin/access-codes", label: "Access Codes", icon: "plans" },
