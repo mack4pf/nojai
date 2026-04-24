@@ -10,6 +10,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const lockedItems = [
     { href: "/dashboard/subscription", label: "Choose a Plan", icon: "plans", badge: "Required", mobileBottom: true },
+    { href: "/dashboard/affiliate", label: "Affiliate", icon: "plans" },
   ];
 
   const activeItems = [
@@ -22,6 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard/webhook", label: "Webhook", icon: "webhook", badge: "VIP", locked: plan !== "VIP" },
     { href: "/dashboard/courses", label: "Courses", icon: "courses" },
     { href: "/dashboard/payments", label: "Payments", icon: "payments" },
+    { href: "/dashboard/affiliate", label: "Affiliate", icon: "plans" },
     { href: "/dashboard/settings", label: "Settings", icon: "settings" },
   ];
 

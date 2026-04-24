@@ -15,7 +15,10 @@ const items = [
   { href: "/admin/reviews", label: "Reviews", icon: "review" },
   { href: "/admin/signals", label: "Signals", icon: "trades" },
   { href: "/admin/payments", label: "Payments", icon: "plans" },
+  { href: "/admin/affiliates", label: "Affiliates", icon: "plans" },
   { href: "/admin/support", label: "Support", icon: "review" },
+  { href: "/admin/connected-accounts", label: "Broker Accounts", icon: "broker" },
+  { href: "/admin/logs", label: "System Logs", icon: "overview" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

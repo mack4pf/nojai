@@ -24,12 +24,12 @@ import { API_BASE_URL, api } from "@/lib/api";
 
 // Types
 type Source = "telegram" | "youtube" | "google" | "tiktok" | "ai" | "other";
-type HasIQ  = "yes" | "no";
-type Level  = "beginner" | "intermediate" | "expert";
-type Usage  = "full_auto" | "alongside" | "other";
+type HasIQ = "yes" | "no";
+type Level = "beginner" | "intermediate" | "expert";
+type Usage = "full_auto" | "alongside" | "other";
 
 // Constants
-const IQ_LINK    = "https://affiliate.iqoption.net/redir/?aff=785369&aff_model=revenue&afftrack=";
+const IQ_LINK = "https://affiliate.iqoption.net/redir/?aff=785369&aff_model=revenue&afftrack=";
 const BONUS_CODE = "Niels100";
 
 // SVG logos
@@ -90,32 +90,32 @@ function OtherLogo({ size = 28 }: { size?: number }) {
 
 // Survey data
 const SOURCES: { value: Source; label: string; sub: string; Logo: React.FC<{ size?: number }> }[] = [
-  { value: "telegram", label: "Telegram",     sub: "Channel or group",  Logo: TelegramLogo },
-  { value: "youtube",  label: "YouTube",      sub: "Video or ad",       Logo: YouTubeLogo  },
-  { value: "google",   label: "Google",       sub: "Search or ad",      Logo: GoogleLogo   },
-  { value: "tiktok",   label: "TikTok",       sub: "Video or ad",       Logo: TikTokLogo   },
-  { value: "ai",       label: "ChatGPT / AI", sub: "AI recommendation", Logo: OpenAILogo   },
-  { value: "other",    label: "Other",        sub: "Word of mouth etc", Logo: OtherLogo    },
+  { value: "telegram", label: "Telegram", sub: "Channel or group", Logo: TelegramLogo },
+  { value: "youtube", label: "YouTube", sub: "Video or ad", Logo: YouTubeLogo },
+  { value: "google", label: "Google", sub: "Search or ad", Logo: GoogleLogo },
+  { value: "tiktok", label: "TikTok", sub: "Video or ad", Logo: TikTokLogo },
+  { value: "ai", label: "ChatGPT / AI", sub: "AI recommendation", Logo: OpenAILogo },
+  { value: "other", label: "Other", sub: "Word of mouth etc", Logo: OtherLogo },
 ];
 
 const LEVELS: { value: Level; label: string; desc: string; emoji: string }[] = [
-  { value: "beginner",     emoji: "🌱", label: "Beginner",     desc: "New to trading or just getting started."     },
-  { value: "intermediate", emoji: "📈", label: "Intermediate", desc: "I've traded before and know the basics."     },
-  { value: "expert",       emoji: "⚡",    label: "Expert",       desc: "I trade regularly and know strategies well." },
+  { value: "beginner", emoji: "🌱", label: "Beginner", desc: "New to trading or just getting started." },
+  { value: "intermediate", emoji: "📈", label: "Intermediate", desc: "I've traded before and know the basics." },
+  { value: "expert", emoji: "⚡", label: "Expert", desc: "I trade regularly and know strategies well." },
 ];
 
 const USAGE_OPTIONS: { value: Usage; label: string; desc: string; emoji: string }[] = [
-  { value: "full_auto", emoji: "🤖", label: "Full Automation",  desc: "Let the bot handle all trades for me."   },
-  { value: "alongside", emoji: "🤝", label: "Trade Alongside",  desc: "I'll also place my own trades manually." },
-  { value: "other",     emoji: "🤔", label: "Still Deciding",   desc: "I'll figure it out as I go."             },
+  { value: "full_auto", emoji: "🤖", label: "Full Automation", desc: "Let the bot handle all trades for me." },
+  { value: "alongside", emoji: "🤝", label: "Trade Alongside", desc: "I'll also place my own trades manually." },
+  { value: "other", emoji: "🤔", label: "Still Deciding", desc: "I'll figure it out as I go." },
 ];
 
 // Schema
 const schema = z
   .object({
-    name:            z.string().min(2, "Name must be at least 2 characters"),
-    email:           z.string().email("Invalid email"),
-    password:        z.string().min(6, "Password must be at least 6 characters"),
+    name: z.string().min(2, "Name must be at least 2 characters"),
+    email: z.string().email("Invalid email"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string().min(6),
   })
   .refine((v) => v.password === v.confirmPassword, {
@@ -163,26 +163,27 @@ function OptionTile({
 
 interface RegisterFormProps {
   selectedPlan?: string;
+  referralCode?: string;
 }
 
-export function RegisterForm({ selectedPlan }: RegisterFormProps) {
+export function RegisterForm({ selectedPlan, referralCode }: RegisterFormProps) {
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm]   = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  const [phase, setPhase]           = useState<"register" | "onboarding">("register");
+  const [phase, setPhase] = useState<"register" | "onboarding">("register");
   const [surveyStep, setSurveyStep] = useState(1);
-  const [userName, setUserName]     = useState("");
+  const [userName, setUserName] = useState("");
   const [isNavigating, setIsNavigating] = useState(false);
 
   const [registeredEmail, setRegisteredEmail] = useState("");
 
   const [source, setSource] = useState<Source | null>(null);
-  const [hasIQ, setHasIQ]   = useState<HasIQ | null>(null);
-  const [level, setLevel]   = useState<Level | null>(null);
-  const [usage, setUsage]   = useState<Usage | null>(null);
+  const [hasIQ, setHasIQ] = useState<HasIQ | null>(null);
+  const [level, setLevel] = useState<Level | null>(null);
+  const [usage, setUsage] = useState<Usage | null>(null);
 
   const form = useForm<RegisterValues>({
     resolver: zodResolver(schema),
@@ -195,7 +196,7 @@ export function RegisterForm({ selectedPlan }: RegisterFormProps) {
       const res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName: values.name, email: values.email, password: values.password }),
+        body: JSON.stringify({ fullName: values.name, email: values.email, password: values.password, referralCode }),
       });
       const payload = await res.json().catch(() => null);
 
@@ -232,9 +233,9 @@ export function RegisterForm({ selectedPlan }: RegisterFormProps) {
     try {
       await api.post("/user/onboarding-survey", {
         referralSource: source,
-        hasIQAccount:   hasIQ === "yes",
-        tradingLevel:   level,
-        botUsage:       usage,
+        hasIQAccount: hasIQ === "yes",
+        tradingLevel: level,
+        botUsage: usage,
       });
     } catch {
       // Don't block navigation if survey fails

@@ -167,8 +167,13 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                 <Link href="/about">How it works</Link>
               </Button>
             </div>
-            <div className="mt-8 inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-5 py-2 text-sm font-medium text-primary">
-              Registration is free. Current plan pricing: {pricingSummary}.
+            <div className="mt-8 flex flex-col gap-3 items-start sm:flex-row sm:items-center">
+              <div className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-5 py-2 text-sm font-medium text-primary">
+                Registration is free. Current plan pricing: {pricingSummary}.
+              </div>
+              <div className="inline-flex items-center rounded-full border border-green-500/30 bg-green-500/10 px-5 py-2 text-sm font-medium text-green-500">
+                <Sparkles className="mr-2 h-4 w-4" /> Start making up to $500 monthly with NOJAI Affiliate program
+              </div>
             </div>
             <div className="mt-10 grid gap-4 sm:grid-cols-3">
               {[

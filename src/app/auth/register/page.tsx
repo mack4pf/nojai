@@ -8,6 +8,7 @@ import { authOptions } from "@/lib/auth";
 interface RegisterPageProps {
   searchParams?: {
     plan?: string;
+    ref?: string;
   };
 }
 
@@ -19,6 +20,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
   }
 
   const selectedPlan = searchParams?.plan;
+  const referralCode = searchParams?.ref;
 
   return (
     <MarketingShell>
@@ -31,7 +33,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
               Create an account first, then continue into your dashboard to activate the plan you selected.
             </p>
           </div>
-          <RegisterForm selectedPlan={selectedPlan} />
+          <RegisterForm selectedPlan={selectedPlan} referralCode={referralCode} />
         </div>
       </section>
     </MarketingShell>
