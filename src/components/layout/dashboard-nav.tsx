@@ -18,6 +18,15 @@ import {
   X,
   GraduationCap,
   Receipt,
+  TrendingUp,
+  Bot,
+  Key,
+  FileText,
+  Zap,
+  Wallet,
+  Network,
+  MessageSquare,
+  Terminal,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -52,6 +61,15 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   review: Star,
   courses: GraduationCap,
   payments: Receipt,
+  trending: TrendingUp,
+  bot: Bot,
+  key: Key,
+  document: FileText,
+  zap: Zap,
+  wallet: Wallet,
+  network: Network,
+  message: MessageSquare,
+  terminal: Terminal,
 };
 
 function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick?: () => void }) {
