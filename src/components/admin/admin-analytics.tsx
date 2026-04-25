@@ -49,6 +49,17 @@ interface AnalyticsResponse {
   profitabilityData: AnalyticsDataPoint[];
   revenueData: AnalyticsDataPoint[];
   tradesData: AnalyticsDataPoint[];
+  summary: {
+    totalWon: number;
+    totalLost: number;
+    totalBuys: number;
+    totalSells: number;
+    totalTradeProfit: number;
+    totalTradeLoss: number;
+    winRate: number;
+    signals: { vipSignals: number; proSignals: number; totalExecuted: number; totalFailed: number; totalSkipped: number; buySignals: number; sellSignals: number };
+    revenue: { vip: number; pro: number; standard: number; total: number };
+  };
 }
 
 export function AdminAnalytics() {
@@ -63,6 +74,7 @@ export function AdminAnalytics() {
   const profitabilityData = data?.profitabilityData || [];
   const revenueData = data?.revenueData || [];
   const tradesData = data?.tradesData || [];
+  const summary = data?.summary;
 
   const COLORS = ["#00C49F", "#FF8042", "#0088FE", "#FFBB28"];
 
@@ -232,22 +244,22 @@ export function AdminAnalytics() {
         </TabsList>
 
         <TabsContent value="profitability" className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Total User Profit (Timeframe)</p>
-              <div className="mt-3 flex items-center gap-3">
-                <p className="font-display text-4xl font-bold text-foreground">
-                  {formatCurrency(profitabilityData.reduce((acc, curr) => acc + curr.value, 0))}
-                </p>
-              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Total User Profit</p>
+              <p className="mt-3 font-display text-4xl font-bold text-foreground">
+                {formatCurrency(summary?.totalTradeProfit ?? 0)}
+              </p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Admin Account Profit (Timeframe)</p>
-              <div className="mt-3 flex items-center gap-3">
-                <p className="font-display text-4xl font-bold text-foreground">
-                  {formatCurrency(profitabilityData.reduce((acc, curr) => acc + curr.secondary, 0))}
-                </p>
-              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Win Rate</p>
+              <p className="mt-3 font-display text-4xl font-bold text-emerald-400">{summary?.winRate ?? 0}%</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Total Loss</p>
+              <p className="mt-3 font-display text-4xl font-bold text-red-400">
+                {formatCurrency(summary?.totalTradeLoss ?? 0)}
+              </p>
             </div>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
@@ -257,22 +269,18 @@ export function AdminAnalytics() {
         </TabsContent>
 
         <TabsContent value="revenue" className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">VIP Subs Revenue (Timeframe)</p>
-              <div className="mt-3 flex items-center gap-3">
-                <p className="font-display text-3xl font-bold text-foreground">
-                  {formatCurrency(revenueData.reduce((acc, curr) => acc + curr.value, 0))}
-                </p>
-              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">VIP Revenue</p>
+              <p className="mt-3 font-display text-3xl font-bold text-foreground">{formatCurrency(summary?.revenue.vip ?? 0)}</p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">PRO Subs Revenue (Timeframe)</p>
-              <div className="mt-3 flex items-center gap-3">
-                <p className="font-display text-3xl font-bold text-foreground">
-                  {formatCurrency(revenueData.reduce((acc, curr) => acc + curr.secondary, 0))}
-                </p>
-              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">PRO Revenue</p>
+              <p className="mt-3 font-display text-3xl font-bold text-foreground">{formatCurrency(summary?.revenue.pro ?? 0)}</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Total Revenue</p>
+              <p className="mt-3 font-display text-3xl font-bold text-foreground">{formatCurrency(summary?.revenue.total ?? 0)}</p>
             </div>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
@@ -282,22 +290,39 @@ export function AdminAnalytics() {
         </TabsContent>
 
         <TabsContent value="trades" className="space-y-6">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Winning Trades (Timeframe)</p>
-              <div className="mt-3 flex items-center justify-between">
-                <p className="font-display text-4xl font-bold text-emerald-400">
-                  {tradesData.reduce((acc, curr) => acc + curr.value, 0)}
-                </p>
-              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Won</p>
+              <p className="mt-3 font-display text-4xl font-bold text-emerald-400">{summary?.totalWon ?? 0}</p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Losing Trades (Timeframe)</p>
-              <div className="mt-3 flex items-center justify-between">
-                <p className="font-display text-4xl font-bold text-red-400">
-                  {tradesData.reduce((acc, curr) => acc + curr.secondary, 0)}
-                </p>
-              </div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Lost</p>
+              <p className="mt-3 font-display text-4xl font-bold text-red-400">{summary?.totalLost ?? 0}</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Buys (Call)</p>
+              <p className="mt-3 font-display text-4xl font-bold text-foreground">{summary?.totalBuys ?? 0}</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Sells (Put)</p>
+              <p className="mt-3 font-display text-4xl font-bold text-foreground">{summary?.totalSells ?? 0}</p>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">VIP Signals</p>
+              <p className="mt-3 font-display text-3xl font-bold text-foreground">{summary?.signals.vipSignals ?? 0}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{summary?.signals.buySignals ?? 0} buy · {summary?.signals.sellSignals ?? 0} sell</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">PRO Signals</p>
+              <p className="mt-3 font-display text-3xl font-bold text-foreground">{summary?.signals.proSignals ?? 0}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{summary?.signals.totalExecuted ?? 0} executed · {summary?.signals.totalFailed ?? 0} failed</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Signal Delivery</p>
+              <p className="mt-3 font-display text-3xl font-bold text-foreground">{summary?.signals.totalExecuted ?? 0}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{summary?.signals.totalSkipped ?? 0} skipped</p>
             </div>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
