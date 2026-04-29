@@ -308,7 +308,9 @@ export function AffiliateDashboard() {
           </label>
           <div className="flex items-center gap-2 bg-black/40 rounded-lg p-1.5 border border-white/10 overflow-hidden">
             <code className="flex-1 text-sm px-3 text-white/90 truncate select-all">
-              {referralLink || "Generating your link..."}
+              {referralLink ? referralLink : (
+                <span className="inline-block h-4 w-48 animate-pulse rounded bg-white/10" />
+              )}
             </code>
             <Button size="sm" onClick={handleCopyLink} disabled={!referralLink} className="shrink-0 gap-1.5 min-w-[90px]">
               {copiedLink ? <><CheckCircle2 className="h-3.5 w-3.5" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy Link</>}

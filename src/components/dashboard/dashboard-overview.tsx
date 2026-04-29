@@ -69,12 +69,13 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
     queryFn: async () => (await api.get("/user/bot-status")).data as BotStatusResponse,
   });
 
-  interface ReturnsEntry { currency: string; totalProfit: number; wonCount: number; lostCount: number; totalTrades: number; winRate: number; }
-  interface ReturnsResponse { totalTrades: number; wonCount: number; lostCount: number; winRate: number; byCurrency: ReturnsEntry[]; }
+  interface ReturnsAccount { currency: string; totalProfit: number; wonCount: number; lostCount: number; totalTrades: number; winRate: number; }
+  interface ReturnsResponse { totalTrades: number; wonCount: number; lostCount: number; winRate: number; totalProfit: number; grossWinnings: number; grossLosses: number; totalInvested: number; byAccount: ReturnsAccount[]; }
   const { data: returns } = useQuery({
     queryKey: ["user-returns"],
     queryFn: async () => (await api.get("/user/returns")).data as ReturnsResponse,
   });
+
 
   // On payment success, force a fresh fetch so the UI reflects the new subscription immediately.
   useEffect(() => {
@@ -95,14 +96,35 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
     ? formatCurrencyBreakdown(connectedAccounts.map((account) => ({ currency: account.currency, amount: account.balance })))
     : null;
 
+  // #2 — Auto-updating balance: poll /api/user/balance-sync every 30s
+  useQuery({
+    queryKey: ["balance-sync"],
+    queryFn: async () => {
+      const res = await api.get("/user/balance-sync");
+      const synced = res.data as { accounts: Array<{ email: string; balance: number; currency: string; accountType: string; lastConnected: string }> };
+      // Merge live balances into the botStatus cache
+      queryClient.setQueryData(queryKeys.botStatus, (old: BotStatusResponse | undefined) => {
+        if (!old) return old;
+        const updatedAccounts = (old.iqAccounts ?? (old.iqAccount ? [old.iqAccount] : [])).map((acc) => {
+          const live = synced.accounts.find((s) => s.email === acc.email && s.accountType === acc.accountType);
+          return live ? { ...acc, balance: live.balance, lastConnected: live.lastConnected } : acc;
+        });
+        return { ...old, iqAccounts: updatedAccounts };
+      });
+      return synced;
+    },
+    refetchInterval: 30_000,
+    enabled: hasIq,
+  });
+
   // Compute account growth from total profit vs starting balance
   const accountGrowthPercent = (() => {
     if (!hasIq || !returns) return 0;
-    const totalProfit = returns.byCurrency.reduce((sum, e) => sum + e.totalProfit, 0);
+    const netProfit = returns.totalProfit;
     const currentBalance = connectedAccounts.reduce((sum, a) => sum + (a.balance ?? 0), 0);
-    const startingBalance = currentBalance - totalProfit;
-    if (startingBalance <= 0 || totalProfit <= 0) return 0;
-    return (totalProfit / startingBalance) * 100;
+    const startingBalance = currentBalance - netProfit;
+    if (startingBalance <= 0 || netProfit <= 0) return 0;
+    return (netProfit / startingBalance) * 100;
   })();
 
   return (
@@ -225,10 +247,10 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
               ? `${returns.wonCount}W / ${returns.lostCount}L · ${returns.totalTrades} trades`
               : "No closed trades yet"}
           </p>
-          {returns && returns.byCurrency.length > 0 && (
+          {returns && returns.byAccount.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
-              {returns.byCurrency.map((entry) => (
-                <span key={entry.currency} className={`text-[10px] font-semibold ${entry.totalProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+              {returns.byAccount.map((entry, idx) => (
+                <span key={`${entry.currency}-${idx}`} className={`text-[10px] font-semibold ${entry.totalProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                   {formatSignedCurrency(entry.totalProfit, entry.currency)}
                 </span>
               ))}

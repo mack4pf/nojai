@@ -44,7 +44,7 @@ function isOverride(accountSteps: number[], defaultSteps: number[]): boolean {
 export function VipMartingaleSettings() {
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isError } = useQuery<MartingaleData>({
+  const { data, isLoading, isError, refetch } = useQuery<MartingaleData>({
     queryKey: ["user-martingale"],
     queryFn: async () => (await api.get("/user/martingale")).data,
   });
@@ -112,9 +112,14 @@ export function VipMartingaleSettings() {
 
   if (isError || !data) {
     return (
-      <p className="text-xs text-muted-foreground py-4">
-        Could not load martingale settings. Make sure you have an active subscription.
-      </p>
+      <div className="flex flex-col items-center gap-3 py-6">
+        <p className="text-xs text-muted-foreground">
+          Could not load martingale settings. Make sure you have an active subscription.
+        </p>
+        <Button size="sm" variant="outline" onClick={() => refetch()} className="gap-1.5">
+          <RotateCcw className="h-3 w-3" /> Try Again
+        </Button>
+      </div>
     );
   }
 

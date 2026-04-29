@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { Copy, Lock, Plus, Trash2, Webhook as WebhookIcon } from "lucide-react";
@@ -86,7 +86,7 @@ export function WebhookCard() {
 
   const messageTemplate =
     webhooks[0]?.message ??
-    JSON.stringify({ ticker: "{{ticker}}", signal: "{{strategy.order.action}}", time: 60 });
+    JSON.stringify({ ticker: "{{ticker}}", signal: "{{strategy.order.action}}", time: 300 });
 
   return (
     <div className="space-y-6">
