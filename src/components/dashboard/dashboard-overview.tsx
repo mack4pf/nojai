@@ -247,13 +247,11 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
               ? `${returns.wonCount}W / ${returns.lostCount}L · ${returns.totalTrades} trades`
               : "No closed trades yet"}
           </p>
-          {returns && returns.byAccount.length > 0 && (
+          {returns && (
             <div className="mt-2 flex flex-wrap gap-2">
-              {returns.byAccount.map((entry, idx) => (
-                <span key={`${entry.currency}-${idx}`} className={`text-[10px] font-semibold ${entry.totalProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                  {formatSignedCurrency(entry.totalProfit, entry.currency)}
-                </span>
-              ))}
+              <span className={`text-[10px] font-semibold ${returns.totalProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                {formatSignedCurrency(returns.totalProfit, iqAccount?.currency || "USD")}
+              </span>
             </div>
           )}
         </div>

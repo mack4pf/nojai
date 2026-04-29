@@ -284,7 +284,7 @@ export function AffiliateDashboard() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">Affiliate Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Earn up to $500 monthly by sharing NOJAI with your friends.</p>
+          <p className="text-sm text-muted-foreground mt-1">Earn ₦9,000 to ₦20,000 per referral, and also earn $6 to $14 by referring friends.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => { refetchDashboard(); refetchPayouts(); }} className="gap-2">

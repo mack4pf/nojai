@@ -39,14 +39,16 @@ export function formatCurrency(value: number, currency?: string | null) {
     }).format(amount);
   }
 
+  const locale = code === "NGN" ? "en-NG" : "en-US";
+
   try {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat(locale, {
       style: "currency",
       currency: code,
       maximumFractionDigits: 2,
     }).format(amount);
   } catch {
-    return `${code} ${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(amount)}`;
+    return `${code} ${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(amount)}`;
   }
 }
 
