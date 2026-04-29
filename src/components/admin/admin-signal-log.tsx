@@ -45,7 +45,7 @@ interface SignalsResponse {
 }
 
 function getMartingaleLabel(results: SignalResultSummary[]): string {
-  const steps = results
+  const steps = (results || [])
     .filter((r) => typeof r.martingaleStep === "number")
     .map((r) => r.martingaleStep as number);
 
@@ -287,7 +287,7 @@ export function AdminSignalLog() {
                                 <span className="text-[10px] text-muted-foreground font-mono">ID: {signal.dispatchId}</span>
                               </div>
                               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                                {signal.results.map((res, i) => (
+                                {signal.results?.map((res, i) => (
                                   <div
                                     key={i}
                                     className={`rounded-lg border p-2.5 text-xs ${

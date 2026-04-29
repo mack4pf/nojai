@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 import { io, type Socket } from "socket.io-client";
 import { toast } from "sonner";
 
-import { SOCKET_PROXY_PATH } from "@/lib/api";
+import { SOCKET_PROXY_PATH, SERVER_API_BASE_URL } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import type { IQAccount } from "@/types";
 
@@ -21,12 +21,17 @@ export function useDashboardSocket(enabled = true) {
   useEffect(() => {
     if (!enabled || !session?.accessToken) return;
 
-    socket = io({
+    // Use absolute URL for the socket in production to bypass Next.js rewrite limitations for WebSockets
+    const socketUrl = typeof window !== "undefined" && window.location.hostname !== "localhost"
+      ? SERVER_API_BASE_URL.replace(/\/api$/, "")
+      : undefined;
+
+    socket = io(socketUrl, {
       path: SOCKET_PROXY_PATH,
       auth: {
         token: session.accessToken,
       },
-      transports: ["websocket"],
+      transports: ["polling", "websocket"],
       reconnectionAttempts: 10,
     });
 
@@ -59,7 +64,10 @@ export function useDashboardSocket(enabled = true) {
       // Update the user's balance in the UI
       queryClient.setQueryData<{ iqAccounts: any[]; iqAccount: any }>(queryKeys.botStatus, (old) => {
         if (!old) return old;
-        const updatedAccounts = (old.iqAccounts ?? (old.iqAccount ? [old.iqAccount] : [])).map((acc: { email: string }) => {
+        const currentAccounts = old.iqAccounts ?? (old.iqAccount ? [old.iqAccount] : []);
+        if (!currentAccounts.length) return old;
+
+        const updatedAccounts = currentAccounts.map((acc: { email: string }) => {
           const isMatch = data.account ? acc.email === data.account : true;
           return isMatch ? { ...acc, balance: data.balance } : acc;
         });

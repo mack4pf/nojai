@@ -299,7 +299,9 @@ export function AffiliateDashboard() {
       <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-r from-primary/10 to-transparent p-6 space-y-4">
         <div>
           <h3 className="text-lg font-medium text-primary">Your Referral Link</h3>
-          <p className="text-sm text-muted-foreground">Share this link or code to earn commission on every new user who signs up.</p>
+          <p className="text-sm text-muted-foreground">
+            Share this link to earn ₦9,000 – ₦20,000 or $6 – $14 per referral.
+          </p>
         </div>
         <div className="space-y-1.5">
           <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">

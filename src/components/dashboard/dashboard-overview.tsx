@@ -71,8 +71,8 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
     queryFn: async () => (await api.get("/user/bot-status")).data as BotStatusResponse,
   });
 
-  interface ReturnsEntry { currency: string; totalProfit: number; wonCount: number; lostCount: number; totalTrades: number; winRate: number; }
-  interface ReturnsResponse { totalTrades: number; wonCount: number; lostCount: number; winRate: number; byCurrency: ReturnsEntry[]; }
+  interface ReturnsAccount { currency: string; totalProfit: number; wonCount: number; lostCount: number; totalTrades: number; winRate: number; }
+  interface ReturnsResponse { totalProfit: number; totalTrades: number; wonCount: number; lostCount: number; winRate: number; byAccount: ReturnsAccount[]; }
   const { data: returns } = useQuery({
     queryKey: ["user-returns"],
     queryFn: async () => (await api.get("/user/returns")).data as ReturnsResponse,
@@ -100,7 +100,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
   // Compute account growth from total profit vs starting balance
   const accountGrowthPercent = (() => {
     if (!hasIq || !returns) return 0;
-    const totalProfit = returns.byCurrency.reduce((sum, e) => sum + e.totalProfit, 0);
+    const totalProfit = returns.totalProfit ?? (returns.byAccount || []).reduce((sum, e) => sum + e.totalProfit, 0);
     const currentBalance = connectedAccounts.reduce((sum, a) => sum + (a.balance ?? 0), 0);
     const startingBalance = currentBalance - totalProfit;
     if (startingBalance <= 0 || totalProfit <= 0) return 0;
@@ -236,9 +236,9 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
               ? `${returns.wonCount}W / ${returns.lostCount}L · ${returns.totalTrades} trades`
               : "No closed trades yet"}
           </p>
-          {returns && returns.byCurrency.length > 0 && (
+          {returns && (returns.byAccount || []).length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
-              {returns.byCurrency.map((entry) => (
+              {(returns.byAccount || []).map((entry) => (
                 <span key={entry.currency} className={`text-[10px] font-semibold ${entry.totalProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                   {formatSignedCurrency(entry.totalProfit, entry.currency)}
                 </span>

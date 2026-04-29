@@ -172,7 +172,7 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                 Registration is free. Current plan pricing: {pricingSummary}.
               </div>
               <div className="inline-flex items-center rounded-full border border-green-500/30 bg-green-500/10 px-5 py-2 text-sm font-medium text-green-500">
-                <Sparkles className="mr-2 h-4 w-4" /> Start making up to $500 monthly with NOJAI Affiliate program
+                <Sparkles className="mr-2 h-4 w-4" /> Earn ₦9k to ₦20k or $6 to $14 per friend with NOJAI Affiliate
               </div>
             </div>
             <div className="mt-10 grid gap-4 sm:grid-cols-3">

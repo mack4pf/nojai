@@ -135,7 +135,7 @@ export default async function Home() {
     },
     {
       question: "How to start earning money as a content creator or influencer?",
-      answer: "Join the NOJAI Affiliate Program! You can start making up to $500 monthly by sharing your unique referral link with your audience. It's the perfect way to earn money as a content creator or influencer.",
+      answer: "Join the NOJAI Affiliate Program! You can earn between ₦9,000 to ₦20,000 per referral in Nigeria, or $6, $10, and up to $14 for international referrals. It's the perfect way for content creators and influencers to earn consistent income.",
     },
   ];
 
