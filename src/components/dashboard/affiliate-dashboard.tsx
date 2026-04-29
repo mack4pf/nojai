@@ -124,9 +124,8 @@ function BankSearchDropdown({
                   key={bank.code}
                   type="button"
                   onClick={() => { onSelect(bank); setOpen(false); setSearch(""); }}
-                  className={`flex w-full items-center px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/[0.06] ${
-                    bank.code === selectedCode ? "bg-primary/10 text-primary font-medium" : "text-foreground"
-                  }`}
+                  className={`flex w-full items-center px-3 py-2.5 text-left text-sm transition-colors hover:bg-white/[0.06] ${bank.code === selectedCode ? "bg-primary/10 text-primary font-medium" : "text-foreground"
+                    }`}
                 >
                   {bank.name}
                 </button>
@@ -284,14 +283,14 @@ export function AffiliateDashboard() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground">Affiliate Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">Earn ₦9,000 to ₦20,000 per referral, and also earn $6 to $14 by referring friends.</p>
+          <p className="text-sm text-muted-foreground mt-1">Earn up to $500 monthly by sharing NOJAI with your friends.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => { refetchDashboard(); refetchPayouts(); }} className="gap-2">
             <RefreshCw className="h-4 w-4" /> Refresh
           </Button>
           <Button onClick={() => setShowPayoutForm(!showPayoutForm)} className="gap-2">
-            Request Payout {showPayoutForm ? <ChevronUp className="h-4 w-4"/> : <ChevronDown className="h-4 w-4"/>}
+            Request Payout {showPayoutForm ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
         </div>
       </div>
@@ -308,9 +307,7 @@ export function AffiliateDashboard() {
           </label>
           <div className="flex items-center gap-2 bg-black/40 rounded-lg p-1.5 border border-white/10 overflow-hidden">
             <code className="flex-1 text-sm px-3 text-white/90 truncate select-all">
-              {referralLink ? referralLink : (
-                <span className="inline-block h-4 w-48 animate-pulse rounded bg-white/10" />
-              )}
+              {referralLink || "Generating your link..."}
             </code>
             <Button size="sm" onClick={handleCopyLink} disabled={!referralLink} className="shrink-0 gap-1.5 min-w-[90px]">
               {copiedLink ? <><CheckCircle2 className="h-3.5 w-3.5" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy Link</>}
@@ -373,7 +370,7 @@ export function AffiliateDashboard() {
             <h3 className="text-lg font-medium text-foreground">Request Payout</h3>
             <p className="text-sm text-muted-foreground">Withdraw your available balance. Minimum $5 for Crypto.</p>
           </div>
-          
+
           <form onSubmit={handlePayoutSubmit} className="space-y-4">
             <div className="flex gap-3">
               <Button type="button" variant={payoutMethod === "wallet" ? "default" : "outline"} onClick={() => setPayoutMethod("wallet")}>
@@ -387,14 +384,14 @@ export function AffiliateDashboard() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Amount ({payoutMethod === "wallet" ? "USD" : "NGN"})</Label>
-                <Input 
-                  type="number" 
-                  step="0.01" 
-                  min={payoutMethod === "wallet" ? 5 : 1000} 
-                  required 
-                  value={amount} 
-                  onChange={(e) => setAmount(e.target.value)} 
-                  placeholder={payoutMethod === "wallet" ? "Min $5" : "Min ₦1000"} 
+                <Input
+                  type="number"
+                  step="0.01"
+                  min={payoutMethod === "wallet" ? 5 : 1000}
+                  required
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder={payoutMethod === "wallet" ? "Min $5" : "Min ₦1000"}
                 />
               </div>
 
@@ -412,11 +409,10 @@ export function AffiliateDashboard() {
                           key={net.value}
                           type="button"
                           onClick={() => setWalletNetwork(net.value)}
-                          className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
-                            walletNetwork === net.value
+                          className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${walletNetwork === net.value
                               ? "border-primary bg-primary/15 text-primary"
                               : "border-white/10 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground"
-                          }`}
+                            }`}
                         >
                           {net.label}
                         </button>
@@ -500,7 +496,7 @@ export function AffiliateDashboard() {
           <h3 className="text-lg font-medium text-foreground">Payout History</h3>
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] overflow-hidden">
             {isLoadingPayouts ? (
-               <div className="p-8 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+              <div className="p-8 flex justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
             ) : payoutsData.length === 0 ? (
               <div className="p-8 text-center text-sm text-muted-foreground">No payouts requested yet.</div>
             ) : (
@@ -520,16 +516,15 @@ export function AffiliateDashboard() {
                         {formatCurrency(payout.amount, payout.currency)} <span className="text-xs text-muted-foreground uppercase">({payout.method})</span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <span className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${
-                          payout.status === 'approved' ? 'bg-blue-500/15 text-blue-300' :
-                          payout.status === 'paid' ? 'bg-emerald-500/15 text-emerald-300' :
-                          payout.status === 'rejected' ? 'bg-red-500/15 text-red-300' :
-                          'bg-amber-500/15 text-amber-300'
-                        }`}>
+                        <span className={`inline-flex items-center rounded-lg px-2 py-0.5 text-xs font-semibold ${payout.status === 'approved' ? 'bg-blue-500/15 text-blue-300' :
+                            payout.status === 'paid' ? 'bg-emerald-500/15 text-emerald-300' :
+                              payout.status === 'rejected' ? 'bg-red-500/15 text-red-300' :
+                                'bg-amber-500/15 text-amber-300'
+                          }`}>
                           {payout.status === 'pending' ? 'Awaiting Approval' :
-                           payout.status === 'approved' ? 'Processing' :
-                           payout.status === 'paid' ? 'Paid ✓' :
-                           'Rejected'}
+                            payout.status === 'approved' ? 'Processing' :
+                              payout.status === 'paid' ? 'Paid ✓' :
+                                'Rejected'}
                         </span>
                       </td>
                     </tr>

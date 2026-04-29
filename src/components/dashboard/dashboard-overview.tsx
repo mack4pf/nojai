@@ -13,9 +13,11 @@ import {
   PercentCircle,
   TrendingUp,
   Zap,
+  Loader2,
 } from "lucide-react";
 
 
+import { useDashboardSocket } from "@/hooks/use-dashboard-socket";
 import { Button } from "@/components/ui/button";
 import { BalanceChart } from "@/components/dashboard/balance-chart";
 import { ReviewGrowthPopup } from "@/components/dashboard/review-growth-popup";
@@ -69,13 +71,12 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
     queryFn: async () => (await api.get("/user/bot-status")).data as BotStatusResponse,
   });
 
-  interface ReturnsAccount { currency: string; totalProfit: number; wonCount: number; lostCount: number; totalTrades: number; winRate: number; }
-  interface ReturnsResponse { totalTrades: number; wonCount: number; lostCount: number; winRate: number; totalProfit: number; grossWinnings: number; grossLosses: number; totalInvested: number; byAccount: ReturnsAccount[]; }
+  interface ReturnsEntry { currency: string; totalProfit: number; wonCount: number; lostCount: number; totalTrades: number; winRate: number; }
+  interface ReturnsResponse { totalTrades: number; wonCount: number; lostCount: number; winRate: number; byCurrency: ReturnsEntry[]; }
   const { data: returns } = useQuery({
     queryKey: ["user-returns"],
     queryFn: async () => (await api.get("/user/returns")).data as ReturnsResponse,
   });
-
 
   // On payment success, force a fresh fetch so the UI reflects the new subscription immediately.
   useEffect(() => {
@@ -96,45 +97,33 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
     ? formatCurrencyBreakdown(connectedAccounts.map((account) => ({ currency: account.currency, amount: account.balance })))
     : null;
 
-  // #2 — Auto-updating balance: poll /api/user/balance-sync every 30s
-  useQuery({
-    queryKey: ["balance-sync"],
-    queryFn: async () => {
-      const res = await api.get("/user/balance-sync");
-      const synced = res.data as { accounts: Array<{ email: string; balance: number; currency: string; accountType: string; lastConnected: string }> };
-      // Merge live balances into the botStatus cache
-      queryClient.setQueryData(queryKeys.botStatus, (old: BotStatusResponse | undefined) => {
-        if (!old) return old;
-        const updatedAccounts = (old.iqAccounts ?? (old.iqAccount ? [old.iqAccount] : [])).map((acc) => {
-          const live = synced.accounts.find((s) => s.email === acc.email && s.accountType === acc.accountType);
-          return live ? { ...acc, balance: live.balance, lastConnected: live.lastConnected } : acc;
-        });
-        return { ...old, iqAccounts: updatedAccounts };
-      });
-      return synced;
-    },
-    refetchInterval: 30_000,
-    enabled: hasIq,
-  });
-
   // Compute account growth from total profit vs starting balance
   const accountGrowthPercent = (() => {
     if (!hasIq || !returns) return 0;
-    const netProfit = returns.totalProfit;
+    const totalProfit = returns.byCurrency.reduce((sum, e) => sum + e.totalProfit, 0);
     const currentBalance = connectedAccounts.reduce((sum, a) => sum + (a.balance ?? 0), 0);
-    const startingBalance = currentBalance - netProfit;
-    if (startingBalance <= 0 || netProfit <= 0) return 0;
-    return (netProfit / startingBalance) * 100;
+    const startingBalance = currentBalance - totalProfit;
+    if (startingBalance <= 0 || totalProfit <= 0) return 0;
+    return (totalProfit / startingBalance) * 100;
   })();
+
+  const { isConnected } = useDashboardSocket();
 
   return (
     <div className="space-y-5">
       {/* Page header */}
-      <div>
-        <h1 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">Dashboard</h1>
-        <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-          {hasSubscription ? "Your trading overview." : "Finish setup to start trading."}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">Dashboard</h1>
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
+            {hasSubscription ? "Your trading overview." : "Finish setup to start trading."}
+          </p>
+        </div>
+        {!isConnected && hasSubscription && (
+          <div className="flex items-center gap-2 rounded-full bg-amber-500/10 px-3 py-1 text-[10px] font-bold text-amber-500 ring-1 ring-amber-500/20">
+            <Loader2 className="h-3 w-3 animate-spin" /> Reconnecting...
+          </div>
+        )}
       </div>
 
       {status === "success" ? (
@@ -247,11 +236,13 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
               ? `${returns.wonCount}W / ${returns.lostCount}L · ${returns.totalTrades} trades`
               : "No closed trades yet"}
           </p>
-          {returns && (
+          {returns && returns.byCurrency.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
-              <span className={`text-[10px] font-semibold ${returns.totalProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                {formatSignedCurrency(returns.totalProfit, iqAccount?.currency || "USD")}
-              </span>
+              {returns.byCurrency.map((entry) => (
+                <span key={entry.currency} className={`text-[10px] font-semibold ${entry.totalProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {formatSignedCurrency(entry.totalProfit, entry.currency)}
+                </span>
+              ))}
             </div>
           )}
         </div>
@@ -280,11 +271,10 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
                       {account.accountType} account
                     </p>
                   </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${
-                    account.accountType === "REAL"
+                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${account.accountType === "REAL"
                       ? "bg-emerald-500 text-white"
                       : "bg-slate-600 text-white"
-                  }`}>
+                    }`}>
                     {account.accountType}
                   </span>
                 </div>
@@ -302,15 +292,13 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
                       {formatCurrency(account.tradeAmount, account.currency)}
                     </p>
                   </div>
-                  <div className={`rounded-xl p-3 ring-1 ${
-                    account.martingaleEnabled
+                  <div className={`rounded-xl p-3 ring-1 ${account.martingaleEnabled
                       ? "bg-amber-500/10 ring-amber-500/20"
                       : "bg-white/[0.04] ring-white/10"
-                  }`}>
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Martingale</p>
-                    <p className={`mt-1 text-sm font-bold ${
-                      account.martingaleEnabled ? "text-amber-300" : "text-muted-foreground"
                     }`}>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Martingale</p>
+                    <p className={`mt-1 text-sm font-bold ${account.martingaleEnabled ? "text-amber-300" : "text-muted-foreground"
+                      }`}>
                       {account.martingaleEnabled ? "Enabled" : "Disabled"}
                     </p>
                   </div>
@@ -331,9 +319,8 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <h3 className="font-display text-sm font-semibold sm:text-base">Broker Connection</h3>
-            <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-              hasIq ? "bg-emerald-500 text-white" : "bg-amber-500/80 text-white"
-            }`}>{hasIq ? "Connected" : "Pending"}</span>
+            <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${hasIq ? "bg-emerald-500 text-white" : "bg-amber-500/80 text-white"
+              }`}>{hasIq ? "Connected" : "Pending"}</span>
           </div>
           <div className="mt-3 space-y-2">
             <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
@@ -384,9 +371,8 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <h3 className="font-display text-sm font-semibold sm:text-base">Trading Plan</h3>
-            <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${
-              hasSubscription ? "bg-emerald-500 text-white" : "bg-amber-500/80 text-white"
-            }`}>{hasSubscription ? "Active" : "Inactive"}</span>
+            <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${hasSubscription ? "bg-emerald-500 text-white" : "bg-amber-500/80 text-white"
+              }`}>{hasSubscription ? "Active" : "Inactive"}</span>
           </div>
           <div className="mt-3 space-y-2">
             {(hasSubscription
@@ -417,10 +403,10 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
           <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
             {[
-              { label: "Broker Settings", href: "/dashboard/accounts",      icon: MonitorSmartphone, bg: "bg-emerald-500/15", ring: "ring-emerald-500/25", text: "text-emerald-400" },
-              { label: "Trade History",   href: "/dashboard/trades",         icon: TrendingUp,        bg: "bg-violet-500/15",  ring: "ring-violet-500/25",  text: "text-violet-400"  },
-              { label: "Copy Trading",   href: "/dashboard/copy-trading",   icon: Zap,               bg: "bg-amber-500/15",   ring: "ring-amber-500/25",   text: "text-amber-400"   },
-              { label: "Settings",       href: "/dashboard/settings",       icon: CreditCard,        bg: "bg-blue-500/15",    ring: "ring-blue-500/25",    text: "text-blue-400"    },
+              { label: "Broker Settings", href: "/dashboard/accounts", icon: MonitorSmartphone, bg: "bg-emerald-500/15", ring: "ring-emerald-500/25", text: "text-emerald-400" },
+              { label: "Trade History", href: "/dashboard/trades", icon: TrendingUp, bg: "bg-violet-500/15", ring: "ring-violet-500/25", text: "text-violet-400" },
+              { label: "Copy Trading", href: "/dashboard/copy-trading", icon: Zap, bg: "bg-amber-500/15", ring: "ring-amber-500/25", text: "text-amber-400" },
+              { label: "Settings", href: "/dashboard/settings", icon: CreditCard, bg: "bg-blue-500/15", ring: "ring-blue-500/25", text: "text-blue-400" },
             ].map((action) => (
               <Link
                 key={action.href}

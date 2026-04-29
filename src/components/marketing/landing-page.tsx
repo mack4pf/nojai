@@ -34,67 +34,67 @@ const brokerData: Array<{
   bg: string;
   description: string;
 }> = [
-  {
-    name: "IQ Option",
-    logo: "/autobot-assets/iq-option.svg",
-    logoWidth: 160,
-    logoHeight: 40,
-    status: "live",
-    color: "#FF7803",
-    bg: "#1a0a00",
-    description: "Connect your IQ Option account and start bot automation today.",
-  },
-  {
-    name: "Pocket Option",
-    logo: "/autobot-assets/pocket-option.svg",
-    logoWidth: 180,
-    logoHeight: 40,
-    status: "soon",
-    color: "#0099FA",
-    bg: "#00091a",
-    description: "Pocket Option integration is in active development.",
-  },
-  {
-    name: "Expert Option",
-    logo: "/autobot-assets/expert-option-real.svg",
-    logoWidth: 180,
-    logoHeight: 44,
-    status: "soon",
-    color: "#1565C0",
-    bg: "#010a1a",
-    description: "Expert Option support is queued for the next release.",
-  },
-  {
-    name: "Crypto Trading",
-    logo: "/autobot-assets/crypto-trading.svg",
-    logoWidth: 160,
-    logoHeight: 40,
-    status: "soon",
-    color: "#F7931A",
-    bg: "#0f0700",
-    description: "BTC, ETH, and altcoin automation is on the roadmap.",
-  },
-  {
-    name: "Stock & Forex",
-    logo: "/autobot-assets/stock-forex.svg",
-    logoWidth: 160,
-    logoHeight: 40,
-    status: "soon",
-    color: "#0F62FE",
-    bg: "#00030f",
-    description: "Stock and forex broker connections are planned next.",
-  },
-  {
-    name: "MT5",
-    logo: "/autobot-assets/metatrader.svg",
-    logoWidth: 160,
-    logoHeight: 40,
-    status: "soon",
-    color: "#1565C0",
-    bg: "#00030f",
-    description: "MetaTrader 5 support is also coming soon.",
-  },
-];
+    {
+      name: "IQ Option",
+      logo: "/autobot-assets/iq-option.svg",
+      logoWidth: 160,
+      logoHeight: 40,
+      status: "live",
+      color: "#FF7803",
+      bg: "#1a0a00",
+      description: "Connect your IQ Option account and start bot automation today.",
+    },
+    {
+      name: "Pocket Option",
+      logo: "/autobot-assets/pocket-option.svg",
+      logoWidth: 180,
+      logoHeight: 40,
+      status: "soon",
+      color: "#0099FA",
+      bg: "#00091a",
+      description: "Pocket Option integration is in active development.",
+    },
+    {
+      name: "Expert Option",
+      logo: "/autobot-assets/expert-option-real.svg",
+      logoWidth: 180,
+      logoHeight: 44,
+      status: "soon",
+      color: "#1565C0",
+      bg: "#010a1a",
+      description: "Expert Option support is queued for the next release.",
+    },
+    {
+      name: "Crypto Trading",
+      logo: "/autobot-assets/crypto-trading.svg",
+      logoWidth: 160,
+      logoHeight: 40,
+      status: "soon",
+      color: "#F7931A",
+      bg: "#0f0700",
+      description: "BTC, ETH, and altcoin automation is on the roadmap.",
+    },
+    {
+      name: "Stock & Forex",
+      logo: "/autobot-assets/stock-forex.svg",
+      logoWidth: 160,
+      logoHeight: 40,
+      status: "soon",
+      color: "#0F62FE",
+      bg: "#00030f",
+      description: "Stock and forex broker connections are planned next.",
+    },
+    {
+      name: "MT5",
+      logo: "/autobot-assets/metatrader.svg",
+      logoWidth: 160,
+      logoHeight: 40,
+      status: "soon",
+      color: "#1565C0",
+      bg: "#00030f",
+      description: "MetaTrader 5 support is also coming soon.",
+    },
+  ];
 
 const planConfig = {
   STANDARD: {
@@ -172,7 +172,7 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                 Registration is free. Current plan pricing: {pricingSummary}.
               </div>
               <div className="inline-flex items-center rounded-full border border-green-500/30 bg-green-500/10 px-5 py-2 text-sm font-medium text-green-500">
-                <Sparkles className="mr-2 h-4 w-4" /> Earn ₦9,000 to ₦20,000 per referral, and also earn $6 to $14 by referring friends
+                <Sparkles className="mr-2 h-4 w-4" /> Start making up to $500 monthly with NOJAI Affiliate program
               </div>
             </div>
             <div className="mt-10 grid gap-4 sm:grid-cols-3">

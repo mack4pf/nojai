@@ -24,7 +24,7 @@ interface WebhookToken {
 }
 
 export function WebhookCard() {
-  const { isPro, isVip } = useFeatureAccess();
+  const { isVip } = useFeatureAccess();
   const queryClient = useQueryClient();
 
   const { data: webhooks = [], isLoading } = useQuery<WebhookToken[]>({
@@ -39,7 +39,7 @@ export function WebhookCard() {
       toast.success("Webhook token generated. A setup notification may be sent to your email.");
       queryClient.invalidateQueries({ queryKey: ["webhooks"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to generate webhook"),
+    onError: (err: { response?: { data?: { message?: string } } }) => toast.error(err?.response?.data?.message ?? "Failed to generate webhook"),
   });
 
   const toggleMutation = useMutation({
@@ -49,7 +49,7 @@ export function WebhookCard() {
       toast.success("Webhook updated. A security notification may be sent to your email.");
       queryClient.invalidateQueries({ queryKey: ["webhooks"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to update webhook"),
+    onError: (err: { response?: { data?: { message?: string } } }) => toast.error(err?.response?.data?.message ?? "Failed to update webhook"),
   });
 
   const deleteMutation = useMutation({
@@ -58,7 +58,7 @@ export function WebhookCard() {
       toast.success("Webhook deleted. A security notification may be sent to your email.");
       queryClient.invalidateQueries({ queryKey: ["webhooks"] });
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to delete webhook"),
+    onError: (err: { response?: { data?: { message?: string } } }) => toast.error(err?.response?.data?.message ?? "Failed to delete webhook"),
   });
 
   function copy(text: string, label: string) {
@@ -86,7 +86,7 @@ export function WebhookCard() {
 
   const messageTemplate =
     webhooks[0]?.message ??
-    JSON.stringify({ ticker: "{{ticker}}", signal: "{{strategy.order.action}}", time: 300 });
+    JSON.stringify({ ticker: "{{ticker}}", signal: "{{strategy.order.action}}", time: 60 });
 
   return (
     <div className="space-y-6">

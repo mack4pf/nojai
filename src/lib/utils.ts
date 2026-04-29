@@ -39,16 +39,14 @@ export function formatCurrency(value: number, currency?: string | null) {
     }).format(amount);
   }
 
-  const locale = code === "NGN" ? "en-NG" : "en-US";
-
   try {
-    return new Intl.NumberFormat(locale, {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: code,
       maximumFractionDigits: 2,
     }).format(amount);
   } catch {
-    return `${code} ${new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(amount)}`;
+    return `${code} ${new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(amount)}`;
   }
 }
 
@@ -109,7 +107,7 @@ export function formatTimeAgo(value?: string | Date) {
   if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
   const diffInDays = Math.floor(diffInHours / 24);
   if (diffInDays < 30) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
-  
+
   return format(date, "MMM d, yyyy");
 }
 

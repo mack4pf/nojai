@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, ArrowDownRight, ArrowUpRight, Loader2, RefreshCw } from "lucide-react";
@@ -10,23 +10,31 @@ import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
 interface SignalResultSummary {
+  userId: string;
+  email: string;
   status: "executed" | "skipped" | "failed";
+  reason?: string;
+  amount?: number;
+  currency?: string;
   martingaleStep?: number;
 }
 
 interface SignalEntry {
   _id: string;
+  dispatchId: string;
   ticker: string;
   direction: "buy" | "sell";
   expirationSecs?: number;
   botTarget: "pro" | "vip" | "mixed";
   botTargets?: Array<"pro" | "vip">;
+  source: string;
   totalUsers: number;
   executedCount: number;
   skippedCount: number;
   failedCount: number;
   results: SignalResultSummary[];
   receivedAt: string;
+  completedAt: string;
 }
 
 interface SignalsResponse {
@@ -53,6 +61,7 @@ function getMartingaleLabel(results: SignalResultSummary[]): string {
 export function AdminSignalLog() {
   const [page, setPage] = useState(1);
   const [targetFilter, setTargetFilter] = useState<"all" | "pro" | "vip">("all");
+  const [expandedSignalId, setExpandedSignalId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["admin-signal-log", page, targetFilter],
@@ -152,6 +161,7 @@ export function AdminSignalLog() {
                   <th className="px-5 py-4">Result</th>
                   <th className="px-5 py-4">Martingale</th>
                   <th className="px-5 py-4">Accounts</th>
+                  <th className="px-5 py-4 text-right">Details</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.05]">
@@ -164,89 +174,172 @@ export function AdminSignalLog() {
                   const isSuccess = signal.executedCount > 0 && signal.failedCount === 0;
                   const isPartial = signal.executedCount > 0 && signal.failedCount > 0;
                   const isFailed = signal.executedCount === 0 && signal.failedCount > 0;
+                  const isExpanded = expandedSignalId === signal._id;
 
                   return (
-                    <tr key={signal._id} className="transition-colors hover:bg-white/[0.02]">
-                      {/* Time */}
-                      <td className="px-5 py-4 text-muted-foreground">
-                        {formatDate(signal.receivedAt, "MMM d · HH:mm:ss")}
-                      </td>
+                    <React.Fragment key={signal._id}>
+                      <tr className={`transition-colors hover:bg-white/[0.02] ${isExpanded ? "bg-white/[0.04]" : ""}`}>
+                        {/* Time */}
+                        <td className="px-5 py-4 text-muted-foreground text-xs">
+                          {formatDate(signal.receivedAt, "MMM d · HH:mm:ss")}
+                        </td>
 
-                      {/* Asset */}
-                      <td className="px-5 py-4">
-                        <span className="font-semibold text-foreground">{signal.ticker}</span>
-                        {signal.expirationSecs ? (
-                          <span className="ml-2 text-xs text-muted-foreground">{signal.expirationSecs}s</span>
-                        ) : null}
-                      </td>
+                        {/* Asset */}
+                        <td className="px-5 py-4">
+                          <span className="font-semibold text-foreground">{signal.ticker}</span>
+                          {signal.expirationSecs ? (
+                            <span className="ml-2 text-[10px] text-muted-foreground">{signal.expirationSecs}s</span>
+                          ) : null}
+                        </td>
 
-                      {/* Direction */}
-                      <td className="px-5 py-4">
-                        {signal.direction === "buy" ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
-                            <ArrowUpRight className="h-3 w-3" />
-                            Buy
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-red-300">
-                            <ArrowDownRight className="h-3 w-3" />
-                            Sell
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Target */}
-                      <td className="px-5 py-4">
-                        <div className="flex flex-wrap gap-1">
-                          {targets.map((t) => (
-                            <span
-                              key={t}
-                              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
-                                t === "vip"
-                                  ? "bg-amber-500/15 text-amber-300"
-                                  : t === "pro"
-                                    ? "bg-violet-500/15 text-violet-300"
-                                    : "bg-white/[0.08] text-muted-foreground"
-                              }`}
-                            >
-                              {t}
+                        {/* Direction */}
+                        <td className="px-5 py-4">
+                          {signal.direction === "buy" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
+                              <ArrowUpRight className="h-3 w-3" />
+                              Buy
                             </span>
-                          ))}
-                        </div>
-                      </td>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-red-300">
+                              <ArrowDownRight className="h-3 w-3" />
+                              Sell
+                            </span>
+                          )}
+                        </td>
 
-                      {/* Result (win/loss) */}
-                      <td className="px-5 py-4">
-                        {isSuccess ? (
-                          <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
-                            Win · {executionRate}%
-                          </span>
-                        ) : isPartial ? (
-                          <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-300">
-                            Partial · {executionRate}%
-                          </span>
-                        ) : isFailed ? (
-                          <span className="rounded-full bg-red-500/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-red-300">
-                            Loss
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-white/[0.08] px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                            Skipped
-                          </span>
-                        )}
-                      </td>
+                        {/* Target */}
+                        <td className="px-5 py-4">
+                          <div className="flex flex-wrap gap-1">
+                            {targets.map((t) => (
+                              <span
+                                key={t}
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] ${
+                                  t === "vip"
+                                    ? "bg-amber-500/15 text-amber-300"
+                                    : t === "pro"
+                                      ? "bg-violet-500/15 text-violet-300"
+                                      : "bg-white/[0.08] text-muted-foreground"
+                                }`}
+                              >
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
 
-                      {/* Martingale */}
-                      <td className="px-5 py-4 text-xs text-muted-foreground">
-                        {getMartingaleLabel(signal.results)}
-                      </td>
+                        {/* Result (win/loss) */}
+                        <td className="px-5 py-4">
+                          {isSuccess ? (
+                            <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
+                              Win · {executionRate}%
+                            </span>
+                          ) : isPartial ? (
+                            <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+                              Partial · {executionRate}%
+                            </span>
+                          ) : isFailed ? (
+                            <span className="rounded-full bg-red-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-red-300">
+                              Loss
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-white/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                              Skipped
+                            </span>
+                          )}
+                        </td>
 
-                      {/* Accounts */}
-                      <td className="px-5 py-4">
-                        <span className="text-foreground">{signal.executedCount}</span>
-                        <span className="text-muted-foreground">/{signal.totalUsers}</span>
-                      </td>
-                    </tr>
+                        {/* Martingale */}
+                        <td className="px-5 py-4 text-xs text-muted-foreground">
+                          {getMartingaleLabel(signal.results)}
+                        </td>
+
+                        {/* Accounts */}
+                        <td className="px-5 py-4">
+                          <span className="text-foreground">{signal.executedCount}</span>
+                          <span className="text-muted-foreground">/{signal.totalUsers}</span>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-5 py-4 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`h-8 w-8 p-0 ${isExpanded ? "bg-white/10" : ""}`}
+                            onClick={() => setExpandedSignalId(isExpanded ? null : signal._id)}
+                          >
+                            <span className="sr-only">View results</span>
+                            {isExpanded ? (
+                              <ArrowDownRight className="h-4 w-4 rotate-45" />
+                            ) : (
+                              <ArrowDownRight className="h-4 w-4 -rotate-45" />
+                            )}
+                          </Button>
+                        </td>
+                      </tr>
+
+                      {/* Detail View */}
+                      {isExpanded && (
+                        <tr className="bg-black/20 border-t-0">
+                          <td colSpan={8} className="px-5 py-4">
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Account Breakdown</h4>
+                                <span className="text-[10px] text-muted-foreground font-mono">ID: {signal.dispatchId}</span>
+                              </div>
+                              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                {signal.results.map((res, i) => (
+                                  <div
+                                    key={i}
+                                    className={`rounded-lg border p-2.5 text-xs ${
+                                      res.status === "executed"
+                                        ? "border-emerald-500/20 bg-emerald-500/5"
+                                        : res.status === "failed"
+                                          ? "border-red-500/20 bg-red-500/5"
+                                          : "border-white/5 bg-white/[0.02]"
+                                    }`}
+                                  >
+                                    <div className="flex items-start justify-between gap-2">
+                                      <div className="min-w-0 flex-1">
+                                        <p className="truncate font-mono font-medium text-foreground">{res.email}</p>
+                                        <p className="text-[10px] text-muted-foreground">{res.userId}</p>
+                                      </div>
+                                      <span
+                                        className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                                          res.status === "executed"
+                                            ? "bg-emerald-500/20 text-emerald-400"
+                                            : res.status === "failed"
+                                              ? "bg-red-500/20 text-red-400"
+                                              : "bg-white/10 text-muted-foreground"
+                                        }`}
+                                      >
+                                        {res.status}
+                                      </span>
+                                    </div>
+                                    {res.status === "executed" && (
+                                      <div className="mt-2 flex items-center gap-2 border-t border-white/5 pt-2">
+                                        <span className="text-[10px] font-bold text-foreground">
+                                          ${res.amount}
+                                        </span>
+                                        <span className="text-[9px] text-muted-foreground uppercase">
+                                          Step {res.martingaleStep ?? 0}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {res.status === "failed" && res.reason && (
+                                      <div className="mt-2 border-t border-white/5 pt-2">
+                                        <p className="text-[10px] leading-relaxed text-red-300 italic">
+                                          "{res.reason}"
+                                        </p>
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
