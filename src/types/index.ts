@@ -169,6 +169,7 @@ export interface Payment {
 }
 
 export interface AccessCode {
+  _id?: string;
   code: string;
   plan: string;
   durationDays?: number;
@@ -178,6 +179,9 @@ export interface AccessCode {
   usedBy?: { _id: string; email: string } | string;
   createdBy?: { _id: string; email: string } | string;
   botId?: { _id: string; name: string; slug: string } | string;
+  isGlobal?: boolean;
+  maxUses?: number;
+  usedCount?: number;
 }
 
 export interface BalanceSnapshot {

@@ -57,14 +57,16 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
       const res = await api.post("/auth/access-code/verify", { code: codeInput.trim().toUpperCase() });
       return res.data as VerifyResult;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       if (data.valid) {
         setVerified(data);
       } else {
-        toast.error("Invalid access code");
+        toast.error(data.message || "Invalid access code");
       }
     },
-    onError: (error: Error) => toast.error(error.message ?? "Code verification failed"),
+    onError: (error: Error) => {
+      toast.error(error.message || "Code verification failed");
+    },
   });
 
   const redeemMutation = useMutation({
@@ -78,7 +80,16 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
       queryClient.invalidateQueries({ queryKey: queryKeys.pricing });
       router.push("/dashboard");
     },
-    onError: (error: Error) => toast.error(error.message ?? "Redemption failed"),
+    onError: (error: Error) => {
+      const msg = error.message;
+      if (msg.includes("already redeemed")) {
+        toast.error("You have already redeemed this access code.");
+      } else if (msg.includes("maximum usage limit")) {
+        toast.error("This access code has reached its maximum usage limit.");
+      } else {
+        toast.error(msg || "Redemption failed");
+      }
+    },
   });
 
   const { data: profile } = useQuery({
