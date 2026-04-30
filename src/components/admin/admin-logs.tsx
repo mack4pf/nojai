@@ -106,7 +106,7 @@ export function AdminLogs() {
           <table className="w-full text-sm text-left whitespace-nowrap">
             <thead className="bg-white/[0.03] text-muted-foreground font-semibold border-b border-white/[0.08]">
               <tr>
-                <th className="px-4 py-3">Time</th>
+                <th className="px-4 py-3">Date & Time</th>
                 <th className="px-4 py-3">Level</th>
                 <th className="px-4 py-3">Source</th>
                 <th className="px-4 py-3 w-full">Message</th>
@@ -138,7 +138,7 @@ export function AdminLogs() {
                     <React.Fragment key={log._id}>
                       <tr className="hover:bg-white/[0.02] transition-colors">
                         <td className="px-4 py-3 text-xs text-muted-foreground">
-                          {formatDate(log.createdAt)}
+                          {formatDate(log.createdAt, "MMM d, yyyy 'at' HH:mm")}
                         </td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-wider ${Cfg.className}`}>
