@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, RefreshCw, Circle, Search } from "lucide-react";
+import { Loader2, RefreshCw, Circle, Search, AlertCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { formatCurrency, formatTimeAgo } from "@/lib/utils";
 
 interface ConnectedAccount {
   accountId: string;
-  status: string;
+  status: "connected" | "disconnected" | "connecting" | "error";
   lastConnected: string;
   metadata?: {
     balance?: number;
@@ -26,6 +26,46 @@ interface ConnectedAccount {
 interface ConnectedAccountsResponse {
   total: number;
   accounts: ConnectedAccount[];
+}
+
+function getStatusBadge(status: string) {
+  switch (status) {
+    case "connected":
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400">
+          <Circle className="h-1.5 w-1.5 fill-emerald-400 animate-pulse" />
+          Connected
+        </span>
+      );
+    case "disconnected":
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-400">
+          <Circle className="h-1.5 w-1.5 fill-red-400" />
+          Offline
+        </span>
+      );
+    case "connecting":
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-yellow-500/10 px-2.5 py-1 text-xs font-semibold text-yellow-400">
+          <Circle className="h-1.5 w-1.5 fill-yellow-400 animate-pulse" />
+          Connecting
+        </span>
+      );
+    case "error":
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-400">
+          <AlertCircle className="h-1.5 w-1.5" />
+          Error
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-500/10 px-2.5 py-1 text-xs font-semibold text-gray-400">
+          <Circle className="h-1.5 w-1.5 fill-gray-400" />
+          Unknown
+        </span>
+      );
+  }
 }
 
 export function AdminConnectedAccounts() {
@@ -130,10 +170,7 @@ export function AdminConnectedAccounts() {
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-400">
-                        <Circle className="h-1.5 w-1.5 fill-emerald-400" />
-                        Connected
-                      </span>
+                      {getStatusBadge(acc.status)}
                     </td>
                     <td className="px-5 py-4 text-right">
                       {acc.metadata?.balance !== undefined ? (

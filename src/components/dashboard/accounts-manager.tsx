@@ -39,6 +39,7 @@ interface IQAccountResponse {
   accountType: string;
   currency: string;
   lastConnected: string;
+  connected?: boolean;
 }
 
 const BROKERS = [
@@ -309,7 +310,9 @@ export function AccountsManager() {
                       <p className="text-[11px] text-muted-foreground">{account.accountType} Account</p>
                     </div>
                   </div>
-                  <Badge variant="success">Connected</Badge>
+                  <Badge variant={account.connected ? "success" : "warning"}>
+                    {account.connected ? "Connected" : "Offline"}
+                  </Badge>
                 </div>
 
                 {/* Stats — 2 cols on mobile, 4 on sm+ */}
