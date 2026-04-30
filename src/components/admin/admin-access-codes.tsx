@@ -36,7 +36,7 @@ function CodeRow({ code }: { code: AccessCode }) {
     queryKey: ["access-code-redemptions", code._id],
     queryFn: async () => {
       const res = await api.get(`/admin/codes/${code._id}/redemptions`);
-      return res.data || [];
+      return res.data.redemptions || [];
     },
     enabled: showRedemptions,
   });

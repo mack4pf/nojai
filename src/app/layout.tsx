@@ -63,7 +63,7 @@ export const metadata: Metadata = {
     description: DEFAULT_DESCRIPTION,
     images: [
       {
-        url: "/og-image.jpg",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "NOJAI — Automated Trading Bot",
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${SITE_NAME} — Automated Trading Bot for IQ Option`,
     description: DEFAULT_DESCRIPTION,
-    images: ["/og-image.jpg"],
+    images: ["/og-image.png"],
     creator: "@nojai_io",
   },
   icons: {
