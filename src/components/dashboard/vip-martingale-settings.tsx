@@ -181,7 +181,7 @@ export function VipMartingaleSettings() {
         </div>
         <p className="text-sm text-muted-foreground leading-relaxed">
           Unlock the ability to set personal martingale overrides for each of your connected accounts. 
-          VIP users can choose from expert-recommended strategies or create their own.
+          Pro and VIP users can choose from expert-recommended strategies or create their own.
         </p>
         <div className="space-y-2 border-t border-white/5 pt-4">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Your Current Active Steps (Bot Default):</p>

@@ -18,7 +18,7 @@ export function SettingsForm() {
 
   const plan = profile?.subscription?.plan ?? "NONE";
   const rank = PLAN_RANK[plan] ?? 0;
-  const isVip = rank >= PLAN_RANK.VIP;
+  const canCustomizeMartingale = rank >= PLAN_RANK.PRO;
 
   return (
     <div className="space-y-8">
@@ -32,8 +32,8 @@ export function SettingsForm() {
       {/* Profile */}
       <ProfileSettingsForm />
 
-      {/* VIP Martingale */}
-      {isVip && (
+      {/* Martingale */}
+      {canCustomizeMartingale && (
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-6">
           <VipMartingaleSettings />
         </div>
