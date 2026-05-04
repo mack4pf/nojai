@@ -24,6 +24,7 @@ export interface Review {
     _id: string;
     name: string;
   };
+  userName:string;
 }
 
 export interface BlogPost {

@@ -52,27 +52,7 @@ const fallbackPlans: PricingPlan[] = [
 ];
 
 const fallbackReviews: Review[] = [
-  {
-    _id: "review-1",
-    rating: 5,
-    comment: "I started as a beginner and the setup was straightforward. I could follow my trades without getting confused.",
-    createdAt: new Date().toISOString(),
-    user: { _id: "u1", name: "Amina" },
-  },
-  {
-    _id: "review-2",
-    rating: 5,
-    comment: "The bots gave me a better way to start making money online without sitting in front of charts all day.",
-    createdAt: new Date().toISOString(),
-    user: { _id: "u2", name: "David" },
-  },
-  {
-    _id: "review-3",
-    rating: 4,
-    comment: "I like that I can begin with a smaller plan and upgrade later when I want more trading options.",
-    createdAt: new Date().toISOString(),
-    user: { _id: "u3", name: "Sarah" },
-  },
+ 
 ];
 
 export default async function Home() {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 
-import { ArrowRight, CheckCircle2, ChevronRight, Crown, Sparkles, Zap } from "lucide-react";
+import { ArrowRight, CheckCircle2, ChevronRight, Crown, Sparkles, Zap ,Star} from "lucide-react";
 
 import { MarketingShell } from "@/components/layout/marketing-shell";
 import {
@@ -510,20 +510,35 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
           <h2 className="mt-4 font-display text-4xl font-semibold tracking-tight">What NOJAI users are saying</h2>
         </div>
         <div className="mt-10 grid gap-6 lg:grid-cols-3">
-          {reviews.map((review) => (
-            <Card key={review._id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{review.user?.name ?? "Verified user"}</CardTitle>
-                  <Badge variant="warning">{review.rating}/5</Badge>
-                </div>
-                <CardDescription>{formatDate(review.createdAt)}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm leading-7 text-muted-foreground">{review.comment}</p>
-              </CardContent>
-            </Card>
-          ))}
+        {reviews.map((review) => (
+      <Card key={review._id}>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">
+              {review.userName ?? "Verified user"}
+            </CardTitle>
+            <div className="flex items-center gap-1">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  className={`h-4 w-4 ${
+                    i < review.rating
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "fill-muted text-muted-foreground/30"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+          <CardDescription>{formatDate(review.createdAt)}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm leading-7 text-muted-foreground">
+            {review.comment}
+          </p>
+        </CardContent>
+      </Card>
+    ))}
         </div>
       </section>
 
