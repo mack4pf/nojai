@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -12,27 +13,38 @@ import type { Review } from "@/types";
 
 export function AdminReviewsManager() {
   const queryClient = useQueryClient();
+  const [pendingApprove, setPendingApprove] = useState<string | null>(null);
+  const [pendingReject, setPendingReject] = useState<string | null>(null);
+
   const { data: reviews = [] } = useQuery({
     queryKey: queryKeys.adminReviews,
     queryFn: async () => normalizeArray<Review>((await api.get("/admin/reviews")).data),
   });
 
   const approveMutation = useMutation({
-    mutationFn: async (id: string) => api.put(`/admin/reviews/${id}/approve`),
+    mutationFn: async (id: string) => {
+      setPendingApprove(id);
+      return api.put(`/admin/reviews/${id}/approve`);
+    },
     onSuccess: () => {
       toast.success("Review approved");
       queryClient.invalidateQueries({ queryKey: queryKeys.adminReviews });
     },
     onError: (error) => toast.error(error.message),
+    onSettled: () => setPendingApprove(null),
   });
 
   const rejectMutation = useMutation({
-    mutationFn: async (id: string) => api.delete(`/admin/reviews/${id}`),
+    mutationFn: async (id: string) => {
+      setPendingReject(id);
+      return api.delete(`/admin/reviews/${id}`);
+    },
     onSuccess: () => {
       toast.success("Review rejected");
       queryClient.invalidateQueries({ queryKey: queryKeys.adminReviews });
     },
     onError: (error) => toast.error(error.message),
+    onSettled: () => setPendingReject(null),
   });
 
   return (
@@ -50,8 +62,20 @@ export function AdminReviewsManager() {
                 <p className="mt-2 text-xs text-muted-foreground">{formatDate(review.createdAt, "MMM d, yyyy HH:mm")}</p>
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => approveMutation.mutate(review._id)} disabled={approveMutation.isPending}>Approve</Button>
-                <Button variant="danger" onClick={() => rejectMutation.mutate(review._id)} disabled={rejectMutation.isPending}>Reject</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => approveMutation.mutate(review._id)}
+                  disabled={pendingApprove === review._id || pendingReject === review._id}
+                >
+                  {pendingApprove === review._id ? "Approving..." : "Approve"}
+                </Button>
+                <Button
+                  variant="danger"
+                  onClick={() => rejectMutation.mutate(review._id)}
+                  disabled={pendingReject === review._id || pendingApprove === review._id}
+                >
+                  {pendingReject === review._id ? "Rejecting..." : "Reject"}
+                </Button>
               </div>
             </div>
           </div>
