@@ -12,13 +12,25 @@ import { api } from "@/lib/api";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 interface SignalResult {
+  rowId?: string;
   userId: string;
   email: string;
+  fullName?: string;
+  broker?: "iq" | "eo";
+  botTarget?: "pro" | "vip" | "eo-pro" | "eo-vip";
+  accountId?: string;
+  accountName?: string;
+  accountMode?: string;
   status: "executed" | "skipped" | "failed";
   reason?: string;
   amount?: number;
   currency?: string;
   martingaleStep?: number;
+  tradeId?: string | null;
+  tradeStatus?: "pending" | "open" | "closed" | "error" | "skipped" | "failed";
+  tradeResult?: "pending" | "won" | "lost" | "error" | "skipped" | "failed";
+  profit?: number | null;
+  closeTime?: string | null;
 }
 
 interface SignalLog {
@@ -27,8 +39,9 @@ interface SignalLog {
   ticker: string;
   direction: "buy" | "sell";
   expirationSecs: number;
-  botTarget: "pro" | "vip" | "mixed";
-  botTargets?: Array<"pro" | "vip">;
+  broker?: "iq" | "eo" | "mixed";
+  botTarget: "pro" | "vip" | "eo-pro" | "eo-vip" | "mixed";
+  botTargets?: Array<"pro" | "vip" | "eo-pro" | "eo-vip">;
   source: "tradingview" | "webhook" | "admin_manual" | "mixed";
   sources?: Array<"tradingview" | "webhook" | "admin_manual">;
   totalUsers: number;
@@ -49,17 +62,56 @@ interface SignalsResponse {
 
 const QUERY_KEY = "admin-signals";
 
+function ResultBadge({ result }: { result?: SignalResult["tradeResult"] }) {
+  const value = result ?? "pending";
+  const cls =
+    value === "won"
+      ? "bg-emerald-500/15 text-emerald-300"
+      : value === "lost" || value === "error" || value === "failed"
+        ? "bg-red-500/15 text-red-300"
+        : value === "skipped"
+          ? "bg-white/[0.08] text-muted-foreground"
+          : "bg-amber-500/15 text-amber-300";
+
+  return (
+    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${cls}`}>
+      {value}
+    </span>
+  );
+}
+
+function PlacementBadge({ status }: { status: SignalResult["status"] }) {
+  const cls =
+    status === "executed"
+      ? "bg-blue-500/15 text-blue-300"
+      : status === "failed"
+        ? "bg-red-500/15 text-red-300"
+        : "bg-white/[0.08] text-muted-foreground";
+
+  return (
+    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${cls}`}>
+      {status}
+    </span>
+  );
+}
+
 export function AdminSignalsManager() {
   const [page, setPage] = useState(1);
   const [expandedSignalId, setExpandedSignalId] = useState<string | null>(null);
+  const [brokerFilter, setBrokerFilter] = useState<"all" | "iq" | "eo">("all");
   const [botFilter, setBotFilter] = useState<"all" | "pro" | "vip">("all");
   const [search, setSearch] = useState("");
 
   const { data, isLoading, error } = useQuery({
-    queryKey: [QUERY_KEY, page, botFilter],
+    queryKey: [QUERY_KEY, page, brokerFilter, botFilter],
     queryFn: async () => {
       const res = await api.get<SignalsResponse>("/admin/signals", {
-        params: { page, limit: 10, botTarget: botFilter === "all" ? undefined : botFilter },
+        params: {
+          page,
+          limit: 10,
+          broker: brokerFilter === "all" ? undefined : brokerFilter,
+          botTarget: botFilter === "all" ? undefined : botFilter,
+        },
       });
       return res.data;
     },
@@ -100,9 +152,12 @@ export function AdminSignalsManager() {
       summary.executed += signal.executedCount;
       summary.failed += signal.failedCount;
       summary.skipped += signal.skippedCount;
+      summary.won += signal.results.filter((result) => result.tradeResult === "won").length;
+      summary.lost += signal.results.filter((result) => result.tradeResult === "lost").length;
+      summary.pending += signal.results.filter((result) => result.tradeResult === "pending" || result.tradeStatus === "pending" || result.tradeStatus === "open").length;
       return summary;
     },
-    { targeted: 0, executed: 0, failed: 0, skipped: 0 },
+    { targeted: 0, executed: 0, failed: 0, skipped: 0, won: 0, lost: 0, pending: 0 },
   );
 
   return (
@@ -130,35 +185,66 @@ export function AdminSignalsManager() {
               <p className="mt-2 font-display text-3xl font-bold text-foreground">{pageSummary.executed}</p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Skipped</p>
-              <p className="mt-2 font-display text-3xl font-bold text-foreground">{pageSummary.skipped}</p>
+              <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Results</p>
+              <p className="mt-2 text-sm font-semibold">
+                <span className="text-emerald-300">{pageSummary.won}W</span>
+                <span className="mx-1 text-muted-foreground">/</span>
+                <span className="text-red-300">{pageSummary.lost}L</span>
+                <span className="mx-1 text-muted-foreground">/</span>
+                <span className="text-amber-300">{pageSummary.pending} pending</span>
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2">
-            {(["all", "pro", "vip"] as const).map((filter) => (
-              <button
-                key={filter}
-                onClick={() => {
-                  setBotFilter(filter);
-                  setPage(1);
-                }}
-                className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition-colors ${
-                  botFilter === filter
-                    ? "bg-white/[0.1] text-foreground"
-                    : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground"
-                }`}
-              >
-                {filter} targets
-              </button>
-            ))}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex flex-col gap-1">
+            <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Broker</p>
+            <div className="inline-flex rounded-xl border border-white/[0.08] bg-black/20 p-1">
+              {(["all", "iq", "eo"] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => {
+                    setBrokerFilter(filter);
+                    setPage(1);
+                  }}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    brokerFilter === filter
+                      ? "bg-white/[0.12] text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {filter === "all" ? "All brokers" : filter === "iq" ? "IQ Option" : "ExpertOption"}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="w-full max-w-sm">
+          <div className="flex flex-col gap-1">
+            <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Tier</p>
+            <div className="inline-flex rounded-xl border border-white/[0.08] bg-black/20 p-1">
+              {(["all", "pro", "vip"] as const).map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => {
+                    setBotFilter(filter);
+                    setPage(1);
+                  }}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold uppercase transition-colors ${
+                    botFilter === filter
+                      ? "bg-white/[0.12] text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {filter === "all" ? "All" : filter}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="w-full max-w-md">
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -185,6 +271,16 @@ export function AdminSignalsManager() {
               return counts;
             }, {});
             const martingalePlacements = signal.results.filter((result) => typeof result.martingaleStep === "number" && result.martingaleStep > 0).length;
+            const resultCounts = signal.results.reduce(
+              (counts, result) => {
+                if (result.tradeResult === "won") counts.won += 1;
+                else if (result.tradeResult === "lost") counts.lost += 1;
+                else if (result.tradeResult === "error" || result.tradeResult === "failed") counts.error += 1;
+                else if (result.tradeResult === "pending" || result.tradeStatus === "pending" || result.tradeStatus === "open") counts.pending += 1;
+                return counts;
+              },
+              { won: 0, lost: 0, pending: 0, error: 0 },
+            );
 
             return (
               <div key={signal._id} className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
@@ -201,9 +297,12 @@ export function AdminSignalsManager() {
                         </span>
                         {(signal.botTargets?.length ? signal.botTargets : [signal.botTarget]).map((target) => (
                           <Badge key={`${signal._id}-${target}`} variant="secondary" className="bg-white/[0.08] text-muted-foreground">
-                            {target}
+                            {target.replace("eo-", "EO ")}
                           </Badge>
                         ))}
+                        <Badge variant="secondary" className="border border-white/10 bg-transparent text-muted-foreground">
+                          {signal.broker === "eo" ? "ExpertOption" : signal.broker === "iq" ? "IQ Option" : "Mixed brokers"}
+                        </Badge>
                         {(signal.sources?.length ? signal.sources : [signal.source]).map((source) => (
                           <Badge key={`${signal._id}-${source}`} variant="secondary" className="border border-white/10 bg-transparent text-muted-foreground">
                             {source.replaceAll("_", " ")}
@@ -230,8 +329,14 @@ export function AdminSignalsManager() {
                           <p className="mt-1 text-sm font-semibold text-foreground">{signal.failedCount}</p>
                         </div>
                         <div className="rounded-2xl border border-white/8 bg-black/10 px-3 py-2 text-center">
-                          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Step {'>'} 0</p>
-                          <p className="mt-1 text-sm font-semibold text-foreground">{martingalePlacements}</p>
+                          <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Result</p>
+                          <p className="mt-1 text-xs font-semibold">
+                            <span className="text-emerald-300">{resultCounts.won}W</span>
+                            <span className="mx-1 text-muted-foreground">/</span>
+                            <span className="text-red-300">{resultCounts.lost}L</span>
+                            <span className="mx-1 text-muted-foreground">/</span>
+                            <span className="text-amber-300">{resultCounts.pending}P</span>
+                          </p>
                         </div>
                       </div>
                       <ChevronDown className={`h-5 w-5 shrink-0 text-muted-foreground transition-transform ${isExpanded ? "rotate-180" : ""}`} />
@@ -269,28 +374,48 @@ export function AdminSignalsManager() {
                     </div>
 
                     <div className="mt-5 overflow-x-auto">
-                      <table className="w-full min-w-[720px] text-sm">
+                      <table className="w-full min-w-[860px] text-sm">
                         <thead>
                           <tr className="border-b border-white/[0.06] text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                             <th className="pb-3 pr-4">Account</th>
-                            <th className="pb-3 pr-4">Status</th>
+                            <th className="pb-3 pr-4">Placement</th>
+                            <th className="pb-3 pr-4">Result</th>
                             <th className="pb-3 pr-4">Amount</th>
                             <th className="pb-3 pr-4">Martingale</th>
                             <th className="pb-3">Notes</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-white/[0.04]">
-                          {signal.results.map((result) => (
-                            <tr key={`${signal._id}-${result.userId}-${result.status}`}>
-                              <td className="py-3 pr-4 font-medium text-foreground">{result.email}</td>
+                          {signal.results.map((result, index) => (
+                            <tr key={result.rowId ?? `${signal._id}-${result.userId}-${result.accountId ?? result.email}-${result.status}-${index}`}>
+                              <td className="py-3 pr-4 font-medium text-foreground">
+                                <div>
+                                  <p>{result.fullName || result.email || "Unknown user"}</p>
+                                  <p className="mt-0.5 text-xs font-normal text-muted-foreground">{result.email || "No email"}</p>
+                                  <p className="mt-0.5 font-mono text-[10px] font-normal text-muted-foreground">
+                                    {result.broker === "eo" ? "EO" : "IQ"} ID: {result.accountId || result.userId}
+                                    {result.accountName ? ` · ${result.accountName}` : ""}
+                                    {result.accountMode ? ` · ${result.accountMode}` : ""}
+                                  </p>
+                                </div>
+                              </td>
                               <td className="py-3 pr-4">
-                                <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${result.status === "executed" ? "bg-emerald-500/15 text-emerald-300" : result.status === "failed" ? "bg-red-500/15 text-red-300" : "bg-white/[0.08] text-muted-foreground"}`}>
-                                  {result.status}
-                                </span>
+                                <PlacementBadge status={result.status} />
+                              </td>
+                              <td className="py-3 pr-4">
+                                <div className="space-y-1">
+                                  <ResultBadge result={result.tradeResult} />
+                                  {typeof result.profit === "number" ? (
+                                    <p className={`text-xs font-semibold ${result.profit >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+                                      {result.profit >= 0 ? "+" : ""}{formatCurrency(result.profit, result.currency)}
+                                    </p>
+                                  ) : null}
+                                  {result.tradeId ? <p className="font-mono text-[10px] text-muted-foreground">Trade {result.tradeId}</p> : null}
+                                </div>
                               </td>
                               <td className="py-3 pr-4 text-foreground">{typeof result.amount === "number" ? formatCurrency(result.amount, result.currency) : "—"}</td>
                               <td className="py-3 pr-4 text-foreground">{typeof result.martingaleStep === "number" ? `Step ${result.martingaleStep}` : "—"}</td>
-                              <td className="py-3 text-muted-foreground">{result.reason ?? (result.status === "executed" ? "Trade placed successfully" : "—")}</td>
+                              <td className="py-3 text-muted-foreground">{result.reason ?? (result.status === "executed" ? "Waiting for broker result if pending" : "—")}</td>
                             </tr>
                           ))}
                         </tbody>

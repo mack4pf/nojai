@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -56,6 +57,22 @@ interface ProfitByCurrency {
   winRate: number;
 }
 
+interface BrokerTradeStats {
+  totalTrades: number;
+  todayTrades: number;
+  wonCount: number;
+  lostCount: number;
+  totalProfit: number;
+  totalInvested: number;
+}
+
+interface ConnectedAccountsByCurrency {
+  currency: string;
+  userCount: number;
+  accountCount: number;
+  totalBalance: number;
+}
+
 interface TradeResultSummary {
   count: number;
   profit: number;
@@ -99,10 +116,26 @@ interface AdminOverview {
   users: { total: number; admins: number; newThisMonth: number; newThisWeek: number };
   subscriptions: { active: number; byPlan: { standard: number; pro: number; vip: number } };
   revenue: { byCurrency: RevenueByCurrency[] };
-  trades: { total: number; today: number; results: Partial<Record<"won" | "lost" | "error", TradeResultSummary>> };
-  profitByCurrency: ProfitByCurrency[];
+  trades: {
+    total: number;
+    today: number;
+    results: Partial<Record<"won" | "lost" | "error", TradeResultSummary>>;
+    byBroker?: {
+      iq?: BrokerTradeStats;
+      eo?: BrokerTradeStats;
+    };
+  };
+  profitByCurrency?: ProfitByCurrency[];
+  profit?: {
+    iq?: { byCurrency: ProfitByCurrency[] };
+    eo?: { currency: string; totalProfit: number; wonCount: number; lostCount: number; winRate: number; isProfitable: boolean };
+  };
   signals: { total: number; today: number; last7Days: SignalWindowSummary };
-  connectedAccounts?: { live?: number };
+  connectedAccounts?: {
+    live?: number;
+    iq?: { byCurrency: ConnectedAccountsByCurrency[] };
+    eo?: { currency: string; userCount: number; accountCount: number; totalBalance: number };
+  };
 }
 
 interface AdminAccountSummary {
@@ -254,8 +287,6 @@ export function AdminDashboard() {
   const wonTrades = tradeResults.won?.count ?? 0;
   const lostTrades = tradeResults.lost?.count ?? 0;
   const errorTrades = tradeResults.error?.count ?? 0;
-  const profitByCurrency = overview?.profitByCurrency ?? [];
-  const totalTradeProfit = profitByCurrency.reduce((sum, result) => sum + result.totalProfit, 0);
   const tradeWinRate = wonTrades + lostTrades > 0 ? Math.round((wonTrades / (wonTrades + lostTrades)) * 100) : 0;
   const last7DaySignals = overview?.signals.last7Days;
   const mainAccount = copyTradeStatus?.mainAccount ?? null;
@@ -430,65 +461,176 @@ export function AdminDashboard() {
           </div>
         </div>
 
+        {/* ── Trade Activity (redesigned) ──────────────────────────────── */}
         <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Trade activity</p>
-              <h2 className="mt-2 text-xl font-bold">Trades and signals</h2>
+              <h2 className="mt-2 text-xl font-bold">Performance snapshot</h2>
             </div>
             <Activity className="h-5 w-5 text-primary" />
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-            <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Trade outcomes</p>
-              <div className="mt-3 flex items-center gap-4 text-sm">
-                <span className="font-semibold text-foreground">Won {wonTrades}</span>
-                <span className="font-semibold text-foreground">Lost {lostTrades}</span>
-                <span className="font-semibold text-foreground">Error {errorTrades}</span>
+          {/* Win / Loss / Error bar */}
+          {(() => {
+            const total = wonTrades + lostTrades + errorTrades;
+            const winPct = total > 0 ? (wonTrades / total) * 100 : 0;
+            const lossPct = total > 0 ? (lostTrades / total) * 100 : 0;
+            const errPct = total > 0 ? (errorTrades / total) * 100 : 0;
+            return (
+              <div className="mt-5">
+                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span>All-time outcome split</span>
+                  <span className="font-semibold text-foreground">{total.toLocaleString()} trades</span>
+                </div>
+                <div className="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-white/[0.06]">
+                  {winPct > 0 && <div className="bg-emerald-400 transition-all" style={{ width: `${winPct}%` }} />}
+                  {lossPct > 0 && <div className="bg-red-400 transition-all" style={{ width: `${lossPct}%` }} />}
+                  {errPct > 0 && <div className="bg-amber-400 transition-all" style={{ width: `${errPct}%` }} />}
+                </div>
+                <div className="mt-2 flex items-center gap-4 text-[11px]">
+                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-400" /><span className="text-muted-foreground">Won</span><span className="font-semibold text-foreground">{wonTrades.toLocaleString()}</span></span>
+                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-400" /><span className="text-muted-foreground">Lost</span><span className="font-semibold text-foreground">{lostTrades.toLocaleString()}</span></span>
+                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-400" /><span className="text-muted-foreground">Error</span><span className="font-semibold text-foreground">{errorTrades.toLocaleString()}</span></span>
+                </div>
               </div>
-            </div>
-            <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Profit by currency</p>
-              <div className="mt-3 space-y-2">
-                {profitByCurrency.length > 0 ? (
-                  profitByCurrency.map((entry) => (
-                    <div key={entry.currency} className="flex items-center justify-between gap-3 text-sm">
-                      <span className="text-muted-foreground">{entry.currency}</span>
-                      <span className="font-semibold text-foreground">{formatCurrency(entry.totalProfit, entry.currency)}</span>
+            );
+          })()}
+
+          {/* Broker performance cards */}
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            {/* IQ Option */}
+            {(() => {
+              const iq = overview?.trades.byBroker?.iq;
+              const iqProfit = overview?.profit?.iq?.byCurrency ?? [];
+              const iqWinRate = iq && iq.wonCount + iq.lostCount > 0 ? Math.round((iq.wonCount / (iq.wonCount + iq.lostCount)) * 100) : 0;
+              return (
+                <div className="rounded-2xl border border-white/[0.06] bg-blue-500/[0.04] p-4">
+                  <div className="flex items-center gap-2">
+                    <Image src="/autobot-assets/iq-option-small.svg" alt="IQ" width={16} height={16} className="h-4 w-4 object-contain" />
+                    <span className="text-xs font-semibold text-blue-300">IQ Option</span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-y-3 text-[11px]">
+                    <div>
+                      <p className="text-muted-foreground">Win rate</p>
+                      <p className="mt-0.5 text-lg font-bold text-emerald-400">{iqWinRate}%</p>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">No profit data yet</p>
-                )}
+                    <div>
+                      <p className="text-muted-foreground">Total trades</p>
+                      <p className="mt-0.5 text-lg font-bold text-foreground">{(iq?.totalTrades ?? 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Won / Lost</p>
+                      <p className="mt-0.5 font-semibold text-foreground">{iq?.wonCount ?? 0}W · {iq?.lostCount ?? 0}L</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Net profit</p>
+                      {iqProfit.length > 0 ? (
+                        <div className="mt-0.5 space-y-0.5">
+                          {iqProfit.map((e) => (
+                            <p key={e.currency} className={`font-semibold ${e.totalProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                              {e.totalProfit >= 0 ? "+" : ""}{formatCurrency(e.totalProfit, e.currency)}
+                            </p>
+                          ))}
+                        </div>
+                      ) : <p className="mt-0.5 font-semibold text-muted-foreground">—</p>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ExpertOption */}
+            {(() => {
+              const eo = overview?.trades.byBroker?.eo;
+              const eoProfit = overview?.profit?.eo;
+              const eoWinRate = eo && eo.wonCount + eo.lostCount > 0 ? Math.round((eo.wonCount / (eo.wonCount + eo.lostCount)) * 100) : 0;
+              return (
+                <div className="rounded-2xl border border-white/[0.06] bg-purple-500/[0.04] p-4">
+                  <div className="flex items-center gap-2">
+                    <Image src="/autobot-assets/experoptionlogo.png" alt="EO" width={16} height={16} className="h-4 w-4 object-contain" />
+                    <span className="text-xs font-semibold text-purple-300">ExpertOption</span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-y-3 text-[11px]">
+                    <div>
+                      <p className="text-muted-foreground">Win rate</p>
+                      <p className="mt-0.5 text-lg font-bold text-emerald-400">{eoWinRate}%</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Total trades</p>
+                      <p className="mt-0.5 text-lg font-bold text-foreground">{(eo?.totalTrades ?? 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Won / Lost</p>
+                      <p className="mt-0.5 font-semibold text-foreground">{eo?.wonCount ?? 0}W · {eo?.lostCount ?? 0}L</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Net profit</p>
+                      {eoProfit ? (
+                        <p className={`mt-0.5 font-semibold ${eoProfit.totalProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          {eoProfit.totalProfit >= 0 ? "+" : ""}{formatCurrency(eoProfit.totalProfit, "USD")}
+                        </p>
+                      ) : <p className="mt-0.5 font-semibold text-muted-foreground">—</p>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Signal delivery */}
+          <div className="mt-4 rounded-2xl border border-white/[0.06] bg-black/10 p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Signal delivery · last 7 days</p>
+            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-xl bg-emerald-500/[0.07] py-2.5">
+                <p className="font-display text-xl font-bold text-emerald-400">{(last7DaySignals?.totalExecuted ?? 0).toLocaleString()}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">Executed</p>
               </div>
-            </div>
-            <div className="rounded-2xl border border-white/8 bg-black/10 p-4">
-              <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Signal delivery</p>
-              <div className="mt-3 space-y-2 text-sm">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Executed</span>
-                  <span className="font-semibold text-foreground">{last7DaySignals?.totalExecuted ?? 0}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Skipped</span>
-                  <span className="font-semibold text-foreground">{last7DaySignals?.totalSkipped ?? 0}</span>
-                </div>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Failed</span>
-                  <span className="font-semibold text-foreground">{last7DaySignals?.totalFailed ?? 0}</span>
-                </div>
+              <div className="rounded-xl bg-white/[0.04] py-2.5">
+                <p className="font-display text-xl font-bold text-foreground">{(last7DaySignals?.totalSkipped ?? 0).toLocaleString()}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">Skipped</p>
+              </div>
+              <div className="rounded-xl bg-red-500/[0.07] py-2.5">
+                <p className="font-display text-xl font-bold text-red-400">{(last7DaySignals?.totalFailed ?? 0).toLocaleString()}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">Failed</p>
               </div>
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-white/8 bg-black/10 p-4">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">Net trade profit</p>
-            <p className="mt-2 font-display text-2xl font-bold text-foreground">
-              {profitByCurrency.length > 0 ? profitByCurrency.map((entry) => `${entry.currency} ${formatCurrency(entry.totalProfit, entry.currency)}`).join(" · ") : formatCurrency(totalTradeProfit)}
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">Win rate across closed trades: {tradeWinRate}%</p>
-          </div>
+          {/* Connected accounts by broker */}
+          {(overview?.connectedAccounts?.iq || overview?.connectedAccounts?.eo) && (
+            <div className="mt-4 rounded-2xl border border-white/[0.06] bg-black/10 p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Connected accounts by broker</p>
+              <div className="mt-3 space-y-2">
+                {overview.connectedAccounts.iq?.byCurrency?.filter((e) => e.accountCount > 0).map((entry) => (
+                  <div key={entry.currency} className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.05] bg-blue-500/[0.04] px-3 py-2.5 text-xs">
+                    <div className="flex items-center gap-1.5 text-blue-300 font-semibold">
+                      <Image src="/autobot-assets/iq-option-small.svg" alt="IQ" width={12} height={12} className="h-3 w-3 object-contain" />
+                      IQ · {entry.currency}
+                    </div>
+                    <div className="flex items-center gap-4 text-muted-foreground">
+                      <span><span className="font-semibold text-foreground">{entry.userCount}</span> users</span>
+                      <span><span className="font-semibold text-foreground">{entry.accountCount}</span> accts</span>
+                      <span className="font-semibold text-foreground">{formatCurrency(entry.totalBalance, entry.currency)}</span>
+                    </div>
+                  </div>
+                ))}
+                {overview.connectedAccounts.eo && (
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.05] bg-purple-500/[0.04] px-3 py-2.5 text-xs">
+                    <div className="flex items-center gap-1.5 text-purple-300 font-semibold">
+                      <Image src="/autobot-assets/experoptionlogo.png" alt="EO" width={12} height={12} className="h-3 w-3 object-contain" />
+                      EO · USD
+                    </div>
+                    <div className="flex items-center gap-4 text-muted-foreground">
+                      <span><span className="font-semibold text-foreground">{overview.connectedAccounts.eo.userCount}</span> users</span>
+                      <span><span className="font-semibold text-foreground">{overview.connectedAccounts.eo.accountCount}</span> accts</span>
+                      <span className="font-semibold text-foreground">{formatCurrency(overview.connectedAccounts.eo.totalBalance, "USD")}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 

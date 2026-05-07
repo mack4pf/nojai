@@ -10,13 +10,23 @@ import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
 interface SignalResultSummary {
+  rowId?: string;
   userId: string;
   email: string;
+  fullName?: string;
+  broker?: "iq" | "eo";
+  accountId?: string;
+  accountName?: string;
+  accountMode?: string;
   status: "executed" | "skipped" | "failed";
   reason?: string;
   amount?: number;
   currency?: string;
   martingaleStep?: number;
+  tradeId?: string | null;
+  tradeStatus?: "pending" | "open" | "closed" | "error" | "skipped" | "failed";
+  tradeResult?: "pending" | "won" | "lost" | "error" | "skipped" | "failed";
+  profit?: number | null;
 }
 
 interface SignalEntry {
@@ -25,8 +35,9 @@ interface SignalEntry {
   ticker: string;
   direction: "buy" | "sell";
   expirationSecs?: number;
-  botTarget: "pro" | "vip" | "mixed";
-  botTargets?: Array<"pro" | "vip">;
+  broker?: "iq" | "eo" | "mixed";
+  botTarget: "pro" | "vip" | "eo-pro" | "eo-vip" | "mixed";
+  botTargets?: Array<"pro" | "vip" | "eo-pro" | "eo-vip">;
   source: string;
   totalUsers: number;
   executedCount: number;
@@ -60,16 +71,18 @@ function getMartingaleLabel(results: SignalResultSummary[]): string {
 
 export function AdminSignalLog() {
   const [page, setPage] = useState(1);
+  const [brokerFilter, setBrokerFilter] = useState<"all" | "iq" | "eo">("all");
   const [targetFilter, setTargetFilter] = useState<"all" | "pro" | "vip">("all");
   const [expandedSignalId, setExpandedSignalId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
-    queryKey: ["admin-signal-log", page, targetFilter],
+    queryKey: ["admin-signal-log", page, brokerFilter, targetFilter],
     queryFn: async () => {
       const res = await api.get<SignalsResponse>("/admin/signals", {
         params: {
           page,
           limit: 20,
+          broker: brokerFilter === "all" ? undefined : brokerFilter,
           botTarget: targetFilter === "all" ? undefined : targetFilter,
         },
       });
@@ -116,6 +129,25 @@ export function AdminSignalLog() {
 
       {/* Filter tabs */}
       <div className="flex flex-wrap gap-2">
+        {(["all", "iq", "eo"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => {
+              setBrokerFilter(f);
+              setPage(1);
+            }}
+            className={`rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition-colors ${
+              brokerFilter === f
+                ? "bg-white/[0.1] text-foreground"
+                : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"
+            }`}
+          >
+            {f === "all" ? "All brokers" : f === "iq" ? "IQ Option" : "ExpertOption"}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-2">
         {(["all", "vip", "pro"] as const).map((f) => (
           <button
             key={f}
@@ -129,7 +161,7 @@ export function AdminSignalLog() {
                 : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"
             }`}
           >
-            {f === "all" ? "All signals" : `${f.toUpperCase()} only`}
+            {f === "all" ? "All tiers" : `${f.toUpperCase()} only`}
           </button>
         ))}
       </div>
@@ -158,6 +190,7 @@ export function AdminSignalLog() {
                   <th className="px-5 py-4">Asset</th>
                   <th className="px-5 py-4">Direction</th>
                   <th className="px-5 py-4">Target</th>
+                  <th className="px-5 py-4">Placement</th>
                   <th className="px-5 py-4">Result</th>
                   <th className="px-5 py-4">Martingale</th>
                   <th className="px-5 py-4">Accounts</th>
@@ -175,6 +208,15 @@ export function AdminSignalLog() {
                   const isPartial = signal.executedCount > 0 && signal.failedCount > 0;
                   const isFailed = signal.executedCount === 0 && signal.failedCount > 0;
                   const isExpanded = expandedSignalId === signal._id;
+                  const resultCounts = signal.results.reduce(
+                    (counts, res) => {
+                      if (res.tradeResult === "won") counts.won += 1;
+                      else if (res.tradeResult === "lost") counts.lost += 1;
+                      else if (res.tradeResult === "pending" || res.tradeStatus === "pending" || res.tradeStatus === "open") counts.pending += 1;
+                      return counts;
+                    },
+                    { won: 0, lost: 0, pending: 0 },
+                  );
 
                   return (
                     <React.Fragment key={signal._id}>
@@ -221,31 +263,42 @@ export function AdminSignalLog() {
                                       : "bg-white/[0.08] text-muted-foreground"
                                 }`}
                               >
-                                {t}
+                                {t.replace("eo-", "EO ")}
                               </span>
                             ))}
+                            <span className="rounded-full bg-white/[0.08] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                              {signal.broker === "eo" ? "EO" : signal.broker === "iq" ? "IQ" : "Mixed"}
+                            </span>
                           </div>
                         </td>
 
-                        {/* Result (win/loss) */}
+                        {/* Placement */}
                         <td className="px-5 py-4">
                           {isSuccess ? (
                             <span className="rounded-full bg-emerald-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-300">
-                              Win · {executionRate}%
+                              Executed · {executionRate}%
                             </span>
                           ) : isPartial ? (
                             <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300">
-                              Partial · {executionRate}%
+                              Partial exec · {executionRate}%
                             </span>
                           ) : isFailed ? (
                             <span className="rounded-full bg-red-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-red-300">
-                              Loss
+                              Failed
                             </span>
                           ) : (
                             <span className="rounded-full bg-white/[0.08] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
                               Skipped
                             </span>
                           )}
+                        </td>
+
+                        <td className="px-5 py-4 text-xs font-semibold">
+                          <span className="text-emerald-300">{resultCounts.won}W</span>
+                          <span className="mx-1 text-muted-foreground">/</span>
+                          <span className="text-red-300">{resultCounts.lost}L</span>
+                          <span className="mx-1 text-muted-foreground">/</span>
+                          <span className="text-amber-300">{resultCounts.pending} pending</span>
                         </td>
 
                         {/* Martingale */}
@@ -280,7 +333,7 @@ export function AdminSignalLog() {
                       {/* Detail View */}
                       {isExpanded && (
                         <tr className="bg-black/20 border-t-0">
-                          <td colSpan={8} className="px-5 py-4">
+                          <td colSpan={9} className="px-5 py-4">
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
                                 <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Account Breakdown</h4>
@@ -289,7 +342,7 @@ export function AdminSignalLog() {
                               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                                 {signal.results?.map((res, i) => (
                                   <div
-                                    key={i}
+                                    key={res.rowId ?? `${signal._id}-${res.userId}-${res.accountId ?? res.email}-${res.status}-${i}`}
                                     className={`rounded-lg border p-2.5 text-xs ${
                                       res.status === "executed"
                                         ? "border-emerald-500/20 bg-emerald-500/5"
@@ -300,8 +353,13 @@ export function AdminSignalLog() {
                                   >
                                     <div className="flex items-start justify-between gap-2">
                                       <div className="min-w-0 flex-1">
-                                        <p className="truncate font-mono font-medium text-foreground">{res.email}</p>
-                                        <p className="text-[10px] text-muted-foreground">{res.userId}</p>
+                                        <p className="truncate font-medium text-foreground">{res.fullName || res.email || "Unknown user"}</p>
+                                        <p className="truncate font-mono text-[10px] text-muted-foreground">{res.email || "No email"}</p>
+                                        <p className="truncate font-mono text-[10px] text-muted-foreground">
+                                          {res.broker === "eo" ? "EO" : "IQ"} ID: {res.accountId || res.userId}
+                                          {res.accountName ? ` · ${res.accountName}` : ""}
+                                          {res.accountMode ? ` · ${res.accountMode}` : ""}
+                                        </p>
                                       </div>
                                       <span
                                         className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
@@ -316,13 +374,29 @@ export function AdminSignalLog() {
                                       </span>
                                     </div>
                                     {res.status === "executed" && (
-                                      <div className="mt-2 flex items-center gap-2 border-t border-white/5 pt-2">
+                                      <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-white/5 pt-2">
                                         <span className="text-[10px] font-bold text-foreground">
                                           ${res.amount}
                                         </span>
                                         <span className="text-[9px] text-muted-foreground uppercase">
                                           Step {res.martingaleStep ?? 0}
                                         </span>
+                                        <span
+                                          className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                                            res.tradeResult === "won"
+                                              ? "bg-emerald-500/20 text-emerald-400"
+                                              : res.tradeResult === "lost" || res.tradeResult === "error"
+                                                ? "bg-red-500/20 text-red-400"
+                                                : "bg-amber-500/20 text-amber-300"
+                                          }`}
+                                        >
+                                          {res.tradeResult ?? "pending"}
+                                        </span>
+                                        {typeof res.profit === "number" && (
+                                          <span className={`text-[10px] font-bold ${res.profit >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+                                            {res.profit >= 0 ? "+" : ""}${res.profit}
+                                          </span>
+                                        )}
                                       </div>
                                     )}
                                     {res.status === "failed" && res.reason && (

@@ -1,5 +1,5 @@
-import { AdminUsersTable } from "@/components/admin/admin-users-table";
+import { AdminUsersWrapper } from "@/components/admin/admin-users-wrapper";
 
 export default function AdminUsersPage() {
-  return <AdminUsersTable />;
+  return <AdminUsersWrapper />;
 }

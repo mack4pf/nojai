@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, Eye, EyeOff, Info, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
+import { EOAccountsManager } from "@/components/dashboard/eo-accounts-manager";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,29 +44,6 @@ interface IQAccountResponse {
   connected?: boolean;
 }
 
-const BROKERS = [
-  {    id: "iq-option",
-    name: "IQ Option",
-    logo: "/autobot-assets/iq-option-small.svg",
-    available: true,
-    description: "Binary options & digital trading",
-  },
-  {
-    id: "pocket-option",
-    name: "Pocket Option",
-    logo: "/autobot-assets/pocket-option.svg",
-    available: false,
-    description: "Binary options trading platform",
-  },
-  {
-    id: "expert-option",
-    name: "ExpertOption",
-    logo: "/autobot-assets/expert-option.svg",
-    available: false,
-    description: "Online trading platform",
-  },
-];
-
 const BOT_STEPS = [
   { step: 1, title: "Connect your broker", description: "Enter your IQ Option email and password below." },
   { step: 2, title: "Configure settings", description: "Set your trade amount, account type, and martingale strategy." },
@@ -74,6 +53,16 @@ const BOT_STEPS = [
 
 export function AccountsManager() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Tab: "iq" or "eo", driven by ?broker= URL param
+  const brokerParam = searchParams?.get("broker");
+  const activeTab: "iq" | "eo" = brokerParam === "eo" ? "eo" : "iq";
+
+  function switchTab(tab: "iq" | "eo") {
+    router.replace(`/dashboard/accounts?broker=${tab}`);
+  }
 
   const { data: profile } = useQuery({
     queryKey: queryKeys.profile,
@@ -221,42 +210,42 @@ export function AccountsManager() {
         <p className="mt-1 text-xs text-muted-foreground sm:text-sm">Connect and manage your trading broker accounts.</p>
       </div>
 
-      {/* Available Brokers */}
-      <div>
-        <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">Available Brokers</h2>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {BROKERS.map((broker) => (
-            <div
-              key={broker.id}
-              className={`relative rounded-2xl border p-3 transition-colors ${
-                broker.available
-                  ? "border-primary/20 bg-primary/[0.04]"
-                  : "border-white/[0.06] bg-white/[0.02] opacity-60"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1.5">
-                  <Image src={broker.logo} alt={broker.name} width={32} height={32} className="h-7 w-7 object-contain" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold">{broker.name}</p>
-                    {broker.available ? (
-                      <Badge variant="success" className="text-[10px]">Active</Badge>
-                    ) : (
-                      <Badge variant="secondary" className="text-[10px]">Coming Soon</Badge>
-                    )}
-                  </div>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">{broker.description}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Broker Tabs */}
+      <div className="dashboard-solid-panel flex gap-1 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-1">
+        <button
+          onClick={() => switchTab("iq")}
+          className={`flex flex-1 items-center justify-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
+            activeTab === "iq"
+              ? "bg-[#ff7803] text-white shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-0.5">
+            <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={20} height={20} className="h-5 w-5 object-contain" />
+          </div>
+          IQ Option
+        </button>
+        <button
+          onClick={() => switchTab("eo")}
+          className={`flex flex-1 items-center justify-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
+            activeTab === "eo"
+              ? "bg-[#1565c0] text-white shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-0.5">
+            <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={20} height={20} className="h-5 w-5 object-contain" />
+          </div>
+          ExpertOption
+        </button>
       </div>
 
+      {/* IQ Option Tab */}
+      {activeTab === "iq" && (
+        <div className="space-y-4">
+
       {/* How The Bot Works */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+      <div className="dashboard-solid-panel rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
         <div className="mb-3 flex items-center gap-2">
           <Info className="h-4 w-4 text-primary" />
           <h3 className="font-display text-sm font-semibold">How The Bot Works</h3>
@@ -283,7 +272,7 @@ export function AccountsManager() {
         </div>
       ) : hasAccounts ? (
         <div className="space-y-4">
-          <div className="flex flex-col gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="dashboard-solid-panel flex flex-col gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">Connected Accounts</h2>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -298,7 +287,7 @@ export function AccountsManager() {
             const draft = getDraft(account);
 
             return (
-              <div key={account._id} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+              <div key={account._id} className="dashboard-solid-panel rounded-2xl border border-[#ff7803]/25 bg-white/[0.02] p-4">
                 {/* Account header */}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-3">
@@ -317,21 +306,21 @@ export function AccountsManager() {
 
                 {/* Stats — 2 cols on mobile, 4 on sm+ */}
                 <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-2.5">
+                  <div className="dashboard-solid-panel rounded-xl border border-white/[0.04] bg-white/[0.02] p-2.5">
                     <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Balance</p>
                     <p className="mt-1 font-display text-base font-semibold">
                       {formatCurrency(account.balance ?? 0, account.currency)}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-2.5">
+                  <div className="dashboard-solid-panel rounded-xl border border-white/[0.04] bg-white/[0.02] p-2.5">
                     <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Trade Amount</p>
                     <p className="mt-1 font-display text-base font-semibold">{formatCurrency(account.tradeAmount, account.currency)}</p>
                   </div>
-                  <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-2.5">
+                  <div className="dashboard-solid-panel rounded-xl border border-white/[0.04] bg-white/[0.02] p-2.5">
                     <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Mode</p>
                     <p className="mt-1 text-sm font-medium">{account.accountType}</p>
                   </div>
-                  <div className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-2.5">
+                  <div className="dashboard-solid-panel rounded-xl border border-white/[0.04] bg-white/[0.02] p-2.5">
                     <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Martingale</p>
                     <p className="mt-1 text-sm font-medium">{account.martingaleEnabled ? "On" : "Off"}</p>
                   </div>
@@ -422,29 +411,33 @@ export function AccountsManager() {
           })}
 
           {canAddMoreAccounts ? (
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <div className="dashboard-solid-panel rounded-2xl border border-[#ff7803]/35 bg-[#ff7803]/[0.06] p-4 shadow-[0_14px_34px_rgba(255,120,3,0.10)]">
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white p-1.5">
-                    <Image src="/autobot-assets/iq-option.svg" alt="IQ Option" width={60} height={18} className="h-3.5 w-auto" />
+                  <div className="flex h-12 w-24 shrink-0 items-center justify-center rounded-xl border border-[#ff7803]/25 bg-white px-3 shadow-sm">
+                    <Image src="/autobot-assets/iq-option.svg" alt="IQ Option" width={96} height={28} className="h-6 w-auto object-contain" />
                   </div>
                   <div>
-                    <h3 className="font-display text-sm font-semibold sm:text-base">Add Another IQ Option Account</h3>
-                    <p className="text-[11px] text-muted-foreground">
+                    <h3 className="font-display text-base font-bold text-foreground sm:text-lg">Add Another IQ Option Account</h3>
+                    <p className="mt-0.5 text-xs font-medium text-muted-foreground">
                       {activePlan === "VIP"
                         ? "Connect another account for your VIP bot allocation."
                         : "Connect your broker account."}
                     </p>
                   </div>
                 </div>
-                <Badge variant="outline">{capacityLabel}</Badge>
+                <span className="shrink-0 rounded-full border border-[#ff7803]/30 bg-[#ff7803]/10 px-3 py-1.5 text-xs font-bold text-[#ff7803]">
+                  {capacityLabel}
+                </span>
               </div>
 
-              <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-3">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-                <div className="text-xs text-amber-300">
-                  <p className="font-medium">Use an IQ Option login that is not already connected</p>
-                  <p className="mt-0.5 text-amber-300/80">
+              <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-500/35 bg-amber-500/[0.14] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white">
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+                <div className="text-sm">
+                  <p className="font-bold text-amber-300">Use an IQ Option login that is not already connected</p>
+                  <p className="mt-1 text-xs font-medium leading-5 text-muted-foreground">
                     VIP users can attach up to 3 separate IQ Option accounts. Standard and Pro remain capped at 1.
                   </p>
                 </div>
@@ -546,10 +539,10 @@ export function AccountsManager() {
         </div>
       ) : (
         /* Connect IQ Option form */
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+        <div className="dashboard-solid-panel rounded-2xl border border-[#ff7803]/25 bg-white/[0.02] p-4">
           <div className="mb-4 flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white p-1.5">
-              <Image src="/autobot-assets/iq-option.svg" alt="IQ Option" width={60} height={18} className="h-3.5 w-auto" />
+            <div className="flex h-12 w-24 shrink-0 items-center justify-center rounded-xl border border-[#ff7803]/25 bg-white px-3 shadow-sm">
+              <Image src="/autobot-assets/iq-option.svg" alt="IQ Option" width={96} height={28} className="h-6 w-auto object-contain" />
             </div>
             <div>
               <h3 className="font-display text-sm font-semibold sm:text-base">Connect IQ Option</h3>
@@ -653,6 +646,13 @@ export function AccountsManager() {
             </p>
           </div>
         </div>
+      )}
+        </div>
+      )}
+
+      {/* Expert Option Tab */}
+      {activeTab === "eo" && (
+        <EOAccountsManager profile={profile} />
       )}
     </div>
   );

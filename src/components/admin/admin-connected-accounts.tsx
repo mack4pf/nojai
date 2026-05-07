@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency, formatTimeAgo } from "@/lib/utils";
 
 interface ConnectedAccount {
-  accountId: string;
+  broker: "iq" | "eo";
+  accountId?: string | null;
+  accountName?: string;
   status: "connected" | "disconnected" | "connecting" | "error";
   lastConnected: string;
   metadata?: {
@@ -17,14 +19,19 @@ interface ConnectedAccount {
     [key: string]: any;
   };
   user: {
-    _id: string;
-    email: string;
-    fullName: string;
+    _id?: string;
+    email?: string;
+    fullName?: string;
   };
 }
 
 interface ConnectedAccountsResponse {
   total: number;
+  connectedTotal: number;
+  byBroker?: {
+    iq: { total: number; connected: number };
+    eo: { total: number; connected: number };
+  };
   accounts: ConnectedAccount[];
 }
 
@@ -80,13 +87,18 @@ export function AdminConnectedAccounts() {
     refetchInterval: 15000, // Refresh every 15s to keep "live" feel
   });
 
+  const normalizeSearchValue = (value: unknown) => String(value ?? "").toLowerCase();
   const filteredAccounts = (data?.accounts || []).filter((acc) => {
-    const q = search.toLowerCase();
-    return (
-      acc.accountId.toLowerCase().includes(q) ||
-      acc.user.email.toLowerCase().includes(q) ||
-      acc.user.fullName?.toLowerCase().includes(q)
-    );
+    const q = normalizeSearchValue(search);
+    if (!q) return true;
+
+    return [
+      acc.accountId,
+      acc.broker,
+      acc.accountName,
+      acc.user?.email,
+      acc.user?.fullName,
+    ].some((value) => normalizeSearchValue(value).includes(q));
   });
 
   return (
@@ -99,7 +111,7 @@ export function AdminConnectedAccounts() {
             {data && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-sm font-medium text-emerald-400">
                 <Circle className="h-2 w-2 fill-emerald-400 animate-pulse" />
-                {data.total} Active
+                {data.connectedTotal ?? data.total} Live
               </span>
             )}
           </h1>
@@ -115,13 +127,29 @@ export function AdminConnectedAccounts() {
       </div>
 
       {/* Search */}
+      {data?.byBroker && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.05] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300/70">IQ Option</p>
+            <p className="mt-2 font-display text-2xl font-bold">{data.byBroker.iq.connected} live</p>
+            <p className="mt-1 text-xs text-muted-foreground">{data.byBroker.iq.total} saved accounts</p>
+          </div>
+          <div className="rounded-2xl border border-purple-500/20 bg-purple-500/[0.05] p-4">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-300/70">ExpertOption</p>
+            <p className="mt-2 font-display text-2xl font-bold">{data.byBroker.eo.connected} live</p>
+            <p className="mt-1 text-xs text-muted-foreground">{data.byBroker.eo.total} saved accounts</p>
+          </div>
+        </div>
+      )}
+
+      {/* Search */}
       <div className="relative max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by user or broker email..."
+          placeholder="Search user, broker, account..."
           className="h-10 w-full rounded-lg border border-white/10 bg-white/[0.04] pl-10 pr-4 text-sm text-foreground focus:border-primary focus:outline-none transition-colors"
         />
       </div>
@@ -133,7 +161,8 @@ export function AdminConnectedAccounts() {
             <thead className="bg-white/[0.03] text-muted-foreground font-semibold border-b border-white/[0.08]">
               <tr>
                 <th className="px-5 py-3">App User</th>
-                <th className="px-5 py-3">Broker Email</th>
+                <th className="px-5 py-3">Broker</th>
+                <th className="px-5 py-3">Account</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-right">Balance</th>
                 <th className="px-5 py-3 text-right">Last Connected</th>
@@ -142,13 +171,13 @@ export function AdminConnectedAccounts() {
             <tbody className="divide-y divide-white/[0.05]">
               {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-5 py-8 text-center text-muted-foreground">
                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                   </td>
                 </tr>
               ) : filteredAccounts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-muted-foreground">
+                  <td colSpan={6} className="px-5 py-12 text-center text-muted-foreground">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <Circle className="h-8 w-8 text-muted-foreground/30" />
                       <p>No active connections found.</p>
@@ -156,18 +185,24 @@ export function AdminConnectedAccounts() {
                   </td>
                 </tr>
               ) : (
-                filteredAccounts.map((acc) => (
-                  <tr key={`${acc.user._id}-${acc.accountId}`} className="hover:bg-white/[0.02] transition-colors">
+                filteredAccounts.map((acc, index) => (
+                  <tr key={`${acc.user?._id ?? "user"}-${acc.broker}-${acc.accountId ?? acc.accountName ?? index}`} className="hover:bg-white/[0.02] transition-colors">
                     <td className="px-5 py-4">
                       <div className="flex flex-col">
-                        <span className="font-medium text-foreground">{acc.user.fullName || "Unknown"}</span>
-                        <span className="text-xs text-muted-foreground">{acc.user.email}</span>
+                        <span className="font-medium text-foreground">{acc.user?.fullName || "Unknown"}</span>
+                        <span className="text-xs text-muted-foreground">{acc.user?.email || "No email"}</span>
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <span className="font-mono text-foreground/90 bg-white/[0.04] px-2 py-1 rounded">
-                        {acc.accountId}
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${acc.broker === "eo" ? "bg-purple-500/15 text-purple-300" : "bg-blue-500/15 text-blue-300"}`}>
+                        {acc.broker === "eo" ? "ExpertOption" : "IQ Option"}
                       </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="font-mono text-foreground/90 bg-white/[0.04] px-2 py-1 rounded">
+                        {acc.accountId || acc.accountName || "Unknown account"}
+                      </span>
+                      {acc.accountName && <p className="mt-1 text-xs text-muted-foreground">{acc.accountName}</p>}
                     </td>
                     <td className="px-5 py-4">
                       {getStatusBadge(acc.status)}

@@ -11,5 +11,6 @@ interface DashboardPageProps {
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
   await requireSession("user");
-  return <DashboardOverview welcome={searchParams?.welcome} selectedPlan={searchParams?.plan} status={searchParams?.status} />;
+  const params = await Promise.resolve(searchParams);
+  return <DashboardOverview welcome={params?.welcome} selectedPlan={params?.plan} status={params?.status} />;
 }

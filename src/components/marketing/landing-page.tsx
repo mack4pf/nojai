@@ -20,6 +20,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { VideoResources } from "@/components/marketing/video-resources";
+import { AffiliateLocalePromo } from "@/components/marketing/affiliate-locale-promo";
 import { academyLink, faqItems, featureList, publicPricingPlans } from "@/lib/marketing";
 import { formatCurrency, formatDate, normalizeCurrencyCode } from "@/lib/utils";
 import type { PricingPlan, Review } from "@/types";
@@ -56,13 +57,13 @@ const brokerData: Array<{
     },
     {
       name: "Expert Option",
-      logo: "/autobot-assets/expert-option-real.svg",
+      logo: "/autobot-assets/experoptionlogo.png",
       logoWidth: 180,
       logoHeight: 44,
-      status: "soon",
+      status: "live",
       color: "#1565C0",
       bg: "#010a1a",
-      description: "Expert Option support is queued for the next release.",
+      description: "Connect your Expert Option account and start automated trading now.",
     },
     {
       name: "Crypto Trading",
@@ -152,9 +153,24 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2">Get started simple</span>
-              <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={32} height={32} className="h-8 w-auto" />
-              <Image src="/autobot-assets/tradingview.svg" alt="TradingView" width={120} height={28} className="h-6 w-auto opacity-90" />
-              <Image src="/autobot-assets/metatrader.svg" alt="MetaTrader" width={120} height={28} className="h-6 w-auto opacity-90" />
+              <span className="inline-flex h-10 items-center gap-2 rounded-full border border-[#ff7803]/25 bg-white px-3 shadow-sm">
+                <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={28} height={28} className="h-7 w-7 object-contain" />
+                <span className="text-xs font-bold text-slate-900">IQ Option</span>
+              </span>
+              <span className="inline-flex h-10 items-center gap-2 rounded-full border border-[#1565c0]/25 bg-white px-3 shadow-sm">
+                <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={28} height={28} className="h-7 w-7 object-contain" />
+                <span className="text-xs font-bold text-slate-900">ExpertOption</span>
+              </span>
+              <span className="inline-flex h-10 items-center gap-2 rounded-full border border-[#2962ff]/25 bg-[#2962ff] px-3 shadow-sm">
+                <Image src="/autobot-assets/tradingview.svg" alt="TradingView" width={28} height={28} className="h-6 w-6 object-contain" />
+                <span className="text-xs font-bold text-white">TradingView</span>
+              </span>
+              <span className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-900/20 bg-slate-950 px-3.5 py-1 shadow-sm">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 p-1 ring-1 ring-white/15">
+                  <Image src="/autobot-assets/metatrader.svg" alt="MetaTrader 5" width={28} height={28} className="h-6 w-6 object-contain" />
+                </span>
+                <span className="text-xs font-bold text-white">MT5</span>
+              </span>
             </div>
             <div className="mt-8 flex flex-wrap gap-4">
               <Button asChild size="lg">
@@ -167,13 +183,11 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                 <Link href="/about">How it works</Link>
               </Button>
             </div>
-            <div className="mt-8 flex flex-col gap-3 items-start sm:flex-row sm:items-center">
+            <div className="mt-8 flex flex-col items-start gap-3">
               <div className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-5 py-2 text-sm font-medium text-primary">
                 Registration is free. Current plan pricing: {pricingSummary}.
               </div>
-              <div className="inline-flex items-center rounded-full border border-green-500/30 bg-green-500/10 px-5 py-2 text-sm font-medium text-green-500">
-                <Sparkles className="mr-2 h-4 w-4" /> Earn ₦9k to ₦20k or $6 to $14 per friend with NOJAI Affiliate
-              </div>
+              <AffiliateLocalePromo />
             </div>
             <div className="mt-10 grid gap-4 sm:grid-cols-3">
               {[
@@ -275,18 +289,15 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
         <div className="mx-auto max-w-3xl text-center">
           <Badge variant="outline">Our Brokers</Badge>
           <h2 className="mt-5 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-            One live. Five on the way.
+            Two live. Four on the way.
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            IQ Option is connected and live right now. Pocket Option, Expert Option, Crypto, Stock &amp; Forex, and MT5 are actively in development.
+            IQ Option and Expert Option are both connected and live right now. Pocket Option, Crypto, Stock &amp; Forex, and MT5 are actively in development.
           </p>
         </div>
 
         {/* IQ Option hero card */}
-        <div
-          className="animate-nojai-slide-up mt-12 overflow-hidden rounded-[2rem] border-2 border-[#FF7803]"
-          style={{ background: "#0f0800" }}
-        >
+        <div className="broker-live-card animate-nojai-slide-up mt-12 overflow-hidden rounded-[2rem] border-2">
           <div className="grid items-center gap-0 lg:grid-cols-[1fr_1fr]">
             <div className="border-b border-[#FF7803]/30 p-8 lg:border-b-0 lg:border-r lg:p-12">
               <div className="flex items-center gap-3">
@@ -305,10 +316,10 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                   className="h-10 w-auto"
                 />
               </div>
-              <p className="mt-5 text-xl font-semibold text-white">
-                The only broker you can connect today.
+              <p className="mt-5 text-xl font-semibold text-foreground">
+                The original broker. Connect and trade today.
               </p>
-              <p className="mt-3 text-base leading-7" style={{ color: "#a8a8b3" }}>
+              <p className="mt-3 text-base leading-7 text-muted-foreground">
                 Connect your IQ Option account from the dashboard right now and start bot automation in minutes. Real account and practice account are both supported.
               </p>
               <Button asChild className="mt-8" size="lg">
@@ -330,8 +341,63 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                   <li key={title} className="flex items-start gap-4">
                     <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" style={{ color: "#FF7803" }} />
                     <div>
-                      <p className="font-semibold text-white">{title}</p>
-                      <p className="mt-0.5 text-sm" style={{ color: "#a8a8b3" }}>{desc}</p>
+                      <p className="font-semibold text-foreground">{title}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">{desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Expert Option hero card */}
+        <div className="broker-live-card-eo animate-nojai-slide-up mt-6 overflow-hidden rounded-[2rem] border-2">
+          <div className="grid items-center gap-0 lg:grid-cols-[1fr_1fr]">
+            <div className="border-b p-8 lg:border-b-0 lg:border-r lg:p-12" style={{ borderColor: "#1565C033" }}>
+              <div className="flex items-center gap-3">
+                <span
+                  className="animate-nojai-live-dot inline-block h-3 w-3 rounded-full"
+                  style={{ background: "#22c55e" }}
+                />
+                <span className="text-sm font-bold uppercase tracking-[0.3em] text-[#22c55e]">Live now</span>
+              </div>
+              <div className="mt-6">
+                <Image
+                  src="/autobot-assets/expert-option-real.svg"
+                  alt="ExpertOption"
+                  width={200}
+                  height={50}
+                  className="h-10 w-auto"
+                />
+              </div>
+              <p className="mt-5 text-xl font-semibold text-foreground">
+                Now live. Automate your Expert Option account.
+              </p>
+              <p className="mt-3 text-base leading-7 text-muted-foreground">
+                Expert Option is now fully supported on NOJAI. Connect using your browser session token and let the bot trade on demo or real mode — no password required.
+              </p>
+              <Button asChild className="mt-8" size="lg" style={{ background: "#1565C0" }}>
+                <Link href="/auth/register">
+                  Connect ExpertOption
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+            <div className="p-8 lg:p-12">
+              <p className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: "#4fc3f7" }}>What you get</p>
+              <ul className="mt-6 space-y-5">
+                {[
+                  ["Demo & real mode switching", "Instantly toggle between demo and real trading from your dashboard"],
+                  ["Token-based auth", "No password needed — connect securely with your browser session token"],
+                  ["Live dual balance display", "See your demo and real balances side by side, updated in real time"],
+                  ["EO copy trading (VIP)", "VIP users can auto-copy trades across multiple Expert Option accounts"],
+                ].map(([title, desc]) => (
+                  <li key={title} className="flex items-start gap-4">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" style={{ color: "#4fc3f7" }} />
+                    <div>
+                      <p className="font-semibold text-foreground">{title}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">{desc}</p>
                     </div>
                   </li>
                 ))}
@@ -342,13 +408,13 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
 
         {/* Coming soon grid */}
         <p className="mt-12 text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Coming next</p>
-        <div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
           {brokerData.filter((b) => b.status === "soon").map((broker, index) => (
             <div
               key={broker.name}
-              className="animate-nojai-slide-up group relative overflow-hidden rounded-[1.5rem] border border-white/[0.08] p-6 transition-transform duration-300 hover:-translate-y-1"
+              className="broker-soon-card animate-nojai-slide-up group relative overflow-hidden rounded-[1.5rem] border border-white/[0.08] p-6 transition-transform duration-300 hover:-translate-y-1"
               style={{
-                background: broker.bg,
+                ["--broker-bg" as string]: broker.bg,
                 animationDelay: `${(index + 1) * 80}ms`,
               }}
             >
@@ -366,8 +432,8 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                   unoptimized
                 />
               </div>
-              <p className="mt-5 text-sm font-semibold text-white">{broker.name}</p>
-              <p className="mt-2 text-xs leading-5" style={{ color: "#a8a8b3" }}>{broker.description}</p>
+              <p className="mt-5 text-sm font-semibold text-foreground">{broker.name}</p>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">{broker.description}</p>
               <div
                 className="mt-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-[0.22em]"
                 style={{ background: `${broker.color}18`, color: broker.color }}
@@ -393,12 +459,11 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
             </p>
           </div>
           <div
-            className="animate-nojai-scale-in flex shrink-0 flex-col items-center justify-center rounded-[1.75rem] px-8 py-6 text-center"
-            style={{ background: "#0f1a00", border: "2px solid #4ade80" }}
+            className="pricing-discount-card animate-nojai-scale-in flex shrink-0 flex-col items-center justify-center rounded-[1.75rem] px-8 py-6 text-center"
           >
             <p className="text-4xl font-black" style={{ color: "#4ade80" }}>50%</p>
-            <p className="mt-1 text-sm font-bold uppercase tracking-[0.22em] text-white">OFF</p>
-            <p className="mt-2 text-xs" style={{ color: "#a8a8b3" }}>Launch campaign</p>
+            <p className="mt-1 text-sm font-bold uppercase tracking-[0.22em] text-foreground">OFF</p>
+            <p className="mt-2 text-xs text-muted-foreground">Launch campaign</p>
           </div>
         </div>
 
@@ -409,14 +474,20 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
             const compareAt = cfg.compareAt;
             const Icon = cfg.icon;
             const currency = getPlanCurrency(plan.currency);
+            const planFeatures = [
+              ...(plan.features ?? []),
+              "IQ Option and ExpertOption bot support",
+            ].filter((feature, featureIndex, arr) => arr.findIndex((item) => item.toLowerCase() === feature.toLowerCase()) === featureIndex);
 
             return (
               <div
                 key={plan._id}
-                className="animate-nojai-slide-up relative flex flex-col overflow-hidden rounded-[2rem] border"
+                className="pricing-plan-card animate-nojai-slide-up relative flex flex-col overflow-hidden rounded-[2rem] border"
+                data-popular={plan.isPopular ? "true" : "false"}
                 style={{
-                  background: cfg.headerBg,
-                  borderColor: plan.isPopular ? cfg.accentColor : "rgba(255,255,255,0.1)",
+                  ["--plan-bg" as string]: cfg.headerBg,
+                  ["--plan-border" as string]: plan.isPopular ? cfg.accentColor : "rgba(255,255,255,0.1)",
+                  ["--plan-accent" as string]: cfg.accentColor,
                   animationDelay: `${index * 100}ms`,
                 }}
               >
@@ -441,21 +512,21 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                     >
                       <Icon className="h-5 w-5" style={{ color: cfg.accentColor }} />
                     </div>
-                    <p className="text-lg font-bold text-white">{plan.name}</p>
+                    <p className="text-lg font-bold text-foreground">{plan.name}</p>
                   </div>
 
                   {/* Price */}
                   <div className="mt-7">
                     <div className="flex items-end gap-3">
-                      <p className="font-display text-6xl font-black text-white">
+                      <p className="font-display text-6xl font-black text-foreground">
                         {formatCurrency(plan.price, currency)}
                       </p>
-                      <span className="pb-2 text-xs font-bold uppercase tracking-[0.2em] text-white/70">{currency}</span>
+                      <span className="pb-2 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">{currency}</span>
                       <div className="pb-2">
-                        <p className="text-2xl font-semibold text-white/30 line-through">{formatCurrency(compareAt, currency)}</p>
+                        <p className="text-2xl font-semibold text-muted-foreground/50 line-through">{formatCurrency(compareAt, currency)}</p>
                       </div>
                     </div>
-                    <p className="mt-2 text-sm" style={{ color: "#a8a8b3" }}>
+                    <p className="mt-2 text-sm text-muted-foreground">
                       Every {plan.durationInDays} days · You save {formatCurrency(compareAt - plan.price, currency)}
                     </p>
                   </div>
@@ -463,17 +534,17 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                   {/* Divider */}
                   <div className="my-6 h-px w-full" style={{ background: "rgba(255,255,255,0.07)" }} />
 
-                  <p className="mb-5 text-sm" style={{ color: "#a8a8b3" }}>{cfg.summary}</p>
+                  <p className="mb-5 text-sm text-muted-foreground">{cfg.summary}</p>
 
                   {/* Features */}
                   <ul className="flex-1 space-y-3">
-                    {plan.features?.map((feature) => (
+                    {planFeatures.map((feature) => (
                       <li key={feature} className="flex items-start gap-3 text-sm">
                         <CheckCircle2
                           className="mt-0.5 h-4 w-4 shrink-0"
                           style={{ color: cfg.accentColor }}
                         />
-                        <span className="text-white/80">{feature}</span>
+                        <span className="text-foreground/85">{feature}</span>
                       </li>
                     ))}
                   </ul>

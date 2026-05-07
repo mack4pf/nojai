@@ -5,6 +5,7 @@ import { Copy, Lock, Plus, Trash2, Webhook as WebhookIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -26,6 +27,7 @@ interface WebhookToken {
 export function WebhookCard() {
   const { isVip } = useFeatureAccess();
   const queryClient = useQueryClient();
+  const [signalTarget, setSignalTarget] = useState<"iq" | "eo" | "both">("both");
 
   const { data: webhooks = [], isLoading } = useQuery<WebhookToken[]>({
     queryKey: ["webhooks"],
@@ -84,9 +86,8 @@ export function WebhookCard() {
     );
   }
 
-  const messageTemplate =
-    webhooks[0]?.message ??
-    JSON.stringify({ ticker: "{{ticker}}", signal: "{{strategy.order.action}}", time: 60 });
+  const baseTemplate = { ticker: "{{ticker}}", signal: "{{strategy.order.action}}", time: 60 };
+  void (webhooks[0]?.message);
 
   return (
     <div className="space-y-6">
@@ -182,26 +183,50 @@ export function WebhookCard() {
       ))}
 
       {webhooks.length > 0 && (
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-semibold text-white">TradingView Message Template</h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Paste this into the &quot;Message&quot; field of your TradingView alert.
-              </p>
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-4">
+          {/* Target broker selector */}
+          <div>
+            <h3 className="text-sm font-semibold text-white">Signal Target</h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">Choose which broker(s) receive this webhook signal.</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {(["iq", "eo", "both"] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setSignalTarget(t)}
+                  className={`rounded-lg border px-4 py-2 text-xs font-medium transition-colors ${
+                    signalTarget === t
+                      ? "border-primary bg-primary/15 text-primary"
+                      : "border-white/10 text-muted-foreground hover:border-white/20 hover:text-foreground"
+                  }`}
+                >
+                  {t === "iq" ? "IQ Option" : t === "eo" ? "Expert Option" : "Both"}
+                </button>
+              ))}
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 shrink-0 gap-1.5 text-xs"
-              onClick={() => copy(messageTemplate, "Template")}
-            >
-              <Copy className="h-3 w-3" /> Copy
-            </Button>
           </div>
-          <pre className="mt-3 overflow-x-auto rounded-xl border border-white/[0.04] bg-black/30 p-4 text-xs text-muted-foreground">
-            {JSON.stringify(JSON.parse(messageTemplate), null, 2)}
-          </pre>
+
+          {/* Message template */}
+          <div>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="text-sm font-semibold text-white">TradingView Message Template</h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Paste this into the &quot;Message&quot; field of your TradingView alert.
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 shrink-0 gap-1.5 text-xs"
+                onClick={() => copy(JSON.stringify({ ...baseTemplate, target: signalTarget }, null, 2), "Template")}
+              >
+                <Copy className="h-3 w-3" /> Copy
+              </Button>
+            </div>
+            <pre className="mt-3 overflow-x-auto rounded-xl border border-white/[0.04] bg-black/30 p-4 text-xs text-muted-foreground">
+              {JSON.stringify({ ...baseTemplate, target: signalTarget }, null, 2)}
+            </pre>
+          </div>
         </div>
       )}
 
@@ -212,7 +237,7 @@ export function WebhookCard() {
             "Generate a webhook token above.",
             "In TradingView, create an alert and paste the webhook URL as the endpoint.",
             "Paste the message template into the alert's Message field.",
-            "When your alert fires, NOJAI will execute the trade on your IQ Option account.",
+            "When your alert fires, NOJAI will execute the trade on your selected broker(s).",
           ].map((step, i) => (
             <li key={i} className="flex items-start gap-2.5">
               <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-bold text-primary">

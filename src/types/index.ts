@@ -93,6 +93,23 @@ export interface Trade {
   result: "WIN" | "LOSS" | "PENDING";
   pnl: number;
   createdAt: string;
+  broker?: "iq" | "eo";
+}
+
+export interface EOAccount {
+  accountId: number;
+  name: string;
+  baseAmount: number;
+  isDemo: boolean;
+  isMain: boolean;
+  copyTradingEnabled: boolean;
+  copyFromAccountId: number | null;
+  balance?: number;
+  currency?: string;
+  lastConnected?: string;
+  status: "connected" | "disconnected";
+  demoBalance?: number;
+  realBalance?: number;
 }
 
 export interface PaginatedResponse<T> {
@@ -136,6 +153,7 @@ export interface UserProfile {
   webhookCode?: string;
   subscription?: Subscription;
   iqAccounts?: IQAccount[];
+  eoAccounts?: EOAccount[];
   subscriptionId?: string;
   subscriptionExpiresAt?: string;
 }

@@ -279,9 +279,9 @@ export function VipMartingaleSettings() {
               <div className="space-y-3">
                 <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Expert Recommendations</Label>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  {recommendations.map((rec) => (
+                  {recommendations.map((rec, recIdx) => (
                     <button
-                      key={rec.id}
+                      key={`${acc.email}-${rec.id ?? recIdx}`}
                       onClick={() => applyRecommendation(acc.email, rec.steps)}
                       className="group flex flex-col text-left rounded-2xl border border-white/5 bg-white/[0.02] p-3 transition-all hover:bg-white/[0.05] hover:border-violet-500/30"
                     >

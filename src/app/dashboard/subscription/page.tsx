@@ -8,6 +8,7 @@ interface SubscriptionPageProps {
   };
 }
 
-export default function DashboardSubscriptionPage({ searchParams }: SubscriptionPageProps) {
-  return <SubscriptionManager status={searchParams.status} required={searchParams.required} selectedPlan={searchParams.plan} />;
+export default async function DashboardSubscriptionPage({ searchParams }: SubscriptionPageProps) {
+  const params = await Promise.resolve(searchParams);
+  return <SubscriptionManager status={params.status} required={params.required} selectedPlan={params.plan} />;
 }

@@ -11,6 +11,7 @@ export const queryKeys = {
   adminUsers: ["admin-users"] as const,
   adminBots: ["admin-bots"] as const,
   adminReviews: ["admin-reviews"] as const,
+  eoAccounts: ["eo-accounts"] as const,
   balanceHistory: (period: string) => ["balance-history", period] as const,
   onboardingSurvey: ["onboarding-survey"] as const,
 };

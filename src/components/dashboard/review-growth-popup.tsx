@@ -34,7 +34,8 @@ export function ReviewGrowthPopup({ growthPercent }: ReviewGrowthPopupProps) {
   });
 
   useEffect(() => {
-    if (growthPercent < 25) return;
+    // Only show if genuinely growing: ≥25% AND the growthPercent is a real positive number
+    if (!growthPercent || growthPercent < 25) return;
     const dismissed = localStorage.getItem(DISMISSED_KEY);
     if (dismissed) return;
 

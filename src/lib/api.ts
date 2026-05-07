@@ -17,6 +17,7 @@ import type {
 import { normalizeArray, normalizeRecord } from "@/lib/utils";
 
 const DEFAULT_API_BASE_URL = "http://localhost:5000/api";
+const DEFAULT_BACKEND_URL = "http://localhost:5000";
 
 function trimTrailingSlash(value: string) {
   return value.replace(/\/$/, "");
@@ -31,9 +32,20 @@ function resolveServerApiBaseUrl() {
   );
 }
 
+/** Direct backend origin, safe for both server and client (uses NEXT_PUBLIC_ on client). */
+function resolveBackendOrigin() {
+  return trimTrailingSlash(
+    process.env.NEXT_PUBLIC_BACKEND_URL
+      ?? process.env.BACKEND_URL
+      ?? DEFAULT_BACKEND_URL,
+  );
+}
+
 export const API_BASE_URL = "/backend";
 export const SOCKET_PROXY_PATH = "/socket.io";
 export const SERVER_API_BASE_URL = resolveServerApiBaseUrl();
+/** Backend origin (e.g. http://localhost:5000) — available on both server and client. */
+export const BACKEND_ORIGIN = resolveBackendOrigin();
 
 function toPlanTier(value?: string | null): PlanTier {
   const normalized = String(value ?? "").trim().toUpperCase();

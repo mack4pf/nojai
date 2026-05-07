@@ -1,4 +1,5 @@
 import { AdminCopyTradeManager } from "@/components/admin/admin-copy-trade-manager";
+import { AdminEoCopyTradeManager } from "@/components/admin/admin-eo-copy-trade-manager";
 
 export const metadata = { title: "Copy-Trade — Admin" };
 
@@ -12,6 +13,9 @@ export default function AdminCopyTradePage() {
         </p>
       </div>
       <AdminCopyTradeManager />
+      <div className="border-t border-white/[0.06] pt-6">
+        <AdminEoCopyTradeManager />
+      </div>
     </div>
   );
 }
