@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -67,6 +68,7 @@ export function CopyTradingSettings() {
   const [connectTradeAmount, setConnectTradeAmount] = useState(() => String(getTradeAmountMinimum("USD")));
   const [editAmountFor, setEditAmountFor] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
+  const [iqAccountToDisconnect, setIqAccountToDisconnect] = useState<IQAccount | null>(null);
 
   const accountLimit = PLAN_LIMITS[plan ?? "NONE"] ?? 1;
 
@@ -127,6 +129,7 @@ export function CopyTradingSettings() {
     mutationFn: (email: string) => api.delete("/user/iq-account", { data: { email } }),
     onSuccess: () => {
       toast.success("Account disconnected");
+      setIqAccountToDisconnect(null);
       queryClient.invalidateQueries({ queryKey: ["iq-accounts"] });
       queryClient.invalidateQueries({ queryKey: ["bot-status"] });
     },
@@ -345,7 +348,7 @@ export function CopyTradingSettings() {
                   <Button
                     size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive"
                     title="Disconnect"
-                    onClick={() => { if (confirm("Disconnect this account?")) disconnectMutation.mutate(account.email); }}
+                    onClick={() => setIqAccountToDisconnect(account)}
                     disabled={disconnectMutation.isPending}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -398,6 +401,19 @@ export function CopyTradingSettings() {
             </div>
           );
         })}
+
+        <ConfirmDialog
+          open={Boolean(iqAccountToDisconnect)}
+          onOpenChange={(open) => { if (!open) setIqAccountToDisconnect(null); }}
+          title="Disconnect IQ account?"
+          description={`Disconnect ${iqAccountToDisconnect?.email ?? "this account"} from copy trading.`}
+          confirmLabel="Disconnect"
+          destructive
+          loading={disconnectMutation.isPending}
+          onConfirm={() => {
+            if (iqAccountToDisconnect) disconnectMutation.mutate(iqAccountToDisconnect.email);
+          }}
+        />
       </div>
 
       {/* Connect form */}

@@ -79,6 +79,7 @@ export function normalizeUserProfile(value: unknown): UserProfile | null {
 
   const subscriptionRecord = record.subscription as Record<string, unknown> | undefined;
   const expiresAt = String(subscriptionRecord?.expiresAt ?? record.subscriptionExpiresAt ?? "");
+  const startedAt = String(subscriptionRecord?.startedAt ?? record.subscriptionStartedAt ?? "");
   const active = Boolean(subscriptionRecord?.active ?? (expiresAt ? new Date(expiresAt) > new Date() : false));
   const plan = toPlanTier((subscriptionRecord?.plan as string | undefined) ?? (record.plan as string | undefined));
 
@@ -93,10 +94,19 @@ export function normalizeUserProfile(value: unknown): UserProfile | null {
       active,
       plan,
       expiresAt: expiresAt || undefined,
+      status: typeof subscriptionRecord?.status === "string" ? subscriptionRecord.status : undefined,
+      startedAt: startedAt || undefined,
+      createdAt: typeof subscriptionRecord?.createdAt === "string" ? subscriptionRecord.createdAt : undefined,
+      amount: typeof subscriptionRecord?.amount === "number" ? subscriptionRecord.amount : undefined,
+      currency: typeof subscriptionRecord?.currency === "string" ? subscriptionRecord.currency : undefined,
+      paymentMethod: typeof subscriptionRecord?.paymentMethod === "string" ? subscriptionRecord.paymentMethod : undefined,
     },
     iqAccounts: normalizeArray<IQAccount>(record.iqAccounts),
     subscriptionId: typeof record.subscriptionId === "string" ? record.subscriptionId : undefined,
     subscriptionExpiresAt: expiresAt || undefined,
+    subscriptionStartedAt: startedAt || undefined,
+    createdAt: typeof record.createdAt === "string" ? record.createdAt : undefined,
+    joinedAt: typeof record.joinedAt === "string" ? record.joinedAt : typeof record.createdAt === "string" ? record.createdAt : undefined,
     martingaleSteps: typeof record.martingaleSteps === "number" ? record.martingaleSteps : undefined,
     copyTradingEnabled: typeof record.copyTradingEnabled === "boolean" ? record.copyTradingEnabled : undefined,
     webhookCode: typeof record.webhookCode === "string" ? record.webhookCode : undefined,

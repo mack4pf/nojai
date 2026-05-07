@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { EOAccountsManager } from "@/components/dashboard/eo-accounts-manager";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -85,6 +86,7 @@ export function AccountsManager() {
   const [connectTradeCurrency, setConnectTradeCurrency] = useState<string>("USD");
   const [connectTradeAmount, setConnectTradeAmount] = useState(() => getTradeAmountMinimum("USD"));
   const [showPassword, setShowPassword] = useState(false);
+  const [accountToDisconnect, setAccountToDisconnect] = useState<IQAccountResponse | null>(null);
 
   // Edit drafts per account
   const [drafts, setDrafts] = useState<Record<string, { tradeAmount: number; martingaleEnabled: boolean; accountType: string }>>({});
@@ -186,6 +188,7 @@ export function AccountsManager() {
     },
     onSuccess: () => {
       toast.success("Account disconnected. An account security notification may be sent to your email.");
+      setAccountToDisconnect(null);
       queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
       queryClient.invalidateQueries({ queryKey: queryKeys.botStatus });
       queryClient.invalidateQueries({ queryKey: queryKeys.profile });
@@ -393,11 +396,7 @@ export function AccountsManager() {
                     <Button
                       variant="danger"
                       size="sm"
-                      onClick={() => {
-                        if (confirm(`Disconnect ${account.email}?`)) {
-                          disconnectMutation.mutate(account.email);
-                        }
-                      }}
+                      onClick={() => setAccountToDisconnect(account)}
                       disabled={disconnectMutation.isPending}
                       className="w-full sm:w-auto"
                     >
@@ -409,6 +408,19 @@ export function AccountsManager() {
               </div>
             );
           })}
+
+          <ConfirmDialog
+            open={Boolean(accountToDisconnect)}
+            onOpenChange={(open) => { if (!open) setAccountToDisconnect(null); }}
+            title="Disconnect IQ account?"
+            description={`Disconnect ${accountToDisconnect?.email ?? "this account"} from your trading bot.`}
+            confirmLabel="Disconnect"
+            destructive
+            loading={disconnectMutation.isPending}
+            onConfirm={() => {
+              if (accountToDisconnect) disconnectMutation.mutate(accountToDisconnect.email);
+            }}
+          />
 
           {canAddMoreAccounts ? (
             <div className="dashboard-solid-panel rounded-2xl border border-[#ff7803]/35 bg-[#ff7803]/[0.06] p-4 shadow-[0_14px_34px_rgba(255,120,3,0.10)]">

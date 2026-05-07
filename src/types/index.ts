@@ -139,6 +139,12 @@ export interface Subscription {
   plan: PlanTier;
   expiresAt?: string;
   active: boolean;
+  status?: string;
+  startedAt?: string;
+  createdAt?: string;
+  amount?: number;
+  currency?: string;
+  paymentMethod?: string;
 }
 
 export interface UserProfile {
@@ -156,6 +162,9 @@ export interface UserProfile {
   eoAccounts?: EOAccount[];
   subscriptionId?: string;
   subscriptionExpiresAt?: string;
+  subscriptionStartedAt?: string;
+  createdAt?: string;
+  joinedAt?: string;
 }
 
 export interface DashboardStats {

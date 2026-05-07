@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -46,10 +47,10 @@ export function EOAccountsManager({ profile }: EOAccountsManagerProps) {
   });
   const [baseAmount, setBaseAmount] = useState(10);
   const [isDemo, setIsDemo] = useState(true);
-  const [proxy, setProxy] = useState("");
   const [showToken, setShowToken] = useState(false);
   const [showHowTo, setShowHowTo] = useState(false);
   const [showConnectForm, setShowConnectForm] = useState(false);
+  const [accountToDisconnect, setAccountToDisconnect] = useState<EOAccount | null>(null);
 
   // Persist token draft so user doesn't lose it
   function handleTokenChange(value: string) {
@@ -76,7 +77,6 @@ export function EOAccountsManager({ profile }: EOAccountsManagerProps) {
   const connectMutation = useMutation({
     mutationFn: async () => {
       const body: Record<string, unknown> = { token, baseAmount, isDemo };
-      if (proxy.trim()) body.proxy = proxy.trim();
       return (await api.post("/user/eo-account/connect", body)).data;
     },
     onSuccess: () => {
@@ -85,7 +85,6 @@ export function EOAccountsManager({ profile }: EOAccountsManagerProps) {
       localStorage.removeItem("eo_token_draft");
       setBaseAmount(10);
       setIsDemo(true);
-      setProxy("");
       setShowConnectForm(false);
       queryClient.invalidateQueries({ queryKey: queryKeys.eoAccounts });
     },
@@ -99,6 +98,7 @@ export function EOAccountsManager({ profile }: EOAccountsManagerProps) {
     },
     onSuccess: () => {
       toast.success("Expert Option account disconnected");
+      setAccountToDisconnect(null);
       queryClient.invalidateQueries({ queryKey: queryKeys.eoAccounts });
     },
     onError: (err: Error) => toast.error(err.message || "Failed to disconnect"),
@@ -269,15 +269,6 @@ export function EOAccountsManager({ profile }: EOAccountsManagerProps) {
               </div>
             </div>
 
-            <div className="sm:col-span-2 space-y-1.5">
-              <Label className="text-xs">Proxy URL <span className="text-muted-foreground">(optional, for restricted regions)</span></Label>
-              <Input
-                type="text"
-                placeholder="http://user:pass@proxy.host:port"
-                value={proxy}
-                onChange={(e) => setProxy(e.target.value)}
-              />
-            </div>
           </div>
 
           <Button
@@ -441,11 +432,7 @@ export function EOAccountsManager({ profile }: EOAccountsManagerProps) {
                 <Button
                   variant="danger"
                   size="sm"
-                  onClick={() => {
-                    if (confirm("Disconnect this Expert Option account?")) {
-                      disconnectMutation.mutate(account.accountId);
-                    }
-                  }}
+                  onClick={() => setAccountToDisconnect(account)}
                   disabled={disconnectMutation.isPending}
                 >
                   <Trash2 className="mr-1.5 h-3.5 w-3.5" />
@@ -456,6 +443,21 @@ export function EOAccountsManager({ profile }: EOAccountsManagerProps) {
           );
         })
       )}
+
+      <ConfirmDialog
+        open={Boolean(accountToDisconnect)}
+        onOpenChange={(open) => { if (!open) setAccountToDisconnect(null); }}
+        title="Disconnect Expert Option account?"
+        description={`Disconnect ${
+          accountToDisconnect ? accountToDisconnect.name || `Account #${accountToDisconnect.accountId}` : "this account"
+        } from your bot.`}
+        confirmLabel="Disconnect"
+        destructive
+        loading={disconnectMutation.isPending}
+        onConfirm={() => {
+          if (accountToDisconnect) disconnectMutation.mutate(accountToDisconnect.accountId);
+        }}
+      />
     </div>
   );
 }

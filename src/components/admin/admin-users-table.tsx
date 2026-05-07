@@ -123,6 +123,12 @@ export function AdminUsersTable() {
               user.subscriptionExpiresAt &&
               new Date(user.subscriptionExpiresAt) > now;
             const isAdmin = user.role === "admin";
+            const joinedAt = user.joinedAt ?? user.createdAt;
+            const subscribedAt = user.subscription?.startedAt ?? user.subscriptionStartedAt;
+            const planPrice =
+              typeof user.subscription?.amount === "number"
+                ? `${user.subscription.currency ?? "USD"} ${user.subscription.amount.toLocaleString()}`
+                : null;
 
             return (
               <div
@@ -159,11 +165,19 @@ export function AdminUsersTable() {
                       )}
                     </div>
                     <p className="mt-0.5 text-sm text-muted-foreground">{user.email}</p>
-                    {user.subscriptionExpiresAt && (
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        {isSubscribed ? "Expires" : "Expired"}: {formatDate(user.subscriptionExpiresAt, "MMM d, yyyy")}
-                      </p>
-                    )}
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                      {joinedAt && <span>Joined: {formatDate(joinedAt, "MMM d, yyyy")}</span>}
+                      {subscribedAt && <span>Subscribed: {formatDate(subscribedAt, "MMM d, yyyy")}</span>}
+                      {user.subscriptionExpiresAt && (
+                        <span>
+                          {isSubscribed ? "Expires" : "Expired"}: {formatDate(user.subscriptionExpiresAt, "MMM d, yyyy")}
+                        </span>
+                      )}
+                      {user.subscription?.status && (
+                        <span>Status: {String(user.subscription.status).toUpperCase()}</span>
+                      )}
+                      {planPrice && <span>Paid: {planPrice}</span>}
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {/* Promote / Demote */}

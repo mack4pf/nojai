@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Switch } from "@/components/ui/switch";
 import { EmailNotice } from "@/components/ui/email-notice";
 import { api } from "@/lib/api";
@@ -28,6 +29,7 @@ export function WebhookCard() {
   const { isVip } = useFeatureAccess();
   const queryClient = useQueryClient();
   const [signalTarget, setSignalTarget] = useState<"iq" | "eo" | "both">("both");
+  const [webhookToDelete, setWebhookToDelete] = useState<WebhookToken | null>(null);
 
   const { data: webhooks = [], isLoading } = useQuery<WebhookToken[]>({
     queryKey: ["webhooks"],
@@ -58,6 +60,7 @@ export function WebhookCard() {
     mutationFn: (id: string) => api.delete(`/user/webhooks/${id}`),
     onSuccess: () => {
       toast.success("Webhook deleted. A security notification may be sent to your email.");
+      setWebhookToDelete(null);
       queryClient.invalidateQueries({ queryKey: ["webhooks"] });
     },
     onError: (err: { response?: { data?: { message?: string } } }) => toast.error(err?.response?.data?.message ?? "Failed to delete webhook"),
@@ -155,7 +158,7 @@ export function WebhookCard() {
                 size="icon"
                 variant="ghost"
                 className="h-7 w-7 text-destructive hover:text-destructive"
-                onClick={() => { if (confirm("Delete this webhook?")) deleteMutation.mutate(wh._id); }}
+                onClick={() => setWebhookToDelete(wh)}
                 disabled={deleteMutation.isPending}
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -181,6 +184,19 @@ export function WebhookCard() {
           </p>
         </div>
       ))}
+
+      <ConfirmDialog
+        open={Boolean(webhookToDelete)}
+        onOpenChange={(open) => { if (!open) setWebhookToDelete(null); }}
+        title="Delete webhook?"
+        description="This webhook URL will stop accepting TradingView signals immediately."
+        confirmLabel="Delete webhook"
+        destructive
+        loading={deleteMutation.isPending}
+        onConfirm={() => {
+          if (webhookToDelete) deleteMutation.mutate(webhookToDelete._id);
+        }}
+      />
 
       {webhooks.length > 0 && (
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-4">

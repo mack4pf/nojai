@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -45,6 +46,7 @@ export function AdminEoCopyTradeManager() {
   const [showToken, setShowToken] = useState(false);
   const [baseAmount, setBaseAmount] = useState(1);
   const [isDemo, setIsDemo] = useState(true);
+  const [accountToDisconnect, setAccountToDisconnect] = useState<AdminEOAccount | null>(null);
 
   const { data, isLoading, error } = useQuery<AdminEOCopyTradeStatus>({
     queryKey: QUERY_KEY,
@@ -81,6 +83,7 @@ export function AdminEoCopyTradeManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
       toast.success("EO account disconnected");
+      setAccountToDisconnect(null);
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to disconnect"),
   });
@@ -252,7 +255,7 @@ export function AdminEoCopyTradeManager() {
                   <Button
                     size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive"
                     title="Disconnect account"
-                    onClick={() => { if (confirm(`Disconnect ${account.name || account.accountId}?`)) disconnectMutation.mutate(String(account.accountId)); }}
+                    onClick={() => setAccountToDisconnect(account)}
                     disabled={disconnectMutation.isPending}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -269,6 +272,19 @@ export function AdminEoCopyTradeManager() {
           );
         })}
       </div>
+
+      <ConfirmDialog
+        open={Boolean(accountToDisconnect)}
+        onOpenChange={(open) => { if (!open) setAccountToDisconnect(null); }}
+        title="Disconnect EO account?"
+        description={`Disconnect ${accountToDisconnect?.name || accountToDisconnect?.accountId || "this account"} from admin copy trading.`}
+        confirmLabel="Disconnect"
+        destructive
+        loading={disconnectMutation.isPending}
+        onConfirm={() => {
+          if (accountToDisconnect) disconnectMutation.mutate(String(accountToDisconnect.accountId));
+        }}
+      />
 
       {/* Connect form */}
       {showConnectForm && (
