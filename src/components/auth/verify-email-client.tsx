@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, Loader2, Mail, RefreshCw } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,63 +17,82 @@ interface VerifyEmailClientProps {
 type State = "verifying" | "success" | "expired" | "error";
 
 export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
-  const [state, setState] = useState<State>("verifying");
+  const [state, setState] = useState<State>(token && email ? "verifying" : "expired");
   const [resendEmail, setResendEmail] = useState(email);
+  const [verificationCode, setVerificationCode] = useState(token && token.length === 6 ? token : "");
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyError, setVerifyError] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSent, setResendSent] = useState(false);
   const [resendError, setResendError] = useState("");
 
-  useEffect(() => {
-    async function verify() {
-      try {
-        const res = await fetch(`${API_BASE_URL}/auth/verify-email`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token, email }),
-        });
+  async function verifyEmail(nextEmail: string, nextCode: string) {
+    const cleanEmail = nextEmail.trim().toLowerCase();
+    const cleanCode = nextCode.trim();
+    if (!cleanEmail || cleanCode.length < 6) {
+      setVerifyError("Enter the email and 6-digit verification code.");
+      return;
+    }
 
-        if (res.ok) {
-          setState("success");
-          return;
-        }
+    setVerifyLoading(true);
+    setVerifyError("");
 
-        const payload = await res.json().catch(() => null);
-        const msg: string = payload?.message ?? "";
-        if (
-          res.status === 400 ||
-          res.status === 401 ||
-          msg.toLowerCase().includes("expired") ||
-          msg.toLowerCase().includes("invalid")
-        ) {
-          setState("expired");
-        } else {
-          setState("error");
-        }
-      } catch {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/verify-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail, token: cleanCode }),
+      });
+
+      if (res.ok) {
+        setState("success");
+        return;
+      }
+
+      const payload = await res.json().catch(() => null);
+      const msg = payload?.message ?? "Invalid or expired verification code.";
+      setVerifyError(msg);
+      if (res.status === 400 || res.status === 401 || msg.toLowerCase().includes("expired") || msg.toLowerCase().includes("invalid")) {
+        setState("expired");
+      } else {
         setState("error");
       }
+    } catch {
+      setVerifyError("Unable to reach the server. Please try again.");
+      setState("error");
+    } finally {
+      setVerifyLoading(false);
     }
+  }
 
+  useEffect(() => {
     if (token && email) {
-      verify();
-    } else {
-      setState("expired");
+      verifyEmail(email, token);
     }
   }, [token, email]);
+
+  async function handleVerify(e: React.FormEvent) {
+    e.preventDefault();
+    await verifyEmail(resendEmail, verificationCode);
+  }
 
   async function handleResend(e: React.FormEvent) {
     e.preventDefault();
     if (!resendEmail.trim()) return;
     setResendLoading(true);
     setResendError("");
+
     try {
       const res = await fetch(`${API_BASE_URL}/auth/verify-email/request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: resendEmail.trim().toLowerCase() }),
       });
+
       if (res.ok) {
         setResendSent(true);
+        setVerificationCode("");
+        setVerifyError("");
       } else {
         const payload = await res.json().catch(() => null);
         setResendError(payload?.message ?? "Unable to resend. Please try again.");
@@ -86,16 +106,16 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
 
   if (state === "verifying") {
     return (
-      <div className="w-full max-w-md rounded-2xl border border-white/[0.08] bg-white/[0.02] p-10 text-center space-y-4">
+      <div className="w-full max-w-md space-y-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-10 text-center">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="text-sm text-muted-foreground">Verifying your email address…</p>
+        <p className="text-sm text-muted-foreground">Verifying your email code...</p>
       </div>
     );
   }
 
   if (state === "success") {
     return (
-      <div className="w-full max-w-md rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05] p-10 text-center space-y-4">
+      <div className="w-full max-w-md space-y-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05] p-10 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-500/10">
           <CheckCircle2 className="h-6 w-6 text-emerald-400" />
         </div>
@@ -108,66 +128,106 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
         <Button asChild className="w-full">
           <Link href="/dashboard">Go to dashboard</Link>
         </Button>
-        <Link href="/auth/login" className="block text-xs text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="/auth/login" className="block text-xs text-muted-foreground transition-colors hover:text-foreground">
           Sign in instead
         </Link>
       </div>
     );
   }
 
-  // expired or error — show resend form
   return (
     <div className="w-full max-w-md space-y-5">
-      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] p-8 text-center space-y-3">
+      <div className="space-y-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] p-8 text-center">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
           <Mail className="h-6 w-6 text-amber-400" />
         </div>
         <div>
-          <h2 className="font-display text-lg font-semibold">
-            {state === "expired" ? "Link expired or invalid" : "Verification failed"}
-          </h2>
+          <h2 className="font-display text-lg font-semibold">Verify with your email code</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {state === "expired"
-              ? "This verification link has expired or is no longer valid. Request a new one below."
-              : "We could not verify this link. It may have already been used. Request a new one if needed."}
+            Enter the 6-digit code from your verification email. If you clicked the email button, we try to verify it automatically first.
           </p>
         </div>
       </div>
 
-      {resendSent ? (
-        <div className="rounded-xl border border-sky-500/20 bg-sky-500/[0.07] px-4 py-3 flex items-start gap-2">
-          <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-400 mt-0.5" />
+      {resendSent && (
+        <div className="flex items-start gap-2 rounded-xl border border-sky-500/20 bg-sky-500/[0.07] px-4 py-3">
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-400" />
           <p className="text-xs text-sky-300">
-            Verification email sent to <strong>{resendEmail}</strong>. Check your inbox — it may take a minute.
+            Verification code sent to <strong>{resendEmail}</strong>. Check your inbox. It may take a minute.
           </p>
         </div>
-      ) : (
-        <form onSubmit={handleResend} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5 space-y-3">
-          <p className="text-sm font-medium">Resend verification email</p>
-          <div className="space-y-1.5">
-            <Label htmlFor="resend-email">Email address</Label>
-            <Input
-              id="resend-email"
-              type="email"
-              value={resendEmail}
-              onChange={(e) => { setResendEmail(e.target.value); setResendError(""); }}
-              placeholder="your@email.com"
-              disabled={resendLoading}
-            />
-          </div>
-          {resendError && <p className="text-xs text-red-400">{resendError}</p>}
-          <Button type="submit" size="sm" disabled={resendLoading || !resendEmail.trim()} className="gap-2">
-            {resendLoading ? (
-              <><Loader2 className="h-3.5 w-3.5 animate-spin" />Sending…</>
-            ) : (
-              <><RefreshCw className="h-3.5 w-3.5" />Send verification email</>
-            )}
-          </Button>
-        </form>
       )}
 
+      <form onSubmit={handleVerify} className="space-y-3 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
+        <p className="text-sm font-medium">Enter verification code</p>
+        <div className="space-y-1.5">
+          <Label htmlFor="verify-email">Email address</Label>
+          <Input
+            id="verify-email"
+            type="email"
+            value={resendEmail}
+            onChange={(e) => {
+              setResendEmail(e.target.value);
+              setVerifyError("");
+              setResendError("");
+            }}
+            placeholder="your@email.com"
+            disabled={verifyLoading || resendLoading}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="verification-code">6-digit code</Label>
+          <Input
+            id="verification-code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            value={verificationCode}
+            onChange={(e) => {
+              setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+              setVerifyError("");
+            }}
+            placeholder="123456"
+            disabled={verifyLoading || resendLoading}
+          />
+        </div>
+        {verifyError && <p className="text-xs text-red-400">{verifyError}</p>}
+        <Button type="submit" size="sm" disabled={verifyLoading || !resendEmail.trim() || verificationCode.length !== 6} className="w-full gap-2">
+          {verifyLoading ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Verifying...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Verify email
+            </>
+          )}
+        </Button>
+      </form>
+
+      <form onSubmit={handleResend} className="space-y-3 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
+        <p className="text-sm font-medium">Need a new code?</p>
+        <p className="text-xs text-muted-foreground">We will send a fresh 6-digit code to the email above.</p>
+        {resendError && <p className="text-xs text-red-400">{resendError}</p>}
+        <Button type="submit" size="sm" variant="outline" disabled={resendLoading || !resendEmail.trim()} className="gap-2">
+          {resendLoading ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Sending...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-3.5 w-3.5" />
+              Resend code
+            </>
+          )}
+        </Button>
+      </form>
+
       <div className="text-center">
-        <Link href="/auth/login" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+        <Link href="/auth/login" className="text-xs text-muted-foreground transition-colors hover:text-foreground">
           Return to sign in
         </Link>
       </div>
