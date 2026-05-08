@@ -4,12 +4,13 @@ import { VerifyEmailClient } from "@/components/auth/verify-email-client";
 export const metadata = { title: "Verify Email — NOJAI" };
 
 interface VerifyEmailPageProps {
-  searchParams: { token?: string; email?: string };
+  searchParams: Promise<{ token?: string; email?: string }>;
 }
 
-export default function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
-  const token = searchParams.token ?? "";
-  const email = searchParams.email ?? "";
+export default async function VerifyEmailPage({ searchParams }: VerifyEmailPageProps) {
+  const params = await searchParams;
+  const token = params.token ?? "";
+  const email = params.email ?? "";
 
   return (
     <MarketingShell>
