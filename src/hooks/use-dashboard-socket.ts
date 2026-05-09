@@ -9,6 +9,7 @@ import { toast } from "sonner";
 
 import { SOCKET_PROXY_PATH, BACKEND_ORIGIN } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
+import { useBrowserNotifications } from "@/hooks/use-browser-notifications";
 import type { EOAccount, IQAccount } from "@/types";
 
 let socket: Socket | null = null;
@@ -16,6 +17,7 @@ let socket: Socket | null = null;
 export function useDashboardSocket(enabled = true) {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
+  const { notify } = useBrowserNotifications();
   const [isConnected, setIsConnected] = useState(socket?.connected ?? false);
 
   useEffect(() => {
@@ -52,18 +54,24 @@ export function useDashboardSocket(enabled = true) {
       toast.success(`🚀 Trade Placed${brokerLabel}`, {
         description: `${data.ticker} for $${data.amount} (Step ${data.martingaleStep})`,
       });
+      notify("🚀 Trade Placed", {
+        body: `${data.ticker} ${data.direction.toUpperCase()} — $${data.amount} (Step ${data.martingaleStep})`,
+        tag: "trade-placed",
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.trades() });
     });
 
     socket.on("trade-completed", (data: { asset: string; result: string; profit: number; balance: number; account?: string; broker?: "iq" | "eo"; tokenId?: string }) => {
       const won = data.result === "won" || data.result === "win";
       const draw = data.result === "draw";
-      const label = won ? "WIN" : draw ? "DRAW" : "LOSS";
       const brokerLabel = data.broker ? ` [${data.broker.toUpperCase()}]` : "";
       toast(won ? `🏁 Trade Finished: WIN${brokerLabel}` : draw ? `🏁 Trade Finished: DRAW${brokerLabel}` : `🏁 Trade Finished: LOSS${brokerLabel}`, {
         description: `Asset: ${data.asset} | Profit: $${data.profit}`,
       });
-      void label;
+      notify(won ? "✅ Trade Won" : draw ? "🤝 Trade Draw" : "❌ Trade Lost", {
+        body: `${data.asset} — Profit: $${data.profit}`,
+        tag: "trade-completed",
+      });
 
       // Update IQ balance in bot status cache
       if (!data.broker || data.broker === "iq") {
@@ -96,6 +104,10 @@ export function useDashboardSocket(enabled = true) {
     socket.on("trade-error", (data: { asset: string; error: string; account?: string; broker?: "iq" | "eo"; tradeId?: string }) => {
       toast.error(`❌ Trade Failed: ${data.asset}`, {
         description: data.error,
+      });
+      notify("⚠️ Trade Failed", {
+        body: `${data.asset} — ${data.error}`,
+        tag: "trade-error",
       });
     });
 

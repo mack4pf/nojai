@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BalanceChart } from "@/components/dashboard/balance-chart";
 import { ReviewGrowthPopup } from "@/components/dashboard/review-growth-popup";
+import { NotificationPermissionPrompt } from "@/components/dashboard/notification-permission-prompt";
 import { api, normalizeUserProfile } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import { formatCurrency, formatCurrencyBreakdown, formatDate, formatSignedCurrency } from "@/lib/utils";
@@ -206,6 +207,8 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
           </div>
         )}
       </div>
+
+      {hasSubscription && <NotificationPermissionPrompt />}
 
       {/* Payment banners */}
       {status === "success" && (
