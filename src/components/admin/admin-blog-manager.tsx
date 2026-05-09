@@ -5,11 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, ImagePlus, Loader2, Play, Trash2, UploadCloud, X } from "lucide-react";
+import { ExternalLink, FileText, ImagePlus, Loader2, Play, Trash2, UploadCloud, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import type { BlogPost } from "@/types";
@@ -77,6 +76,14 @@ function toSlug(title: string) {
   return slug || `post-${Date.now()}`;
 }
 
+function inputClassName(extra = "") {
+  return [
+    "resize-none rounded-none border-[#c1c8c7] bg-white text-[#1c1b1b]",
+    "placeholder:text-[#727878] focus-visible:ring-[#032121]",
+    extra,
+  ].join(" ");
+}
+
 interface ImageKitAuthResponse {
   publicKey: string;
   urlEndpoint: string;
@@ -134,6 +141,12 @@ function applyPostToForm(post: BlogPost): BlogFormValues {
     mediaGallery: post.mediaGallery ?? [],
     published: post.published ?? false,
   };
+}
+
+function statusPill(published?: boolean) {
+  return published
+    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+    : "border-[#c1c8c7] bg-[#f0edec] text-[#414848]";
 }
 
 export function AdminBlogManager() {
@@ -201,231 +214,293 @@ export function AdminBlogManager() {
   const savingDisabled = saveMutation.isPending || uploadingCover || uploadingGallery || !values.title.trim() || !values.content.trim();
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-      <Card className="border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
-        <CardHeader>
-          <CardTitle className="text-slate-950 dark:text-white">{editing ? "Edit post" : "New blog post"}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Textarea
-            placeholder="Title"
-            rows={2}
-            value={values.title}
-            onChange={(e) => setValues((v) => ({ ...v, title: e.target.value }))}
-            className="resize-none"
-          />
-
-          {values.coverImage ? (
-            <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-white/10">
-              <Image src={values.coverImage} alt="Cover" width={900} height={480} className="h-48 w-full object-cover" unoptimized />
-              <button
-                type="button"
-                aria-label="Remove cover image"
-                onClick={() => setValues((v) => ({ ...v, coverImage: "" }))}
-                className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-slate-950/75 text-white hover:bg-slate-950"
-              >
-                <X className="h-4 w-4" />
-              </button>
+    <section className="space-y-6 text-[#1c1b1b]">
+      <div className="border border-[#c1c8c7] bg-[#fcf9f8] p-6 shadow-sm">
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6f5b3d]">NOJAI Journal</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#032121]">Blog publishing desk</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#414848]">
+              Create editorial posts, attach a cover image, add a featured video, and upload multiple gallery images or videos.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
+            <div className="border border-[#c1c8c7] bg-white px-4 py-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-[#727878]">Posts</p>
+              <p className="mt-1 text-xl font-semibold text-[#032121]">{posts.length}</p>
             </div>
-          ) : (
-            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-slate-50 py-8 text-sm font-medium text-slate-600 transition-colors hover:border-primary/50 hover:bg-primary/5 dark:border-white/15 dark:bg-white/[0.03] dark:text-white/60">
-              {uploadingCover ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
-              {uploadingCover ? "Uploading..." : "Upload cover image"}
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={uploadingCover}
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file) return;
-                  setUploadingCover(true);
-                  try {
-                    const media = await uploadBlogAsset(file);
-                    setValues((v) => ({ ...v, coverImage: media.url }));
-                    toast.success("Cover image uploaded");
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Upload failed");
-                  } finally {
-                    setUploadingCover(false);
-                    e.target.value = "";
-                  }
-                }}
-              />
-            </label>
-          )}
-
-          <Textarea
-            placeholder="Short excerpt shown in the blog list"
-            rows={3}
-            value={values.excerpt}
-            onChange={(e) => setValues((v) => ({ ...v, excerpt: e.target.value }))}
-            className="resize-none"
-          />
-
-          <Textarea
-            placeholder="Author name (e.g. NOJAI Editorial)"
-            rows={1}
-            value={values.author}
-            onChange={(e) => setValues((v) => ({ ...v, author: e.target.value }))}
-            className="resize-none"
-          />
-
-          <Textarea
-            placeholder="Featured video URL (optional)"
-            rows={1}
-            value={values.featuredVideo}
-            onChange={(e) => setValues((v) => ({ ...v, featuredVideo: e.target.value }))}
-            className="resize-none"
-          />
-
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-white/[0.03]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-slate-950 dark:text-white">Gallery images and videos</p>
-                <p className="text-xs text-slate-500 dark:text-white/50">Attach multiple screenshots, images, or videos to this article.</p>
-              </div>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 dark:border-white/10 dark:bg-white/[0.06] dark:text-white dark:hover:bg-white/[0.1]">
-                {uploadingGallery ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
-                Upload media
-                <input
-                  type="file"
-                  accept="image/*,video/*"
-                  multiple
-                  className="hidden"
-                  disabled={uploadingGallery}
-                  onChange={async (e) => {
-                    await handleGalleryUpload(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
+            <div className="border border-[#c1c8c7] bg-white px-4 py-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-[#727878]">Live</p>
+              <p className="mt-1 text-xl font-semibold text-[#032121]">{posts.filter((post) => post.published).length}</p>
             </div>
+            <div className="hidden border border-[#c1c8c7] bg-white px-4 py-3 md:block">
+              <p className="text-xs uppercase tracking-[0.18em] text-[#727878]">Drafts</p>
+              <p className="mt-1 text-xl font-semibold text-[#032121]">{posts.filter((post) => !post.published).length}</p>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            {values.mediaGallery.length > 0 ? (
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {values.mediaGallery.map((item, index) => (
-                  <div key={`${item.url}-${index}`} className="relative overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-white/10 dark:bg-black/20">
-                    {item.kind === "video" ? (
-                      <div className="flex aspect-video items-center justify-center bg-slate-950 text-white">
-                        <Play className="h-8 w-8" />
-                      </div>
-                    ) : (
-                      <Image src={item.url} alt={item.name ?? "Gallery image"} width={480} height={270} className="aspect-video w-full object-cover" unoptimized />
-                    )}
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
+        <div className="border border-[#c1c8c7] bg-white shadow-sm">
+          <div className="border-b border-[#c1c8c7] bg-[#f6f3f2] px-6 py-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6f5b3d]">{editing ? "Editing article" : "New article"}</p>
+            <h2 className="mt-1 text-xl font-semibold text-[#032121]">{editing ? editing.title : "Write a new blog post"}</h2>
+          </div>
+
+          <div className="space-y-5 p-6">
+            <Textarea
+              placeholder="Article title"
+              rows={2}
+              value={values.title}
+              onChange={(e) => setValues((v) => ({ ...v, title: e.target.value }))}
+              className={inputClassName("text-base font-semibold")}
+            />
+
+            <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+              <div className="space-y-4">
+                {values.coverImage ? (
+                  <div className="relative overflow-hidden border border-[#c1c8c7] bg-[#f0edec]">
+                    <Image src={values.coverImage} alt="Cover" width={1000} height={560} className="h-64 w-full object-cover" unoptimized />
                     <button
                       type="button"
-                      aria-label="Remove media"
-                      onClick={() => setValues((v) => ({ ...v, mediaGallery: v.mediaGallery.filter((_, i) => i !== index) }))}
-                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-slate-950/75 text-white hover:bg-slate-950"
+                      aria-label="Remove cover image"
+                      onClick={() => setValues((v) => ({ ...v, coverImage: "" }))}
+                      className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center bg-[#032121] text-white hover:opacity-90"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                      <X className="h-4 w-4" />
                     </button>
-                    <p className="truncate px-3 py-2 text-xs font-medium text-slate-600 dark:text-white/60">{item.name ?? item.kind}</p>
                   </div>
-                ))}
+                ) : (
+                  <label className="flex h-64 cursor-pointer flex-col items-center justify-center gap-3 border border-dashed border-[#727878] bg-[#f6f3f2] text-sm font-semibold text-[#414848] transition-colors hover:border-[#032121] hover:bg-[#f0edec]">
+                    {uploadingCover ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
+                    {uploadingCover ? "Uploading cover..." : "Upload cover image"}
+                    <span className="text-xs font-normal text-[#727878]">Recommended: 16:9 image for the article hero</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingCover}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setUploadingCover(true);
+                        try {
+                          const media = await uploadBlogAsset(file);
+                          setValues((v) => ({ ...v, coverImage: media.url }));
+                          toast.success("Cover image uploaded");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Upload failed");
+                        } finally {
+                          setUploadingCover(false);
+                          e.target.value = "";
+                        }
+                      }}
+                    />
+                  </label>
+                )}
               </div>
-            ) : null}
-          </div>
 
-          <Textarea
-            placeholder="Write your post content here..."
-            rows={12}
-            value={values.content}
-            onChange={(e) => setValues((v) => ({ ...v, content: e.target.value }))}
-          />
+              <div className="space-y-4">
+                <Textarea
+                  placeholder="Short excerpt shown in the blog list"
+                  rows={5}
+                  value={values.excerpt}
+                  onChange={(e) => setValues((v) => ({ ...v, excerpt: e.target.value }))}
+                  className={inputClassName("min-h-[132px]")}
+                />
+                <Textarea
+                  placeholder="Author name"
+                  rows={1}
+                  value={values.author}
+                  onChange={(e) => setValues((v) => ({ ...v, author: e.target.value }))}
+                  className={inputClassName("min-h-0")}
+                />
+                <Textarea
+                  placeholder="Featured video URL (optional)"
+                  rows={1}
+                  value={values.featuredVideo}
+                  onChange={(e) => setValues((v) => ({ ...v, featuredVideo: e.target.value }))}
+                  className={inputClassName("min-h-0")}
+                />
+              </div>
+            </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setValues((v) => ({ ...v, content: v.content.trim() ? v.content : seoBlogTemplate }))}
-          >
-            Insert SEO content template
-          </Button>
-
-          <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-slate-800 dark:text-white/80">
-            <input
-              type="checkbox"
-              checked={values.published}
-              onChange={(e) => setValues((v) => ({ ...v, published: e.target.checked }))}
-            />
-            Publish immediately
-          </label>
-
-          <div className="flex flex-wrap gap-3">
-            <Button onClick={() => saveMutation.mutate()} disabled={savingDisabled}>
-              {saveMutation.isPending ? "Saving..." : editing ? "Update post" : "Publish post"}
-            </Button>
-            {editing ? (
-              <Button variant="outline" onClick={() => { setEditing(null); setValues(emptyPost); }}>Cancel</Button>
-            ) : null}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
-        <CardHeader>
-          <CardTitle className="text-slate-950 dark:text-white">All posts ({posts.length})</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {posts.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500 dark:text-white/50">No posts yet. Create one above.</p>
-          ) : null}
-          {posts.map((post) => {
-            const galleryCount = post.mediaGallery?.length ?? 0;
-            return (
-              <div key={post._id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-white/10 dark:bg-black/20">
-                {post.coverImage ? (
-                  <Image src={post.coverImage} alt={post.title} width={720} height={360} className="mb-3 h-40 w-full rounded-xl object-cover" unoptimized />
-                ) : null}
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold leading-snug text-slate-950 dark:text-white">{post.title}</p>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-white/45">/{post.slug}</p>
-                  </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${post.published ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" : "bg-slate-200 text-slate-600 dark:bg-white/[0.08] dark:text-white/50"}`}>
-                    {post.published ? "Published" : "Draft"}
-                  </span>
+            <div className="border border-[#c1c8c7] bg-[#fcf9f8] p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-[#032121]">Gallery images and videos</p>
+                  <p className="text-xs text-[#414848]">Attach multiple screenshots, illustrations, or video clips to the post.</p>
                 </div>
-                {post.excerpt ? <p className="mt-2 line-clamp-2 text-sm text-slate-600 dark:text-white/60">{post.excerpt}</p> : null}
-                <div className="mt-3 flex flex-wrap gap-2 text-xs font-medium text-slate-500 dark:text-white/45">
-                  {post.featuredVideo ? <span>Featured video</span> : null}
-                  {galleryCount > 0 ? <span>{galleryCount} gallery file{galleryCount === 1 ? "" : "s"}</span> : null}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEditing(post);
-                      setValues(applyPostToForm(post));
+                <label className="inline-flex cursor-pointer items-center gap-2 border border-[#032121] bg-white px-4 py-2 text-sm font-semibold text-[#032121] hover:bg-[#032121] hover:text-white">
+                  {uploadingGallery ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+                  Upload media
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    multiple
+                    className="hidden"
+                    disabled={uploadingGallery}
+                    onChange={async (e) => {
+                      await handleGalleryUpload(e.target.files);
+                      e.target.value = "";
                     }}
-                  >
-                    Edit
-                  </Button>
-                  {post.published && post.slug ? (
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/blog/${encodeURIComponent(post.slug)}`} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                        View live
-                      </Link>
-                    </Button>
-                  ) : null}
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => deleteMutation.mutate(post._id)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    Delete
-                  </Button>
-                </div>
+                  />
+                </label>
               </div>
-            );
-          })}
-        </CardContent>
-      </Card>
-    </div>
+
+              {values.mediaGallery.length > 0 ? (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {values.mediaGallery.map((item, index) => (
+                    <div key={`${item.url}-${index}`} className="relative overflow-hidden border border-[#c1c8c7] bg-white">
+                      {item.kind === "video" ? (
+                        <div className="flex aspect-video items-center justify-center bg-[#032121] text-[#cae8e8]">
+                          <Play className="h-8 w-8" />
+                        </div>
+                      ) : (
+                        <Image src={item.url} alt={item.name ?? "Gallery image"} width={480} height={270} className="aspect-video w-full object-cover" unoptimized />
+                      )}
+                      <button
+                        type="button"
+                        aria-label="Remove media"
+                        onClick={() => setValues((v) => ({ ...v, mediaGallery: v.mediaGallery.filter((_, i) => i !== index) }))}
+                        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center bg-[#032121] text-white hover:opacity-90"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                      <p className="truncate px-3 py-2 text-xs font-medium text-[#414848]">{item.name ?? item.kind}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <Textarea
+              placeholder="Write your post content here. Markdown headings and saved HTML h2/h3 headings are supported."
+              rows={18}
+              value={values.content}
+              onChange={(e) => setValues((v) => ({ ...v, content: e.target.value }))}
+              className={inputClassName("font-mono leading-6")}
+            />
+
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#c1c8c7] pt-5">
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-none border-[#032121] bg-white text-[#032121] hover:bg-[#f0edec]"
+                  onClick={() => setValues((v) => ({ ...v, content: v.content.trim() ? v.content : seoBlogTemplate }))}
+                >
+                  Insert SEO template
+                </Button>
+                <label className="flex cursor-pointer items-center gap-3 text-sm font-semibold text-[#032121]">
+                  <input
+                    type="checkbox"
+                    checked={values.published}
+                    onChange={(e) => setValues((v) => ({ ...v, published: e.target.checked }))}
+                  />
+                  Publish immediately
+                </label>
+              </div>
+
+              <div className="flex gap-3">
+                {editing ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-none border-[#727878] bg-white text-[#414848] hover:bg-[#f0edec]"
+                    onClick={() => { setEditing(null); setValues(emptyPost); }}
+                  >
+                    Cancel
+                  </Button>
+                ) : null}
+                <Button
+                  onClick={() => saveMutation.mutate()}
+                  disabled={savingDisabled}
+                  className="rounded-none bg-[#032121] text-white shadow-none hover:bg-[#1a3636]"
+                >
+                  {saveMutation.isPending ? "Saving..." : editing ? "Update post" : "Publish post"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <aside className="border border-[#c1c8c7] bg-[#fcf9f8] shadow-sm">
+          <div className="border-b border-[#c1c8c7] bg-[#f6f3f2] px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6f5b3d]">Archive</p>
+            <h2 className="mt-1 text-lg font-semibold text-[#032121]">All posts ({posts.length})</h2>
+          </div>
+
+          <div className="max-h-[calc(100vh-180px)] space-y-4 overflow-y-auto p-4">
+            {posts.length === 0 ? (
+              <p className="py-6 text-center text-sm text-[#414848]">No posts yet. Create one on the left.</p>
+            ) : null}
+
+            {posts.map((post) => {
+              const galleryCount = post.mediaGallery?.length ?? 0;
+              return (
+                <article key={post._id} className="border border-[#c1c8c7] bg-white">
+                  {post.coverImage ? (
+                    <Image src={post.coverImage} alt={post.title} width={720} height={360} className="h-36 w-full object-cover" unoptimized />
+                  ) : (
+                    <div className="flex h-24 items-center justify-center bg-[#e5e2e1] text-[#032121]">
+                      <FileText className="h-8 w-8" />
+                    </div>
+                  )}
+                  <div className="space-y-3 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-semibold leading-snug text-[#032121]">{post.title}</h3>
+                        <p className="mt-1 break-all text-xs text-[#727878]">/{post.slug}</p>
+                      </div>
+                      <span className={`shrink-0 border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${statusPill(post.published)}`}>
+                        {post.published ? "Live" : "Draft"}
+                      </span>
+                    </div>
+                    {post.excerpt ? <p className="line-clamp-2 text-sm leading-6 text-[#414848]">{post.excerpt}</p> : null}
+                    <div className="flex flex-wrap gap-2 text-xs font-medium text-[#727878]">
+                      {post.featuredVideo ? <span>Featured video</span> : null}
+                      {galleryCount > 0 ? <span>{galleryCount} gallery file{galleryCount === 1 ? "" : "s"}</span> : null}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-none border-[#032121] bg-white text-[#032121] hover:bg-[#f0edec]"
+                        onClick={() => {
+                          setEditing(post);
+                          setValues(applyPostToForm(post));
+                        }}
+                      >
+                        Edit
+                      </Button>
+                      {post.published && post.slug ? (
+                        <Button variant="outline" size="sm" asChild className="rounded-none border-[#032121] bg-white text-[#032121] hover:bg-[#f0edec]">
+                          <Link href={`/blog/${encodeURIComponent(post.slug)}`} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                            View live
+                          </Link>
+                        </Button>
+                      ) : null}
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        className="rounded-none"
+                        onClick={() => deleteMutation.mutate(post._id)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </aside>
+      </div>
+    </section>
   );
 }
