@@ -78,8 +78,8 @@ function toSlug(title: string) {
 
 function inputClassName(extra = "") {
   return [
-    "resize-none rounded-none border-[#c1c8c7] bg-white text-[#1c1b1b]",
-    "placeholder:text-[#727878] focus-visible:ring-[#032121]",
+    "resize-none rounded-none border-border bg-card text-foreground",
+    "placeholder:text-muted-foreground focus-visible:ring-ring",
     extra,
   ].join(" ");
 }
@@ -146,7 +146,7 @@ function applyPostToForm(post: BlogPost): BlogFormValues {
 function statusPill(published?: boolean) {
   return published
     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-    : "border-[#c1c8c7] bg-[#f0edec] text-[#414848]";
+    : "border-border bg-muted text-muted-foreground";
 }
 
 export function AdminBlogManager() {
@@ -214,38 +214,38 @@ export function AdminBlogManager() {
   const savingDisabled = saveMutation.isPending || uploadingCover || uploadingGallery || !values.title.trim() || !values.content.trim();
 
   return (
-    <section className="space-y-6 text-[#1c1b1b]">
-      <div className="border border-[#c1c8c7] bg-[#fcf9f8] p-6 shadow-sm">
+    <section className="space-y-6 text-foreground">
+      <div className="border border-border bg-background p-6 shadow-sm">
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6f5b3d]">NOJAI Journal</p>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#032121]">Blog publishing desk</h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-[#414848]">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">NOJAI Journal</p>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">Blog publishing desk</h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
               Create editorial posts, attach a cover image, add a featured video, and upload multiple gallery images or videos.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-3">
-            <div className="border border-[#c1c8c7] bg-white px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-[#727878]">Posts</p>
-              <p className="mt-1 text-xl font-semibold text-[#032121]">{posts.length}</p>
+            <div className="border border-border bg-card px-4 py-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Posts</p>
+              <p className="mt-1 text-xl font-semibold text-foreground">{posts.length}</p>
             </div>
-            <div className="border border-[#c1c8c7] bg-white px-4 py-3">
-              <p className="text-xs uppercase tracking-[0.18em] text-[#727878]">Live</p>
-              <p className="mt-1 text-xl font-semibold text-[#032121]">{posts.filter((post) => post.published).length}</p>
+            <div className="border border-border bg-card px-4 py-3">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Live</p>
+              <p className="mt-1 text-xl font-semibold text-foreground">{posts.filter((post) => post.published).length}</p>
             </div>
-            <div className="hidden border border-[#c1c8c7] bg-white px-4 py-3 md:block">
-              <p className="text-xs uppercase tracking-[0.18em] text-[#727878]">Drafts</p>
-              <p className="mt-1 text-xl font-semibold text-[#032121]">{posts.filter((post) => !post.published).length}</p>
+            <div className="hidden border border-border bg-card px-4 py-3 md:block">
+              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Drafts</p>
+              <p className="mt-1 text-xl font-semibold text-foreground">{posts.filter((post) => !post.published).length}</p>
             </div>
           </div>
         </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
-        <div className="border border-[#c1c8c7] bg-white shadow-sm">
-          <div className="border-b border-[#c1c8c7] bg-[#f6f3f2] px-6 py-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6f5b3d]">{editing ? "Editing article" : "New article"}</p>
-            <h2 className="mt-1 text-xl font-semibold text-[#032121]">{editing ? editing.title : "Write a new blog post"}</h2>
+        <div className="border border-border bg-card shadow-sm">
+          <div className="border-b border-border bg-muted px-6 py-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">{editing ? "Editing article" : "New article"}</p>
+            <h2 className="mt-1 text-xl font-semibold text-foreground">{editing ? editing.title : "Write a new blog post"}</h2>
           </div>
 
           <div className="space-y-5 p-6">
@@ -260,22 +260,22 @@ export function AdminBlogManager() {
             <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
               <div className="space-y-4">
                 {values.coverImage ? (
-                  <div className="relative overflow-hidden border border-[#c1c8c7] bg-[#f0edec]">
+                  <div className="relative overflow-hidden border border-border bg-muted">
                     <Image src={values.coverImage} alt="Cover" width={1000} height={560} className="h-64 w-full object-cover" unoptimized />
                     <button
                       type="button"
                       aria-label="Remove cover image"
                       onClick={() => setValues((v) => ({ ...v, coverImage: "" }))}
-                      className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center bg-[#032121] text-white hover:opacity-90"
+                      className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center bg-primary text-primary-foreground hover:opacity-90"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
                 ) : (
-                  <label className="flex h-64 cursor-pointer flex-col items-center justify-center gap-3 border border-dashed border-[#727878] bg-[#f6f3f2] text-sm font-semibold text-[#414848] transition-colors hover:border-[#032121] hover:bg-[#f0edec]">
+                  <label className="flex h-64 cursor-pointer flex-col items-center justify-center gap-3 border border-dashed border-muted-foreground/40 bg-muted text-sm font-semibold text-muted-foreground transition-colors hover:border-primary hover:bg-muted">
                     {uploadingCover ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
                     {uploadingCover ? "Uploading cover..." : "Upload cover image"}
-                    <span className="text-xs font-normal text-[#727878]">Recommended: 16:9 image for the article hero</span>
+                    <span className="text-xs font-normal text-muted-foreground">Recommended: 16:9 image for the article hero</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -326,13 +326,13 @@ export function AdminBlogManager() {
               </div>
             </div>
 
-            <div className="border border-[#c1c8c7] bg-[#fcf9f8] p-4">
+            <div className="border border-border bg-background p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-[#032121]">Gallery images and videos</p>
-                  <p className="text-xs text-[#414848]">Attach multiple screenshots, illustrations, or video clips to the post.</p>
+                  <p className="text-sm font-semibold text-foreground">Gallery images and videos</p>
+                  <p className="text-xs text-muted-foreground">Attach multiple screenshots, illustrations, or video clips to the post.</p>
                 </div>
-                <label className="inline-flex cursor-pointer items-center gap-2 border border-[#032121] bg-white px-4 py-2 text-sm font-semibold text-[#032121] hover:bg-[#032121] hover:text-white">
+                <label className="inline-flex cursor-pointer items-center gap-2 border border-primary bg-card px-4 py-2 text-sm font-semibold text-foreground hover:bg-primary hover:text-primary-foreground">
                   {uploadingGallery ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
                   Upload media
                   <input
@@ -352,9 +352,9 @@ export function AdminBlogManager() {
               {values.mediaGallery.length > 0 ? (
                 <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {values.mediaGallery.map((item, index) => (
-                    <div key={`${item.url}-${index}`} className="relative overflow-hidden border border-[#c1c8c7] bg-white">
+                    <div key={`${item.url}-${index}`} className="relative overflow-hidden border border-border bg-card">
                       {item.kind === "video" ? (
-                        <div className="flex aspect-video items-center justify-center bg-[#032121] text-[#cae8e8]">
+                        <div className="flex aspect-video items-center justify-center bg-primary text-primary-foreground">
                           <Play className="h-8 w-8" />
                         </div>
                       ) : (
@@ -364,11 +364,11 @@ export function AdminBlogManager() {
                         type="button"
                         aria-label="Remove media"
                         onClick={() => setValues((v) => ({ ...v, mediaGallery: v.mediaGallery.filter((_, i) => i !== index) }))}
-                        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center bg-[#032121] text-white hover:opacity-90"
+                        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center bg-primary text-primary-foreground hover:opacity-90"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
-                      <p className="truncate px-3 py-2 text-xs font-medium text-[#414848]">{item.name ?? item.kind}</p>
+                      <p className="truncate px-3 py-2 text-xs font-medium text-muted-foreground">{item.name ?? item.kind}</p>
                     </div>
                   ))}
                 </div>
@@ -383,18 +383,18 @@ export function AdminBlogManager() {
               className={inputClassName("font-mono leading-6")}
             />
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#c1c8c7] pt-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
               <div className="flex flex-wrap items-center gap-3">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="rounded-none border-[#032121] bg-white text-[#032121] hover:bg-[#f0edec]"
+                  className="rounded-none border-primary bg-card text-foreground hover:bg-muted"
                   onClick={() => setValues((v) => ({ ...v, content: v.content.trim() ? v.content : seoBlogTemplate }))}
                 >
                   Insert SEO template
                 </Button>
-                <label className="flex cursor-pointer items-center gap-3 text-sm font-semibold text-[#032121]">
+                <label className="flex cursor-pointer items-center gap-3 text-sm font-semibold text-foreground">
                   <input
                     type="checkbox"
                     checked={values.published}
@@ -409,7 +409,7 @@ export function AdminBlogManager() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="rounded-none border-[#727878] bg-white text-[#414848] hover:bg-[#f0edec]"
+                    className="rounded-none border-muted-foreground/40 bg-card text-muted-foreground hover:bg-muted"
                     onClick={() => { setEditing(null); setValues(emptyPost); }}
                   >
                     Cancel
@@ -418,7 +418,7 @@ export function AdminBlogManager() {
                 <Button
                   onClick={() => saveMutation.mutate()}
                   disabled={savingDisabled}
-                  className="rounded-none bg-[#032121] text-white shadow-none hover:bg-[#1a3636]"
+                  className="rounded-none bg-primary text-primary-foreground shadow-none hover:bg-primary/90"
                 >
                   {saveMutation.isPending ? "Saving..." : editing ? "Update post" : "Publish post"}
                 </Button>
@@ -427,40 +427,40 @@ export function AdminBlogManager() {
           </div>
         </div>
 
-        <aside className="border border-[#c1c8c7] bg-[#fcf9f8] shadow-sm">
-          <div className="border-b border-[#c1c8c7] bg-[#f6f3f2] px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6f5b3d]">Archive</p>
-            <h2 className="mt-1 text-lg font-semibold text-[#032121]">All posts ({posts.length})</h2>
+        <aside className="border border-border bg-background shadow-sm">
+          <div className="border-b border-border bg-muted px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary">Archive</p>
+            <h2 className="mt-1 text-lg font-semibold text-foreground">All posts ({posts.length})</h2>
           </div>
 
           <div className="max-h-[calc(100vh-180px)] space-y-4 overflow-y-auto p-4">
             {posts.length === 0 ? (
-              <p className="py-6 text-center text-sm text-[#414848]">No posts yet. Create one on the left.</p>
+              <p className="py-6 text-center text-sm text-muted-foreground">No posts yet. Create one on the left.</p>
             ) : null}
 
             {posts.map((post) => {
               const galleryCount = post.mediaGallery?.length ?? 0;
               return (
-                <article key={post._id} className="border border-[#c1c8c7] bg-white">
+                <article key={post._id} className="border border-border bg-card">
                   {post.coverImage ? (
                     <Image src={post.coverImage} alt={post.title} width={720} height={360} className="h-36 w-full object-cover" unoptimized />
                   ) : (
-                    <div className="flex h-24 items-center justify-center bg-[#e5e2e1] text-[#032121]">
+                    <div className="flex h-24 items-center justify-center bg-muted text-foreground">
                       <FileText className="h-8 w-8" />
                     </div>
                   )}
                   <div className="space-y-3 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h3 className="font-semibold leading-snug text-[#032121]">{post.title}</h3>
-                        <p className="mt-1 break-all text-xs text-[#727878]">/{post.slug}</p>
+                        <h3 className="font-semibold leading-snug text-foreground">{post.title}</h3>
+                        <p className="mt-1 break-all text-xs text-muted-foreground">/{post.slug}</p>
                       </div>
                       <span className={`shrink-0 border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] ${statusPill(post.published)}`}>
                         {post.published ? "Live" : "Draft"}
                       </span>
                     </div>
-                    {post.excerpt ? <p className="line-clamp-2 text-sm leading-6 text-[#414848]">{post.excerpt}</p> : null}
-                    <div className="flex flex-wrap gap-2 text-xs font-medium text-[#727878]">
+                    {post.excerpt ? <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{post.excerpt}</p> : null}
+                    <div className="flex flex-wrap gap-2 text-xs font-medium text-muted-foreground">
                       {post.featuredVideo ? <span>Featured video</span> : null}
                       {galleryCount > 0 ? <span>{galleryCount} gallery file{galleryCount === 1 ? "" : "s"}</span> : null}
                     </div>
@@ -468,7 +468,7 @@ export function AdminBlogManager() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="rounded-none border-[#032121] bg-white text-[#032121] hover:bg-[#f0edec]"
+                        className="rounded-none border-primary bg-card text-foreground hover:bg-muted"
                         onClick={() => {
                           setEditing(post);
                           setValues(applyPostToForm(post));
@@ -477,7 +477,7 @@ export function AdminBlogManager() {
                         Edit
                       </Button>
                       {post.published && post.slug ? (
-                        <Button variant="outline" size="sm" asChild className="rounded-none border-[#032121] bg-white text-[#032121] hover:bg-[#f0edec]">
+                        <Button variant="outline" size="sm" asChild className="rounded-none border-primary bg-card text-foreground hover:bg-muted">
                           <Link href={`/blog/${encodeURIComponent(post.slug)}`} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                             View live
