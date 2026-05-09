@@ -32,6 +32,23 @@ function resolveServerApiBaseUrl() {
   );
 }
 
+function resolveServerPublicBaseUrl() {
+  const directApiUrl = resolveServerApiBaseUrl();
+  const isLocalApi = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/api$/i.test(directApiUrl);
+  const vercelOrigin = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "";
+  const appOrigin =
+    vercelOrigin
+    || process.env.NEXT_PUBLIC_APP_URL
+    || process.env.NEXT_PUBLIC_SITE_URL
+    || "";
+
+  if (isLocalApi && appOrigin) {
+    return `${trimTrailingSlash(appOrigin)}/backend`;
+  }
+
+  return directApiUrl;
+}
+
 /** Direct backend origin, safe for both server and client (uses NEXT_PUBLIC_ on client). */
 function resolveBackendOrigin() {
   return trimTrailingSlash(
@@ -151,7 +168,7 @@ export function createServerApi(accessToken?: string) {
 }
 
 export async function publicGet<T>(path: string): Promise<T> {
-  const baseUrl = typeof window !== "undefined" ? API_BASE_URL : SERVER_API_BASE_URL;
+  const baseUrl = typeof window !== "undefined" ? API_BASE_URL : resolveServerPublicBaseUrl();
   const response = await fetch(`${baseUrl}${path}`, {
     cache: "no-store",
   });

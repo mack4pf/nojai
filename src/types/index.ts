@@ -42,6 +42,7 @@ export interface BlogPost {
     name?: string;
   }>;
   createdAt: string;
+  publishedAt?: string;
   author?: string;
   tags?: string[];
   published?: boolean;
