@@ -183,7 +183,8 @@ export async function getBlogPosts() {
 }
 
 export async function getBlogPost(slug: string) {
-  const response = await publicGet<unknown>(`/blog/${slug}`);
+  if (!slug || slug === "undefined") return null;
+  const response = await publicGet<unknown>(`/blog/${encodeURIComponent(slug)}`);
   return normalizeRecord<BlogPost>(response);
 }
 
