@@ -26,7 +26,9 @@ interface WebhookToken {
 }
 
 export function WebhookCard() {
-  const { isVip } = useFeatureAccess();
+  const { isVip, isPro } = useFeatureAccess();
+  const hasAccess = isVip || isPro;
+  const maxWebhooks = isVip ? 5 : 1;
   const queryClient = useQueryClient();
   const [signalTarget, setSignalTarget] = useState<"iq" | "eo" | "both">("both");
   const [webhookToDelete, setWebhookToDelete] = useState<WebhookToken | null>(null);
@@ -34,7 +36,7 @@ export function WebhookCard() {
   const { data: webhooks = [], isLoading } = useQuery<WebhookToken[]>({
     queryKey: ["webhooks"],
     queryFn: async () => (await api.get("/user/webhooks")).data,
-    enabled: isVip,
+    enabled: hasAccess,
   });
 
   const generateMutation = useMutation({
@@ -70,7 +72,7 @@ export function WebhookCard() {
     navigator.clipboard.writeText(text).then(() => toast.success(`${label} copied`));
   }
 
-  if (!isVip) {
+  if (!hasAccess) {
     return (
       <div className="space-y-6">
         <div>
@@ -79,8 +81,8 @@ export function WebhookCard() {
         </div>
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 py-16 text-center">
           <Lock className="mb-3 h-8 w-8 text-muted-foreground/30" />
-          <p className="text-sm font-medium text-muted-foreground">VIP plan required</p>
-          <p className="mt-1 text-xs text-muted-foreground/60">Upgrade to VIP to get a personal webhook URL for TradingView signals.</p>
+          <p className="text-sm font-medium text-muted-foreground">PRO or VIP plan required</p>
+          <p className="mt-1 text-xs text-muted-foreground/60">Upgrade to PRO or VIP to get a personal webhook URL for TradingView signals.</p>
           <Button asChild size="sm" variant="outline" className="mt-4">
             <Link href="/dashboard/subscription">View plans</Link>
           </Button>
@@ -97,13 +99,16 @@ export function WebhookCard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-semibold tracking-tight">Webhook</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Receive TradingView signals via a personal webhook URL.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Receive TradingView signals via a personal webhook URL.
+            {isPro && !isVip && <span className="ml-1 text-muted-foreground/60">(1 webhook on PRO plan)</span>}
+          </p>
         </div>
         <Button
           size="sm"
           className="gap-1.5"
           onClick={() => generateMutation.mutate()}
-          disabled={generateMutation.isPending || webhooks.length >= 5}
+          disabled={generateMutation.isPending || webhooks.length >= maxWebhooks}
         >
           <Plus className="h-3.5 w-3.5" />
           {generateMutation.isPending ? "Generatingâ€¦" : "New token"}

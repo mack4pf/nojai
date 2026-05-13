@@ -20,7 +20,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard/review", label: "Review", icon: "review", mobileBottom: true },
     { href: "/dashboard/subscription", label: "Plans", icon: "plans", mobileBottom: true },
     { href: "/dashboard/copy-trading", label: "Copy Trading", icon: "copy", badge: "Pro", locked: plan === "STANDARD" || plan === "NONE" },
-    { href: "/dashboard/webhook", label: "Webhook", icon: "webhook", badge: "VIP", locked: plan !== "VIP" },
+    { href: "/dashboard/webhook", label: "Webhook", icon: "webhook", badge: "Pro", locked: plan === "STANDARD" || plan === "NONE" },
     { href: "/dashboard/courses", label: "Courses", icon: "courses" },
     { href: "/dashboard/payments", label: "Payments", icon: "payments" },
     { href: "/dashboard/affiliate", label: "Affiliate", icon: "plans" },
