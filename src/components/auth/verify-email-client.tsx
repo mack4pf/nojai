@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { API_BASE_URL } from "@/lib/api";
 
+const COOLDOWN = 60;
+
 interface VerifyEmailClientProps {
   token: string;
   email: string;
@@ -23,8 +25,14 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [verifyError, setVerifyError] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
-  const [resendSent, setResendSent] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [resendError, setResendError] = useState("");
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const id = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [resendCooldown]);
 
   async function verifyEmail(nextEmail: string, nextCode: string) {
     const cleanEmail = nextEmail.trim().toLowerCase();
@@ -90,7 +98,7 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
       });
 
       if (res.ok) {
-        setResendSent(true);
+        setResendCooldown(COOLDOWN);
         setVerificationCode("");
         setVerifyError("");
       } else {
@@ -149,11 +157,11 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
         </div>
       </div>
 
-      {resendSent && (
+      {resendCooldown > 0 && (
         <div className="flex items-start gap-2 rounded-xl border border-sky-500/20 bg-sky-500/[0.07] px-4 py-3">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-400" />
           <p className="text-xs text-sky-300">
-            Verification code sent to <strong>{resendEmail}</strong>. Check your inbox. It may take a minute.
+            New code sent to <strong>{resendEmail}</strong>. Check your inbox and spam folder.
           </p>
         </div>
       )}
@@ -211,7 +219,7 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
         <p className="text-sm font-medium">Need a new code?</p>
         <p className="text-xs text-muted-foreground">We will send a fresh 6-digit code to the email above.</p>
         {resendError && <p className="text-xs text-red-400">{resendError}</p>}
-        <Button type="submit" size="sm" variant="outline" disabled={resendLoading || !resendEmail.trim()} className="gap-2">
+        <Button type="submit" size="sm" variant="outline" disabled={resendLoading || resendCooldown > 0 || !resendEmail.trim()} className="gap-2">
           {resendLoading ? (
             <>
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -220,7 +228,7 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
           ) : (
             <>
               <RefreshCw className="h-3.5 w-3.5" />
-              Resend code
+              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
             </>
           )}
         </Button>
