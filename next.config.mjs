@@ -24,6 +24,7 @@ const isDevelopment = process.env.NODE_ENV === "development";
 
 const nextConfig = {
   distDir: isDevelopment ? ".next-dev" : ".next",
+  allowedDevOrigins: ["192.168.1.160"],
   images: {
     remotePatterns: [
       {

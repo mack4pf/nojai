@@ -6,6 +6,7 @@ export const queryKeys = {
   courses: ["courses"] as const,
   trades: (filters?: Record<string, unknown>) => ["trades", filters] as const,
   accounts: ["accounts"] as const,
+  mt5Accounts: ["mt5-accounts"] as const,
   botStatus: ["bot-status"] as const,
   martingale: ["martingale"] as const,
   adminUsers: ["admin-users"] as const,

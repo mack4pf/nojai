@@ -33,6 +33,7 @@ import { signOut } from "next-auth/react";
 import { Badge } from "@/components/ui/badge";
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { MetaTrader5Icon } from "@/components/icons/metatrader5-icon";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -70,6 +71,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   network: Network,
   message: MessageSquare,
   terminal: Terminal,
+  mt5: MetaTrader5Icon,
 };
 
 function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick?: () => void }) {

@@ -138,6 +138,11 @@ export interface IQAccount {
 
 export interface Subscription {
   plan: PlanTier;
+  product?: "binary" | "forex" | "all" | null;
+  access?: {
+    binary?: boolean;
+    forex?: boolean;
+  };
   expiresAt?: string;
   active: boolean;
   status?: string;

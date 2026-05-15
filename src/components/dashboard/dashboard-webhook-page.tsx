@@ -1,7 +1,73 @@
 "use client";
 
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { WebhookCard } from "@/components/dashboard/webhook-card";
+import { Mt5WebhookSection } from "@/components/dashboard/mt5-webhook-section";
+import { api, normalizeUserProfile } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
+import type { UserProfile } from "@/types";
 
 export function DashboardWebhookPage() {
-  return <WebhookCard />;
+  const { data: profile } = useQuery({
+    queryKey: queryKeys.profile,
+    queryFn: async () => normalizeUserProfile((await api.get("/user/profile")).data) as UserProfile | null,
+  });
+
+  const hasBinary = Boolean(profile?.subscription?.access?.binary);
+  const hasForex = Boolean(profile?.subscription?.access?.forex);
+  const hasBoth = hasBinary && hasForex;
+
+  const [activeTab, setActiveTab] = useState<"binary" | "mt5">(hasBinary ? "binary" : "mt5");
+
+  // Single-product users see their webhook directly — no tabs needed
+  if (!hasBoth) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Webhook</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Receive trading signals from any platform via a personal webhook URL.
+          </p>
+        </div>
+        {hasForex ? <Mt5WebhookSection /> : <WebhookCard hideTitleHeader />}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display text-2xl font-semibold tracking-tight">Webhook</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Receive trading signals from any platform via a personal webhook URL.
+        </p>
+      </div>
+
+      {/* Tab switcher */}
+      <div className="flex gap-1 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-1 mt5-outer-panel w-fit">
+        {([
+          { id: "binary" as const, label: "Binary Options", show: hasBinary },
+          { id: "mt5" as const, label: "MT5 AutoTrade", show: hasForex },
+        ]).filter((t) => t.show).map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`rounded-xl px-5 py-2 text-sm font-semibold transition-colors ${
+              activeTab === tab.id
+                ? "bg-primary text-primary-foreground shadow"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "binary" && <WebhookCard hideTitleHeader />}
+      {activeTab === "mt5" && <Mt5WebhookSection />}
+    </div>
+  );
 }
+

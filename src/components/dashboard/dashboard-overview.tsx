@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -8,6 +8,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
   CheckCircle2,
+  Check,
+  ChevronDown,
   CreditCard,
   Lock,
   MonitorSmartphone,
@@ -16,13 +18,18 @@ import {
   Zap,
   Loader2,
   Wallet,
+  Terminal,
+  Server,
+  ShieldCheck,
 } from "lucide-react";
 import { useDashboardSocket } from "@/hooks/use-dashboard-socket";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BalanceChart } from "@/components/dashboard/balance-chart";
+import { Mt5ProfitabilityChart } from "@/components/dashboard/mt5-profitability-chart";
 import { ReviewGrowthPopup } from "@/components/dashboard/review-growth-popup";
 import { NotificationPermissionPrompt } from "@/components/dashboard/notification-permission-prompt";
+import { MetaTrader5Icon } from "@/components/icons/metatrader5-icon";
 import { api, normalizeUserProfile } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import { formatCurrency, formatCurrencyBreakdown, formatDate, formatSignedCurrency } from "@/lib/utils";
@@ -41,6 +48,24 @@ interface BotStatusResponse {
     email: string; balance: number; tradeAmount: number; martingaleEnabled: boolean;
     accountType: string; currency: string; lastConnected: string; connected?: boolean;
   }>;
+}
+
+interface Mt5Account {
+  _id: string;
+  brokerName: string;
+  serverName: string;
+  login: string;
+  status: "pending" | "deploying" | "connected" | "disconnected" | "error";
+  balance: number;
+  equity: number;
+  currency: string;
+  isSynchronized: boolean;
+  isTradable: boolean;
+}
+
+interface Mt5TradeSummaryItem {
+  result?: string;
+  profit?: number;
 }
 
 interface ReturnsAccount {
@@ -88,7 +113,8 @@ interface DashboardOverviewProps {
 
 export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOverviewProps) {
   const queryClient = useQueryClient();
-  const [activeBroker, setActiveBroker] = useState<"iq" | "eo">("iq");
+  const [activeBrokerState, setActiveBroker] = useState<"iq" | "eo" | "mt5" | null>(null);
+  const [mobileBrokerMenuOpen, setMobileBrokerMenuOpen] = useState(false);
 
   const { data: profile } = useQuery({
     queryKey: queryKeys.profile,
@@ -102,6 +128,11 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
 
   const hasSubscription = botStatus?.subscriptionActive ?? Boolean(profile?.subscription?.active);
   const activePlan = botStatus?.plan?.toUpperCase() ?? (profile?.subscription?.active ? profile?.subscription?.plan : "NONE");
+  const hasBinaryAccess = Boolean(profile?.subscription?.access?.binary);
+  const hasForexAccess = Boolean(profile?.subscription?.access?.forex);
+
+  // Auto-select default broker tab based on product access
+  const activeBroker = activeBrokerState ?? (hasForexAccess && !hasBinaryAccess ? "mt5" : "iq");
 
   // Always fetch broker-specific returns separately — never mix
   const { data: iqReturns } = useQuery<ReturnsResponse>({
@@ -146,6 +177,36 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
     enabled: hasSubscription,
   });
 
+  const { data: mt5Accounts = [] } = useQuery({
+    queryKey: queryKeys.mt5Accounts,
+    queryFn: async () => {
+      const res = await api.get("/mt5/accounts");
+      return (res.data?.accounts ?? []) as Mt5Account[];
+    },
+    enabled: hasSubscription,
+    refetchInterval: 30_000,
+  });
+
+  const { data: mt5TradesData } = useQuery({
+    queryKey: queryKeys.trades({ broker: "mt5", limit: 100 }),
+    queryFn: async () => {
+      const res = await api.get("/user/trades", { params: { broker: "mt5", limit: 100 } });
+      return res.data as { trades: Mt5TradeSummaryItem[] };
+    },
+    enabled: hasSubscription,
+    refetchInterval: 30_000,
+  });
+
+  const { data: mt5OverviewStats } = useQuery({
+    queryKey: ["mt5-overview"],
+    queryFn: async () => {
+      const res = await api.get("/mt5/overview");
+      return res.data as { totalPips: number; totalProfit: number; winRate: number; totalTrades: number; pipsToday: number; profitToday: number };
+    },
+    enabled: hasSubscription && activeBroker === "mt5",
+    refetchInterval: 30_000,
+  });
+
   useEffect(() => {
     if (status === "success") {
       queryClient.invalidateQueries({ queryKey: queryKeys.profile });
@@ -162,13 +223,21 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
     ? formatCurrencyBreakdown(connectedAccounts.map((a) => ({ currency: a.currency, amount: a.balance })))
     : null;
 
-  // Fixed growth calc: require positive net + meaningful trades + winning rate
+  // Growth calc: use actual balance change (profit / starting balance) when we have
+  // balance snapshots. Require startingBalance >= 20 so tiny-balance accounts don't
+  // produce absurd percentages. Cap at 150% to prevent misleading inflation.
+  // Falls back to trade-based ROI (tradeNetProfit / totalInvested) when no snapshots.
   const iqGrowthPercent = (() => {
     if (!hasIq || !iqReturns) return 0;
-    const totalProfit = iqReturns.balanceProfit ?? iqReturns.totalProfit;
-    const startingBalance = iqReturns.startingBalance ?? 0;
-    if (startingBalance <= 0) return 0;
-    return (totalProfit / startingBalance) * 100;
+    const balProfit = iqReturns.balanceProfit;
+    const startBal  = iqReturns.startingBalance ?? 0;
+    if (typeof balProfit === "number" && balProfit > 0 && startBal >= 20) {
+      return Math.min((balProfit / startBal) * 100, 150);
+    }
+    const tradeProfit = iqReturns.tradeNetProfit ?? iqReturns.totalProfit ?? 0;
+    const invested    = iqReturns.totalInvested ?? 0;
+    if (invested <= 0 || tradeProfit <= 0) return 0;
+    return Math.min((tradeProfit / invested) * 100, 150);
   })();
 
   // Expert Option computed
@@ -180,11 +249,26 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
 
   const eoGrowthPercent = (() => {
     if (!hasEo || !eoReturns) return 0;
-    const totalProfit = eoReturns.balanceProfit ?? eoReturns.totalProfit;
-    const startingBalance = eoReturns.startingBalance ?? 0;
-    if (startingBalance <= 0) return 0;
-    return (totalProfit / startingBalance) * 100;
+    const balProfit = eoReturns.balanceProfit;
+    const startBal  = eoReturns.startingBalance ?? 0;
+    if (typeof balProfit === "number" && balProfit > 0 && startBal >= 20) {
+      return Math.min((balProfit / startBal) * 100, 150);
+    }
+    const tradeProfit = eoReturns.tradeNetProfit ?? eoReturns.totalProfit ?? 0;
+    const invested    = eoReturns.totalInvested ?? 0;
+    if (invested <= 0 || tradeProfit <= 0) return 0;
+    return Math.min((tradeProfit / invested) * 100, 150);
   })();
+
+  const connectedMt5Accounts = mt5Accounts.filter((a) => a.status !== "disconnected");
+  const readyMt5Accounts = connectedMt5Accounts.filter((a) => a.status === "connected" && a.isSynchronized);
+  const mt5Balance = connectedMt5Accounts.reduce((sum, account) => sum + Number(account.balance ?? 0), 0);
+  const mt5Equity = connectedMt5Accounts.reduce((sum, account) => sum + Number(account.equity ?? 0), 0);
+  const hasMt5 = connectedMt5Accounts.length > 0;
+  const mt5Trades = mt5TradesData?.trades ?? [];
+  const mt5TpCount = mt5Trades.filter((trade) => String(trade.result ?? "").toLowerCase() === "tp").length;
+  const mt5SlCount = mt5Trades.filter((trade) => String(trade.result ?? "").toLowerCase() === "sl").length;
+  const mt5NetProfit = mt5Trades.reduce((sum, trade) => sum + Number(trade.profit ?? 0), 0);
 
   const growthPercent = activeBroker === "eo" ? eoGrowthPercent : iqGrowthPercent;
   const nextPlan = String(selectedPlan ?? "").trim().toUpperCase();
@@ -201,10 +285,16 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
             {hasSubscription ? "Your trading overview." : "Finish setup to start trading."}
           </p>
         </div>
-        {!isConnected && hasSubscription && (
-          <div className="flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-[10px] font-bold text-amber-500 ring-1 ring-amber-500/20">
-            <Loader2 className="h-3 w-3 animate-spin" /> Reconnecting&hellip;
-          </div>
+        {hasSubscription && isConnected !== null && (
+          isConnected ? (
+            <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-[10px] font-bold text-emerald-500 ring-1 ring-emerald-500/20">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Active
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-[10px] font-bold text-amber-500 ring-1 ring-amber-500/20">
+              <Loader2 className="h-3 w-3 animate-spin" /> Reconnecting&hellip;
+            </div>
+          )
         )}
       </div>
 
@@ -245,8 +335,101 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
       )}
 
       {/* Broker switcher tabs */}
-      {hasSubscription && (
-        <div className="dashboard-solid-panel flex gap-1.5 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-1.5">
+      {hasSubscription && (hasBinaryAccess && hasForexAccess) && (
+        <>
+          <div className="dashboard-solid-panel relative rounded-2xl border border-white/[0.07] bg-white/[0.02] p-2 sm:hidden">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Overview broker</p>
+            <button
+              type="button"
+              onClick={() => setMobileBrokerMenuOpen((open) => !open)}
+              className="flex w-full items-center justify-between rounded-xl border border-border/70 bg-background/90 px-3 py-2.5 text-left text-sm font-semibold text-foreground dark:border-white/[0.1] dark:bg-[#0a131b]"
+              aria-expanded={mobileBrokerMenuOpen}
+              aria-label="Select overview broker"
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-sm">
+                  {activeBroker === "iq" ? (
+                    <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={18} height={18} className="h-full w-full object-contain" />
+                  ) : activeBroker === "eo" ? (
+                    <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={18} height={18} className="h-full w-full object-contain" />
+                  ) : (
+                    <MetaTrader5Icon className="h-full w-full" stroke="#011118" />
+                  )}
+                </span>
+                <span className="truncate">
+                  {activeBroker === "iq" ? "IQ Option" : activeBroker === "eo" ? "ExpertOption" : "MT5"}
+                </span>
+              </span>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${mobileBrokerMenuOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {mobileBrokerMenuOpen && (
+              <div className="absolute left-2 right-2 top-[calc(100%-8px)] z-20 mt-2 rounded-2xl border border-border/70 bg-background p-1.5 shadow-2xl dark:border-white/[0.09] dark:bg-[#0a131b]">
+                {hasBinaryAccess && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveBroker("iq");
+                    setMobileBrokerMenuOpen(false);
+                  }}
+                  className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left hover:bg-muted/60 dark:hover:bg-white/[0.06]"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-sm">
+                      <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={18} height={18} className="h-full w-full object-contain" />
+                    </span>
+                    <span className="text-sm font-semibold">IQ Option</span>
+                    {hasIq && <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400">{connectedAccounts.length}</span>}
+                  </span>
+                  {activeBroker === "iq" ? <Check className="h-4 w-4 text-emerald-400" /> : null}
+                </button>
+                )}
+
+                {hasBinaryAccess && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveBroker("eo");
+                    setMobileBrokerMenuOpen(false);
+                  }}
+                  className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left hover:bg-muted/60 dark:hover:bg-white/[0.06]"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-sm">
+                      <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={18} height={18} className="h-full w-full object-contain" />
+                    </span>
+                    <span className="text-sm font-semibold">ExpertOption</span>
+                    {hasEo && <span className="rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-bold text-blue-400">{connectedEoAccounts.length}</span>}
+                  </span>
+                  {activeBroker === "eo" ? <Check className="h-4 w-4 text-blue-400" /> : null}
+                </button>
+                )}
+
+                {hasForexAccess && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveBroker("mt5");
+                    setMobileBrokerMenuOpen(false);
+                  }}
+                  className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left hover:bg-muted/60 dark:hover:bg-white/[0.06]"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-sm">
+                      <MetaTrader5Icon className="h-full w-full" stroke="#011118" />
+                    </span>
+                    <span className="text-sm font-semibold">MT5</span>
+                    {hasMt5 && <span className="rounded-full bg-cyan-500/20 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300">{connectedMt5Accounts.length}</span>}
+                  </span>
+                  {activeBroker === "mt5" ? <Check className="h-4 w-4 text-cyan-300" /> : null}
+                </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="dashboard-solid-panel hidden gap-1.5 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-1.5 sm:flex">
+          {hasBinaryAccess && (
           <button
             onClick={() => setActiveBroker("iq")}
             className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all ${
@@ -255,7 +438,9 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={18} height={18} className="h-4 w-4 shrink-0 object-contain" />
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-sm">
+              <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={18} height={18} className="h-full w-full object-contain" />
+            </span>
             <span>IQ Option</span>
             {hasIq && (
               <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400">
@@ -263,6 +448,8 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
               </span>
             )}
           </button>
+          )}
+          {hasBinaryAccess && (
           <button
             onClick={() => setActiveBroker("eo")}
             className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all ${
@@ -271,7 +458,9 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={18} height={18} className="h-4 w-4 shrink-0 object-contain" />
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-sm">
+              <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={18} height={18} className="h-full w-full object-contain" />
+            </span>
             <span>ExpertOption</span>
             {hasEo && (
               <span className="rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-bold text-blue-400">
@@ -279,11 +468,133 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
               </span>
             )}
           </button>
-        </div>
+          )}
+          {hasForexAccess && (
+          <button
+            onClick={() => setActiveBroker("mt5")}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all ${
+              activeBroker === "mt5"
+                ? "bg-cyan-600 text-white shadow-sm ring-1 ring-cyan-400/25"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-white p-1 shadow-sm">
+              <MetaTrader5Icon className="h-full w-full" stroke="#011118" />
+            </span>
+            <span>MT5</span>
+            {hasMt5 && (
+              <span className="rounded-full bg-cyan-500/20 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300">
+                {connectedMt5Accounts.length}
+              </span>
+            )}
+          </button>
+          )}
+          </div>
+        </>
+      )}
+
+      {/* MT5 section */}
+      {activeBroker === "mt5" && hasSubscription && hasForexAccess && (
+        <>
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+            <div className="dashboard-solid-panel rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-cyan-300/70 sm:text-[11px]">MT5 Accounts</p>
+                <Server className="h-3.5 w-3.5 text-cyan-300" />
+              </div>
+              <p className="mt-2 font-display text-base font-semibold sm:mt-3 sm:text-2xl">
+                {hasMt5 ? `${connectedMt5Accounts.length} Linked` : "—"}
+              </p>
+              <p className="mt-0.5 text-[10px] text-cyan-300/50 sm:mt-1 sm:text-xs">
+                {readyMt5Accounts.length} synchronized
+              </p>
+            </div>
+            <div className="dashboard-solid-panel rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-emerald-300/70 sm:text-[11px]">Balance</p>
+                <Wallet className="h-3.5 w-3.5 text-emerald-300" />
+              </div>
+              <p className="mt-2 font-display text-base font-semibold sm:mt-3 sm:text-2xl">
+                {hasMt5 ? `$${mt5Balance.toFixed(2)}` : "—"}
+              </p>
+              <p className="mt-0.5 text-[10px] text-emerald-300/50 sm:mt-1 sm:text-xs">Combined MT5 balance</p>
+            </div>
+            <div className="dashboard-solid-panel rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-amber-300/70 sm:text-[11px]">Equity</p>
+                <TrendingUp className="h-3.5 w-3.5 text-amber-300" />
+              </div>
+              <p className="mt-2 font-display text-base font-semibold sm:mt-3 sm:text-2xl">
+                {hasMt5 ? `$${mt5Equity.toFixed(2)}` : "—"}
+              </p>
+              <p className="mt-0.5 text-[10px] text-amber-300/50 sm:mt-1 sm:text-xs">Live account equity</p>
+            </div>
+            <div className="dashboard-solid-panel rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-blue-300/70 sm:text-[11px]">Execution</p>
+                <ShieldCheck className="h-3.5 w-3.5 text-blue-300" />
+              </div>
+              <p className="mt-2 font-display text-base font-semibold sm:mt-3 sm:text-2xl">
+                {readyMt5Accounts.length > 0 ? "Ready" : "Waiting"}
+              </p>
+              <p className="mt-0.5 text-[10px] text-blue-300/50 sm:mt-1 sm:text-xs">Risk engine comes next</p>
+            </div>
+            <div className="dashboard-solid-panel col-span-2 rounded-2xl border border-violet-500/20 bg-violet-500/10 p-4 xl:col-span-1">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-violet-300/70 sm:text-[11px]">TP / SL</p>
+                <Zap className="h-3.5 w-3.5 text-violet-300" />
+              </div>
+              <p className="mt-2 font-display text-base font-semibold sm:mt-3 sm:text-2xl">{mt5TpCount} TP / {mt5SlCount} SL</p>
+              <p className={`mt-0.5 text-[10px] sm:mt-1 sm:text-xs ${mt5NetProfit >= 0 ? "text-emerald-300/70" : "text-red-300/70"}`}>
+                Net P/L: {mt5NetProfit >= 0 ? "+" : ""}{mt5NetProfit.toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          <div className="dashboard-solid-panel rounded-3xl border border-cyan-500/20 bg-white/[0.03] p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#59c7f9]/25 bg-[#59c7f9]/10">
+                  <MetaTrader5Icon className="h-7 w-7" />
+                </div>
+                <div>
+                  <h3 className="font-display text-base font-bold sm:text-lg">MT5 AutoTrade</h3>
+                  <p className="mt-1 text-xs text-muted-foreground sm:text-sm">Manage MT5 accounts, sync status, and execution readiness.</p>
+                </div>
+              </div>
+              <Button asChild size="sm" className="gap-2">
+                <Link href="/dashboard/mt5-autotrade">
+                  Open MT5 AutoTrade <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </Button>
+            </div>
+            {hasMt5 ? (
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {connectedMt5Accounts.slice(0, 4).map((account) => (
+                  <div key={account._id} className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold">{account.brokerName}</p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">{account.login} · {account.serverName}</p>
+                      </div>
+                      <span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase ${account.status === "connected" ? "bg-emerald-500/15 text-emerald-300" : "bg-amber-500/15 text-amber-300"}`}>
+                        {account.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4 text-sm text-muted-foreground">
+                No MT5 account linked yet. Connect one from the MT5 AutoTrade page.
+              </div>
+            )}
+          </div>
+        </>
       )}
 
       {/* IQ OPTION section */}
-      {(activeBroker === "iq" || !hasSubscription) && (
+      {((activeBroker === "iq" && hasBinaryAccess) || !hasSubscription) && (
         <>
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
             <div className="dashboard-solid-panel rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4">
@@ -496,7 +807,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
       )}
 
       {/* EXPERT OPTION section — paid users only */}
-      {activeBroker === "eo" && !hasSubscription && (
+      {activeBroker === "eo" && !hasSubscription && hasBinaryAccess && (
         <div className="rounded-3xl border border-amber-500/[0.15] bg-amber-500/[0.04] p-6 text-center sm:p-8">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/20">
             <Lock className="h-6 w-6 text-amber-400" />
@@ -509,7 +820,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
         </div>
       )}
 
-      {activeBroker === "eo" && hasSubscription && (
+      {activeBroker === "eo" && hasSubscription && hasBinaryAccess && (
         <>
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
             <div className="dashboard-solid-panel rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4">
@@ -739,8 +1050,8 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
         </>
       )}
 
-      {/* Broker + Plan cards */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {/* Broker card (Trading Plan only shown when not yet subscribed) */}
+      <div className={`grid grid-cols-1 gap-4 ${!hasSubscription ? "lg:grid-cols-2" : ""}`}>
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <h3 className="font-display text-sm font-semibold sm:text-base">Broker Connection</h3>
@@ -749,6 +1060,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
             </span>
           </div>
           <div className="mt-3 space-y-2">
+            {hasBinaryAccess && (
             <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1 sm:h-10 sm:w-10">
                 <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={32} height={32} className="h-7 w-7 object-contain sm:h-8 sm:w-8" />
@@ -763,6 +1075,8 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
                 </p>
               </div>
             </div>
+            )}
+            {hasBinaryAccess && (
             <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1 sm:h-10 sm:w-10">
                 <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={32} height={32} className="h-7 w-7 object-contain sm:h-8 sm:w-8" />
@@ -782,17 +1096,24 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
                 </Button>
               )}
             </div>
-            <div className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 opacity-40">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1 sm:h-10 sm:w-10">
-                <Image src="/autobot-assets/pocket-option.svg" alt="Pocket Option" width={32} height={32} className="h-7 w-7 object-contain sm:h-8 sm:w-8" />
+            )}
+            {hasForexAccess && (
+            <Link href="/dashboard/mt5-autotrade" className="flex items-center gap-3 rounded-xl border border-cyan-500/20 bg-cyan-500/[0.05] p-3 transition-colors hover:bg-cyan-500/[0.1]">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#59c7f9]/25 bg-[#59c7f9]/10 p-1.5 sm:h-10 sm:w-10">
+                <MetaTrader5Icon className="h-full w-full" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-medium">Pocket Option</p>
-                  <span className="rounded-full bg-slate-700 px-2 py-0.5 text-[10px] font-bold text-white/60">Soon</span>
+                  <p className="text-sm font-semibold">MetaTrader 5</p>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold text-white ${hasMt5 ? "bg-emerald-500" : "bg-slate-600"}`}>{hasMt5 ? "Active" : "Connect"}</span>
                 </div>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {hasMt5 ? `${connectedMt5Accounts.length} account${connectedMt5Accounts.length > 1 ? "s" : ""} connected` : "Automated MT5 copy trading"}
+                </p>
               </div>
-            </div>
+              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+            </Link>
+            )}
           </div>
           <Button asChild variant="outline" size="sm" className="mt-3 w-full sm:w-auto">
             <Link href="/dashboard/accounts">
@@ -801,6 +1122,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
           </Button>
         </div>
 
+        {!hasSubscription && (
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <h3 className="font-display text-sm font-semibold sm:text-base">Trading Plan</h3>
@@ -825,10 +1147,11 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
           </div>
           <Button asChild variant="outline" size="sm" className="mt-3 w-full sm:w-auto">
             <Link href="/dashboard/subscription">
-              {activePlan === "VIP" ? "Manage plan" : hasSubscription ? "Manage plan" : "View plans"} <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              View plans <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
             </Link>
           </Button>
         </div>
+        )}
       </div>
 
       {/* Quick actions */}
@@ -837,9 +1160,10 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
           <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/50">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-4">
             {[
-              { label: "Broker Settings", href: "/dashboard/accounts", icon: MonitorSmartphone, bg: "bg-emerald-500/15", ring: "ring-emerald-500/25", text: "text-emerald-400" },
+              ...(hasBinaryAccess ? [{ label: "Broker Settings", href: "/dashboard/accounts", icon: MonitorSmartphone, bg: "bg-emerald-500/15", ring: "ring-emerald-500/25", text: "text-emerald-400" }] : []),
               { label: "Trade History", href: "/dashboard/trades", icon: TrendingUp, bg: "bg-violet-500/15", ring: "ring-violet-500/25", text: "text-violet-400" },
-              { label: "Copy Trading", href: "/dashboard/copy-trading", icon: Zap, bg: "bg-amber-500/15", ring: "ring-amber-500/25", text: "text-amber-400" },
+              ...(hasBinaryAccess ? [{ label: "Copy Trading", href: "/dashboard/copy-trading", icon: Zap, bg: "bg-amber-500/15", ring: "ring-amber-500/25", text: "text-amber-400" }] : []),
+              ...(hasForexAccess ? [{ label: "MT5 AutoTrade", href: "/dashboard/mt5-autotrade", icon: TrendingUp, bg: "bg-cyan-500/15", ring: "ring-cyan-500/25", text: "text-cyan-400" }] : []),
               { label: "Settings", href: "/dashboard/settings", icon: CreditCard, bg: "bg-blue-500/15", ring: "ring-blue-500/25", text: "text-blue-400" },
             ].map((action) => (
               <Link
@@ -857,8 +1181,17 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
         </div>
       )}
 
-      {/* Balance chart — scoped to the active broker */}
-      {hasSubscription && <BalanceChart broker={activeBroker} />}
+      {/* Profitability chart — MT5 uses its own chart; IQ/EO use BalanceChart */}
+      {hasSubscription && activeBroker === "mt5" && hasForexAccess ? (
+        <Mt5ProfitabilityChart
+          totalPips={mt5OverviewStats?.totalPips}
+          pipsToday={mt5OverviewStats?.pipsToday}
+          totalProfit={mt5OverviewStats?.totalProfit}
+          profitToday={mt5OverviewStats?.profitToday}
+        />
+      ) : (
+        hasSubscription && hasBinaryAccess && <BalanceChart broker={activeBroker as "iq" | "eo"} />
+      )}
 
       {/* Review popup — only fires when account is genuinely growing */}
       {hasSubscription && <ReviewGrowthPopup growthPercent={growthPercent} />}

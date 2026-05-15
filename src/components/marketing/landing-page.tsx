@@ -213,14 +213,14 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                 Connect your broker, manage bot settings, and check balances in one place.
               </CardDescription>
             </CardHeader>
-            <CardContent className="relative pt-6">
-              <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-black/20 p-3">
+            <CardContent className="relative p-0">
+              <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-black/20">
                 <Image
-                  src="/autobot-assets/app-hero.svg"
+                  src="/autobot-assets/nojai.svg"
                   alt="NOJAI trading dashboard preview"
-                  width={1200}
-                  height={900}
-                  className="h-auto w-full rounded-[1.5rem]"
+                  width={1600}
+                  height={1200}
+                  className="h-auto w-full rounded-[2rem]"
                   priority
                 />
               </div>

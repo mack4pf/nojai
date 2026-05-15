@@ -110,6 +110,11 @@ export function normalizeUserProfile(value: unknown): UserProfile | null {
     subscription: {
       active,
       plan,
+      product: typeof subscriptionRecord?.product === "string" ? subscriptionRecord.product as "binary" | "forex" | "all" : null,
+      access: {
+        binary: Boolean((subscriptionRecord?.access as Record<string, unknown> | undefined)?.binary ?? false),
+        forex: Boolean((subscriptionRecord?.access as Record<string, unknown> | undefined)?.forex ?? false),
+      },
       expiresAt: expiresAt || undefined,
       status: typeof subscriptionRecord?.status === "string" ? subscriptionRecord.status : undefined,
       startedAt: startedAt || undefined,

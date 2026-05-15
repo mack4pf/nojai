@@ -18,7 +18,8 @@ export function useDashboardSocket(enabled = true) {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const { notify } = useBrowserNotifications();
-  const [isConnected, setIsConnected] = useState(socket?.connected ?? false);
+  // null = not yet established (connecting for the first time), true = connected, false = reconnecting
+  const [isConnected, setIsConnected] = useState<boolean | null>(socket?.connected ?? null);
 
   useEffect(() => {
     if (!enabled || !session?.accessToken) return;

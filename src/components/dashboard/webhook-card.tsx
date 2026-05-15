@@ -25,7 +25,7 @@ interface WebhookToken {
   createdAt: string;
 }
 
-export function WebhookCard() {
+export function WebhookCard({ hideTitleHeader }: { hideTitleHeader?: boolean } = {}) {
   const { isVip, isPro } = useFeatureAccess();
   const hasAccess = isVip || isPro;
   const maxWebhooks = isVip ? 5 : 1;
@@ -75,10 +75,12 @@ export function WebhookCard() {
   if (!hasAccess) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Webhook</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Receive external trading signals via webhook.</p>
-        </div>
+        {!hideTitleHeader && (
+          <div>
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Webhook</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Receive external trading signals via webhook.</p>
+          </div>
+        )}
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 py-16 text-center">
           <Lock className="mb-3 h-8 w-8 text-muted-foreground/30" />
           <p className="text-sm font-medium text-muted-foreground">PRO or VIP plan required</p>
@@ -97,21 +99,23 @@ export function WebhookCard() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight">Webhook</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Receive TradingView signals via a personal webhook URL.
-            {isPro && !isVip && <span className="ml-1 text-muted-foreground/60">(1 webhook on PRO plan)</span>}
-          </p>
-        </div>
+        {!hideTitleHeader && (
+          <div>
+            <h1 className="font-display text-2xl font-semibold tracking-tight">Webhook</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Receive TradingView signals via a personal webhook URL.
+              {isPro && !isVip && <span className="ml-1 text-muted-foreground/60">(1 webhook on PRO plan)</span>}
+            </p>
+          </div>
+        )}
         <Button
           size="sm"
-          className="gap-1.5"
+          className="gap-1.5 ml-auto"
           onClick={() => generateMutation.mutate()}
           disabled={generateMutation.isPending || webhooks.length >= maxWebhooks}
         >
           <Plus className="h-3.5 w-3.5" />
-          {generateMutation.isPending ? "Generatingâ€¦" : "New token"}
+          {generateMutation.isPending ? "Generating…" : "New token"}
         </Button>
       </div>
 
@@ -132,7 +136,7 @@ export function WebhookCard() {
           <WebhookIcon className="mx-auto mb-3 h-8 w-8 text-muted-foreground/30" />
           <p className="text-sm font-medium text-muted-foreground">No webhook tokens yet</p>
           <p className="mt-1 text-xs text-muted-foreground/50">
-            Generate a token to start receiving signals from TradingView.
+            Generate a token to start receiving signals.
           </p>
           <Button
             size="sm"
@@ -180,12 +184,12 @@ export function WebhookCard() {
 
           {!wh.isActive && (
             <p className="mt-2 text-xs text-amber-400/80">
-              This webhook is inactive â€” enable the toggle to receive signals.
+              This webhook is inactive — enable the toggle to receive signals.
             </p>
           )}
           <p className="mt-2 text-[10px] text-muted-foreground/50">
             Created {format(new Date(wh.createdAt), "MMM d, yyyy")}
-            {wh.lastUsedAt && ` Â· Last used ${format(new Date(wh.lastUsedAt), "MMM d, HH:mm")}`}
+            {wh.lastUsedAt && ` · Last used ${format(new Date(wh.lastUsedAt), "MMM d, HH:mm")}`}
           </p>
         </div>
       ))}
@@ -208,7 +212,7 @@ export function WebhookCard() {
           {/* Target broker selector */}
           <div>
             <h3 className="text-sm font-semibold text-white">Signal Target</h3>
-            <p className="mt-0.5 text-xs text-muted-foreground">Choose which broker(s) receive this webhook signal.</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">Choose which broker(s) receive this signal.</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {(["iq", "eo", "both"] as const).map((t) => (
                 <button
@@ -230,9 +234,9 @@ export function WebhookCard() {
           <div>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-white">TradingView Message Template</h3>
+                <h3 className="text-sm font-semibold text-white">JSON Message Format</h3>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  Paste this into the &quot;Message&quot; field of your TradingView alert.
+                  Send this JSON body to your webhook URL when a signal fires.
                 </p>
               </div>
               <Button
@@ -256,8 +260,8 @@ export function WebhookCard() {
         <ol className="mt-3 space-y-2">
           {[
             "Generate a webhook token above.",
-            "In TradingView, create an alert and paste the webhook URL as the endpoint.",
-            "Paste the message template into the alert's Message field.",
+            "In your signal platform, create an alert and paste the webhook URL as the endpoint.",
+            "Set the alert message body to the JSON format shown above.",
             "When your alert fires, NOJAI will execute the trade on your selected broker(s).",
           ].map((step, i) => (
             <li key={i} className="flex items-start gap-2.5">
