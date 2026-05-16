@@ -87,7 +87,7 @@ const brokerData: Array<{
     },
     {
       name: "MT5",
-      logo: "/autobot-assets/metatrader.svg",
+      logo: "/mt5logo.png",
       logoWidth: 160,
       logoHeight: 40,
       status: "live",
@@ -153,11 +153,9 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2">Get started simple</span>
-              <span className="inline-flex h-11 items-center gap-2 rounded-full border border-primary/30 bg-slate-950 px-3.5 py-1 shadow-[0_0_15px_rgba(59,130,246,0.3)] ring-1 ring-primary/20 transition-transform hover:scale-105">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 p-1 ring-1 ring-white/15">
-                  <Image src="/autobot-assets/metatrader.svg" alt="MetaTrader 5" width={28} height={28} className="h-6 w-6 object-contain" />
-                </span>
-                <span className="text-xs font-bold text-white">MT5 Trading</span>
+              <span className="inline-flex h-11 items-center gap-2 rounded-full border border-primary/20 bg-white px-3.5 py-1 shadow-sm transition-transform hover:scale-105">
+                <Image src="/mt5logo.png" alt="MetaTrader 5" width={32} height={32} className="h-8 w-8 object-contain" />
+                <span className="text-xs font-bold text-slate-900">MT5 Trading</span>
               </span>
               <span className="inline-flex h-10 items-center gap-2 rounded-full border border-[#ff7803]/25 bg-white px-3 shadow-sm transition-transform hover:scale-105">
                 <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={28} height={28} className="h-7 w-7 object-contain" />
@@ -308,13 +306,13 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                 <span className="text-sm font-bold uppercase tracking-[0.3em] text-[#22c55e]">Live now</span>
               </div>
               <div className="mt-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary p-1.5 ring-1 ring-white/20">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white p-1.5 shadow-sm ring-1 ring-border">
                   <Image
-                    src="/autobot-assets/metatrader.svg"
+                    src="/mt5logo.png"
                     alt="MetaTrader 5"
                     width={32}
                     height={32}
-                    className="h-6 w-6 object-contain invert dark:invert-0"
+                    className="h-7 w-7 object-contain"
                   />
                 </div>
                 <span className="text-2xl font-black tracking-tight">MetaTrader 5</span>

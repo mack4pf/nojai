@@ -58,7 +58,7 @@ export default function Mt5TradingPage() {
               <div className="absolute -inset-4 rounded-[2.5rem] bg-gradient-to-tr from-primary/30 to-blue-500/30 blur-2xl opacity-50 group-hover:opacity-100 transition duration-1000" />
               <div className="relative overflow-hidden rounded-[2rem] border border-border bg-card shadow-2xl">
                 <Image
-                  src="/autobot-assets/mt5-guide-1.png"
+                  src="/mt5logo.png"
                   alt="MT5 Trading Interface"
                   width={1200}
                   height={800}
