@@ -102,6 +102,11 @@ export const academyLink = "https://t.me/c/2363578289/5771";
 
 export const brokerSupport = [
   {
+    name: "MT5 (MetaTrader 5)",
+    status: "Live now",
+    description: "Connect any MT5 broker for Forex and Binary automation.",
+  },
+  {
     name: "IQ Option",
     status: "Live now",
     description: "Connect your IQ Option account and start automation today.",
@@ -110,11 +115,6 @@ export const brokerSupport = [
     name: "Expert Option",
     status: "Live now",
     description: "Expert Option automation is now fully supported.",
-  },
-  {
-    name: "MT5 (MetaTrader 5)",
-    status: "Live now",
-    description: "Connect any MT5 broker for Forex and Binary automation.",
   },
   {
     name: "Pocket Option",

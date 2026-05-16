@@ -153,23 +153,23 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2">Get started simple</span>
-              <span className="inline-flex h-10 items-center gap-2 rounded-full border border-[#ff7803]/25 bg-white px-3 shadow-sm">
-                <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={28} height={28} className="h-7 w-7 object-contain" />
-                <span className="text-xs font-bold text-slate-900">IQ Option</span>
-              </span>
-              <span className="inline-flex h-10 items-center gap-2 rounded-full border border-[#1565c0]/25 bg-white px-3 shadow-sm">
-                <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={28} height={28} className="h-7 w-7 object-contain" />
-                <span className="text-xs font-bold text-slate-900">ExpertOption</span>
-              </span>
-              <span className="inline-flex h-10 items-center gap-2 rounded-full border border-[#2962ff]/25 bg-[#2962ff] px-3 shadow-sm">
-                <Image src="/autobot-assets/tradingview.svg" alt="TradingView" width={28} height={28} className="h-6 w-6 object-contain" />
-                <span className="text-xs font-bold text-white">TradingView</span>
-              </span>
-              <span className="inline-flex h-11 items-center gap-2 rounded-full border border-slate-900/20 bg-slate-950 px-3.5 py-1 shadow-sm">
+              <span className="inline-flex h-11 items-center gap-2 rounded-full border border-primary/30 bg-slate-950 px-3.5 py-1 shadow-[0_0_15px_rgba(59,130,246,0.3)] ring-1 ring-primary/20 transition-transform hover:scale-105">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 p-1 ring-1 ring-white/15">
                   <Image src="/autobot-assets/metatrader.svg" alt="MetaTrader 5" width={28} height={28} className="h-6 w-6 object-contain" />
                 </span>
-                <span className="text-xs font-bold text-white">MT5</span>
+                <span className="text-xs font-bold text-white">MT5 Trading</span>
+              </span>
+              <span className="inline-flex h-10 items-center gap-2 rounded-full border border-[#ff7803]/25 bg-white px-3 shadow-sm transition-transform hover:scale-105">
+                <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={28} height={28} className="h-7 w-7 object-contain" />
+                <span className="text-xs font-bold text-slate-900">IQ Option</span>
+              </span>
+              <span className="inline-flex h-10 items-center gap-2 rounded-full border border-[#1565c0]/25 bg-white px-3 shadow-sm transition-transform hover:scale-105">
+                <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={28} height={28} className="h-7 w-7 object-contain" />
+                <span className="text-xs font-bold text-slate-900">ExpertOption</span>
+              </span>
+              <span className="inline-flex h-10 items-center gap-2 rounded-full border border-[#2962ff]/25 bg-[#2962ff] px-3 shadow-sm transition-transform hover:scale-105">
+                <Image src="/autobot-assets/tradingview.svg" alt="TradingView" width={28} height={28} className="h-6 w-6 object-contain" />
+                <span className="text-xs font-bold text-white">TradingView</span>
               </span>
             </div>
             <div className="mt-8 flex flex-wrap gap-4">
@@ -296,8 +296,66 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
           </p>
         </div>
 
+        {/* MT5 hero card */}
+        <div className="broker-live-card-mt5 animate-nojai-slide-up mt-12 overflow-hidden rounded-[2rem] border-2 border-primary/20 bg-card text-card-foreground">
+          <div className="grid items-center gap-0 lg:grid-cols-[1fr_1fr]">
+            <div className="border-b border-border p-8 lg:border-b-0 lg:border-r lg:p-12">
+              <div className="flex items-center gap-3">
+                <span
+                  className="animate-nojai-live-dot inline-block h-3 w-3 rounded-full"
+                  style={{ background: "#22c55e" }}
+                />
+                <span className="text-sm font-bold uppercase tracking-[0.3em] text-[#22c55e]">Live now</span>
+              </div>
+              <div className="mt-6 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary p-1.5 ring-1 ring-white/20">
+                  <Image
+                    src="/autobot-assets/metatrader.svg"
+                    alt="MetaTrader 5"
+                    width={32}
+                    height={32}
+                    className="h-6 w-6 object-contain invert dark:invert-0"
+                  />
+                </div>
+                <span className="text-2xl font-black tracking-tight">MetaTrader 5</span>
+              </div>
+              <p className="mt-5 text-xl font-semibold">
+                Forex automation is here. Connect your MT5 account.
+              </p>
+              <p className="mt-3 text-base leading-7 text-muted-foreground">
+                Mirror expert trades or automate your own signals on any MT5 broker. NOJAI handles the execution and risk management, so you can trade Forex and Gold 24/7.
+              </p>
+              <Button asChild className="mt-8" size="lg">
+                <Link href="/mt5-trading">
+                  How to connect MT5
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+            <div className="bg-muted/30 p-8 lg:p-12">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary">What you get</p>
+              <ul className="mt-6 space-y-5">
+                {[
+                  ["Manual Trade Copying", "Mirror trades from professional providers with one click"],
+                  ["Webhook Signal Automation", "Connect TradingView and execute MT5 trades automatically"],
+                  ["Risk-Based Lot Sizing", "Specify your exact dollar risk, and the bot calculates the lots"],
+                  ["Works with ALL Brokers", "Search for your server and connect any MT5 broker account"],
+                ].map(([title, desc]) => (
+                  <li key={title} className="flex items-start gap-4">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                    <div>
+                      <p className="font-semibold">{title}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">{desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* IQ Option hero card */}
-        <div className="broker-live-card animate-nojai-slide-up mt-12 overflow-hidden rounded-[2rem] border-2">
+        <div className="broker-live-card animate-nojai-slide-up mt-6 overflow-hidden rounded-[2rem] border-2">
           <div className="grid items-center gap-0 lg:grid-cols-[1fr_1fr]">
             <div className="border-b border-[#FF7803]/30 p-8 lg:border-b-0 lg:border-r lg:p-12">
               <div className="flex items-center gap-3">
@@ -397,64 +455,6 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                     <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" style={{ color: "#4fc3f7" }} />
                     <div>
                       <p className="font-semibold text-foreground">{title}</p>
-                      <p className="mt-0.5 text-sm text-muted-foreground">{desc}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* MT5 hero card */}
-        <div className="broker-live-card-mt5 animate-nojai-slide-up mt-6 overflow-hidden rounded-[2rem] border-2 border-primary/20 bg-card text-card-foreground">
-          <div className="grid items-center gap-0 lg:grid-cols-[1fr_1fr]">
-            <div className="border-b border-border p-8 lg:border-b-0 lg:border-r lg:p-12">
-              <div className="flex items-center gap-3">
-                <span
-                  className="animate-nojai-live-dot inline-block h-3 w-3 rounded-full"
-                  style={{ background: "#22c55e" }}
-                />
-                <span className="text-sm font-bold uppercase tracking-[0.3em] text-[#22c55e]">Live now</span>
-              </div>
-              <div className="mt-6 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary p-1.5 ring-1 ring-white/20">
-                  <Image
-                    src="/autobot-assets/metatrader.svg"
-                    alt="MetaTrader 5"
-                    width={32}
-                    height={32}
-                    className="h-6 w-6 object-contain invert dark:invert-0"
-                  />
-                </div>
-                <span className="text-2xl font-black tracking-tight">MetaTrader 5</span>
-              </div>
-              <p className="mt-5 text-xl font-semibold">
-                Forex automation is here. Connect your MT5 account.
-              </p>
-              <p className="mt-3 text-base leading-7 text-muted-foreground">
-                Mirror expert trades or automate your own signals on any MT5 broker. NOJAI handles the execution and risk management, so you can trade Forex and Gold 24/7.
-              </p>
-              <Button asChild className="mt-8" size="lg">
-                <Link href="/mt5-trading">
-                  How to connect MT5
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-            <div className="bg-muted/30 p-8 lg:p-12">
-              <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary">What you get</p>
-              <ul className="mt-6 space-y-5">
-                {[
-                  ["Manual Trade Copying", "Mirror trades from professional providers with one click"],
-                  ["Webhook Signal Automation", "Connect TradingView and execute MT5 trades automatically"],
-                  ["Risk-Based Lot Sizing", "Specify your exact dollar risk, and the bot calculates the lots"],
-                  ["Works with ALL Brokers", "Search for your server and connect any MT5 broker account"],
-                ].map(([title, desc]) => (
-                  <li key={title} className="flex items-start gap-4">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
-                    <div>
-                      <p className="font-semibold">{title}</p>
                       <p className="mt-0.5 text-sm text-muted-foreground">{desc}</p>
                     </div>
                   </li>
