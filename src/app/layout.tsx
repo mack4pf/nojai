@@ -19,23 +19,26 @@ const spaceGrotesk = Space_Grotesk({
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://nojai.io";
 const SITE_NAME = "NOJAI";
 const DEFAULT_DESCRIPTION =
-  "NOJAI is an automated trading bot for IQ Option. Connect your broker, activate a plan, and let the bot trade for you 24/7. Standard, Pro, and VIP plans available.";
+  "Advanced trading automation for Binary Options, Forex, and MT5. Connect any broker including IQ Option, Expert Option, and more. Set up your trading bot in minutes.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — Automated Trading Bot for IQ Option`,
+    default: `${SITE_NAME} — Automated Trading for Binary Options & Forex`,
     template: `%s | ${SITE_NAME}`,
   },
   description: DEFAULT_DESCRIPTION,
   keywords: [
     "automated trading bot",
     "IQ Option bot",
+    "Expert Option bot",
+    "MT5 trading bot",
     "binary options bot",
+    "forex automation",
     "trading automation",
     "NOJAI trading",
     "copy trading",
-    "martingale trading bot",
+    "MT5 copy trading",
     "TradingView webhook",
     "auto trading software",
     "binary options automation",
@@ -59,20 +62,20 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} — Automated Trading Bot for IQ Option`,
+    title: `${SITE_NAME} — Advanced Trading Automation`,
     description: DEFAULT_DESCRIPTION,
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "NOJAI — Automated Trading Bot",
+        alt: "NOJAI — Advanced Trading Automation",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} — Automated Trading Bot for IQ Option`,
+    title: `${SITE_NAME} — Automated Trading for Any Broker`,
     description: DEFAULT_DESCRIPTION,
     images: ["/og-image.png"],
     creator: "@nojai_io",

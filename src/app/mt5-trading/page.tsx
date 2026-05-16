@@ -161,13 +161,13 @@ export default function Mt5TradingPage() {
 
               <div className="mt-12 flex items-center gap-10">
                 <div className="flex flex-col">
-                  <span className="text-3xl font-black">10k+</span>
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-black">Capacity</span>
+                  <span className="text-3xl font-black">15k+</span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-black">Trades Done</span>
                 </div>
                 <div className="h-12 w-px bg-border" />
                 <div className="flex flex-col">
                   <span className="text-3xl font-black">120+</span>
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-black">MT5 Connected</span>
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-black">MT5 Accounts</span>
                 </div>
               </div>
             </div>

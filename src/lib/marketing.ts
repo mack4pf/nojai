@@ -107,14 +107,19 @@ export const brokerSupport = [
     description: "Connect your IQ Option account and start automation today.",
   },
   {
+    name: "Expert Option",
+    status: "Live now",
+    description: "Expert Option automation is now fully supported.",
+  },
+  {
+    name: "MT5 (MetaTrader 5)",
+    status: "Live now",
+    description: "Connect any MT5 broker for Forex and Binary automation.",
+  },
+  {
     name: "Pocket Option",
     status: "Coming soon",
     description: "Pocket Option support is on the way.",
-  },
-  {
-    name: "Expert Option",
-    status: "Coming soon",
-    description: "Expert Option support is coming soon.",
   },
   {
     name: "Crypto Trading",
@@ -122,14 +127,9 @@ export const brokerSupport = [
     description: "Crypto trading automation is coming soon.",
   },
   {
-    name: "Stock and Forex Brokers",
+    name: "Stock Trading",
     status: "Coming soon",
-    description: "Stock and forex brokers are planned next.",
-  },
-  {
-    name: "MT5",
-    status: "Coming soon",
-    description: "MT5 support is also coming soon.",
+    description: "Stock market automation is planned next.",
   },
 ];
 
@@ -171,16 +171,16 @@ export const workflowStages = [
   },
   {
     step: "3",
-    title: "IQ Option Execution",
-    brand: "IQ Option",
+    title: "Broker Execution",
+    brand: "Multi-Broker",
     subtitle: "Order execution and portfolio outcome",
     accent: "Execution",
-    logo: "/autobot-assets/iq-option.svg",
+    logo: "/autobot-assets/brokers.svg",
     preview: "/autobot-assets/app-hero.svg",
     points: [
-      "Orders are sent to the connected IQ Option account in the selected mode.",
+      "Orders are sent to your connected broker account (IQ Option, MT5, etc.).",
       "Trade results come back into NOJAI and show in the dashboard.",
-      "VIP users can run this across multiple connected IQ Option accounts.",
+      "VIP users can manage multiple broker accounts simultaneously.",
     ],
   },
 ] as const;
@@ -227,23 +227,23 @@ export const contactChannels = [
 
 export const faqItems = [
   {
-    question: "Do I need trading experience before I start?",
+    question: "Which brokers can I use with NOJAI?",
     answer:
-      "No. NOJAI is built for beginners too. You can connect your account, set your amount, and let the bot do the work.",
+      "NOJAI supports IQ Option, Expert Option, and any broker using the MT5 (MetaTrader 5) platform. We are expanding to support Pocket Option and others soon.",
   },
   {
-    question: "How do the bots help me make money online?",
+    question: "Does it work for both Forex and Binary Options?",
     answer:
-      "The bot handles the trading for you based on your setup so you do not need to stay on charts all day.",
+      "Yes! NOJAI is designed to automate both Binary Options and Forex trading strategies across multiple brokers.",
   },
   {
     question: "Can I manage more than one trading account?",
     answer:
-      "Yes. You can manage your trading accounts from your dashboard.",
+      "Yes. You can manage multiple trading accounts from your dashboard, and VIP users get even more account slots.",
   },
   {
-    question: "What beginner discount are you offering right now?",
+    question: "Is there a setup fee for MT5?",
     answer:
-      "Registration is free. Current launch pricing is shown directly on the pricing cards so each plan can display the correct live amount and currency.",
+      "No separate setup fee. MT5 automation and copy trading are included in our Pro and VIP plans.",
   },
 ];

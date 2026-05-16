@@ -28,9 +28,9 @@ export default function IQOptionBotPage() {
             <CardTitle>How NOJAI works with IQ Option</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-sm leading-7 text-muted-foreground">
-            <p>NOJAI is designed for users who want a structured way to automate broker execution and monitor plan access from a dashboard.</p>
-            <p>Signals can be sourced from charting workflows and passed into NOJAI for broker-side execution according to your setup.</p>
-            <p>Start with a suitable plan and configure your account from the dashboard.</p>
+            <p>NOJAI is the premier automation platform for IQ Option users. While we started with IQ Option, our platform now supports Expert Option and any MT5-compatible broker, allowing you to manage all your trading automation in one place.</p>
+            <p>Signals can be sourced from TradingView or expert strategies and passed into NOJAI for instant execution on your IQ Option account or other connected brokers.</p>
+            <p>Whether you are trading Binary Options or Forex, NOJAI provides the tools you need to automate your workflow 24/7.</p>
             <Button asChild>
               <Link href="/auth/register">Create account</Link>
             </Button>

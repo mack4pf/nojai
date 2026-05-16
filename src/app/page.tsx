@@ -6,13 +6,13 @@ import { faqItems } from "@/lib/marketing";
 import type { PricingPlan, Review } from "@/types";
 
 export const metadata: Metadata = {
-  title: "NOJAI — Automated Trading Bot for IQ Option",
+  title: "NOJAI — Automated Trading for Binary Options & Forex",
   description:
-    "Let NOJAI trade for you 24/7. Connect your IQ Option broker, pick a plan, and activate your bot in minutes. Standard, Pro & VIP plans available.",
+    "Automated trading for Binary Options, Forex, and MT5. Over 15k+ successful trades executed. Connect any broker including IQ Option, Expert Option, and more.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "NOJAI — Automated Trading Bot for IQ Option",
-    description: "Let NOJAI trade for you 24/7. Connect your IQ Option broker, pick a plan, and activate your bot in minutes.",
+    title: "NOJAI — Advanced Trading Automation & Copy Trading",
+    description: "Automated trading for Binary Options and Forex. Connect any broker and automate your strategies 24/7 with NOJAI.",
     url: "/",
   },
 };
@@ -26,7 +26,7 @@ const fallbackPlans: PricingPlan[] = [
     price: 30,
     currency: "",
     durationInDays: 30,
-    features: ["24/7 bot access", "Live dashboard", "Beginner setup flow"],
+    features: ["24/7 bot access", "Live dashboard", "Multi-broker support"],
   },
   {
     _id: "pro",
@@ -36,7 +36,7 @@ const fallbackPlans: PricingPlan[] = [
     price: 50,
     currency: "",
     durationInDays: 30,
-    features: ["Everything in Standard", "Stronger bot access", "More growth tools"],
+    features: ["Everything in Standard", "Forex & Binary automation", "MT5 Copy Trading"],
     isPopular: true,
   },
   {
@@ -47,12 +47,12 @@ const fallbackPlans: PricingPlan[] = [
     price: 75,
     currency: "",
     durationInDays: 30,
-    features: ["Everything in Pro", "VIP bot access", "Priority setup support"],
+    features: ["Everything in Pro", "Priority execution", "Unlimited broker accounts"],
   },
 ];
 
 const fallbackReviews: Review[] = [
- 
+
 ];
 
 export default async function Home() {
@@ -69,7 +69,7 @@ export default async function Home() {
     applicationCategory: "FinanceApplication",
     operatingSystem: "Web",
     description:
-      "Automated trading bot for IQ Option. Connect your broker, activate a plan, and let NOJAI trade for you 24/7.",
+      "Advanced trading automation for Binary Options and Forex. Connect any broker including MT5, IQ Option, and Expert Option for 24/7 automated execution.",
     offers: pricingPlans.map((plan) => ({
       "@type": "Offer",
       name: plan.name,
@@ -80,42 +80,42 @@ export default async function Home() {
     aggregateRating:
       reviews.length > 0
         ? {
-            "@type": "AggregateRating",
-            ratingValue: (
-              reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
-            ).toFixed(1),
-            reviewCount: reviews.length,
-            bestRating: 5,
-            worstRating: 1,
-          }
+          "@type": "AggregateRating",
+          ratingValue: (
+            reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
+          ).toFixed(1),
+          reviewCount: reviews.length,
+          bestRating: 5,
+          worstRating: 1,
+        }
         : undefined,
   };
 
   // Add high-intent SEO questions
   const seoQuestions = [
     {
-      question: "Need help to start trading?",
-      answer: "NOJAI makes it easy for beginners. Connect your broker, set your amount, and let the bot trade for you automatically.",
+      question: "How to automate Binary Options and Forex trading?",
+      answer: "NOJAI provides a seamless automation platform for Binary Options and Forex. Connect your favorite broker, set your strategy, and let the AI execute trades 24/7.",
     },
     {
-      question: "How to become a profitable trader?",
-      answer: "Use automation, risk management, and copy trading features to improve your results. NOJAI helps you learn and earn at the same time.",
+      question: "Which brokers does NOJAI support?",
+      answer: "NOJAI supports a wide range of brokers including IQ Option, Expert Option, and any MT5-compatible broker. We are constantly adding support for more platforms.",
     },
     {
-      question: "How to copy trade expert traders?",
-      answer: "With NOJAI Pro and VIP plans, you can copy trades from top strategies and automate your trading 24/7.",
+      question: "Can I copy trade on MT5 with NOJAI?",
+      answer: "Yes, NOJAI Pro and VIP plans offer advanced MT5 copy trading and automation features, allowing you to mirror expert strategies automatically.",
     },
     {
-      question: "What is a trading bot?",
-      answer: "A trading bot is software that executes trades for you based on your chosen strategy. NOJAI handles everything from signals to execution.",
+      question: "What is a Binary Options trading bot?",
+      answer: "A Binary Options trading bot like NOJAI executes trades automatically based on technical indicators or signals, eliminating emotional trading and ensuring 24/7 market coverage.",
     },
     {
-      question: "Need help?",
-      answer: "Our support team is available 24/7. Contact us anytime for setup or trading questions.",
+      question: "How do I connect my broker to NOJAI?",
+      answer: "Connecting is simple. Use our secure dashboard to link your IQ Option, Expert Option, or MT5 account. Setup takes less than 5 minutes.",
     },
     {
-      question: "How to start earning money as a content creator or influencer?",
-      answer: "Join the NOJAI Affiliate Program. Nigerian referrals show Naira rewards, while international referrals show USD rewards. Share your link, your friend subscribes, and your reward is tracked automatically.",
+      question: "Does NOJAI have an affiliate program for influencers?",
+      answer: "Yes! Join the NOJAI Affiliate Program to earn rewards. We support both local (Naira) and international (USD) payouts, tracked automatically through your unique referral link.",
     },
   ];
 

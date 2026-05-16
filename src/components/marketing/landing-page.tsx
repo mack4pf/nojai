@@ -146,10 +146,10 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
           <div className="animate-fade-up">
             <Badge>Automate & Trade</Badge>
             <h1 className="mt-6 max-w-3xl font-display text-5xl font-semibold leading-tight tracking-tight sm:text-6xl lg:text-7xl">
-              Automated Trading Robot for beginners.
+              Automated Trading for Binary Options & Forex.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-              Start making money online with NOJAI. Connect your broker, set your amount, and let the bot trade for you 24/7.
+              Connect any broker and automate your strategies 24/7. NOJAI handles the execution while you focus on what matters.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2">Get started simple</span>
@@ -191,9 +191,9 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
             </div>
             <div className="mt-10 grid gap-4 sm:grid-cols-3">
               {[
+                ["15k+", "Successful trades executed"],
                 ["24/7", "Automated trading coverage"],
-                ["3 plans", "Clear bot subscription levels"],
-                ["Free", "Academy access to learn more"],
+                ["MT5 & IQ", "Multi-broker support"],
               ].map(([value, label]) => (
                 <Card key={label} className="bg-white/5">
                   <CardContent className="p-5">
@@ -289,10 +289,10 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
         <div className="mx-auto max-w-3xl text-center">
           <Badge variant="outline">Our Brokers</Badge>
           <h2 className="mt-5 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-            Two live. Four on the way.
+            Connect any broker. Trade any market.
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            IQ Option, Expert Option, and MT5 are all connected and live right now. Pocket Option, Crypto, and Stocks are actively in development.
+            NOJAI is built to be broker-agnostic. Whether you trade Binary Options on IQ Option or Expert Option, or Forex on MT5, we have you covered.
           </p>
         </div>
 
@@ -534,7 +534,8 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
             const currency = getPlanCurrency(plan.currency);
             const planFeatures = [
               ...(plan.features ?? []),
-              "IQ Option, ExpertOption, and MT5 bot support",
+              "Binary Options & Forex support",
+              "Multi-broker account management",
             ].filter((feature, featureIndex, arr) => arr.findIndex((item) => item.toLowerCase() === feature.toLowerCase()) === featureIndex);
 
             return (

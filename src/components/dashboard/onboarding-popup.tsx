@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -318,20 +318,20 @@ export function OnboardingPopup() {
               </div>
             )}
 
-            {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Step 2: IQ Option check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            {/* â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ Step 2: Broker check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
             {step === 2 && (
               <div>
                 <h2 className="font-display text-xl font-bold tracking-tight text-white sm:text-2xl">
-                  Do you have an IQ Option account?
+                  Do you have a supported broker account?
                 </h2>
                 <p className="mt-1.5 text-sm text-white/45">
-                  NOJAI connects to your IQ Option account to execute trades automatically.
+                  NOJAI connects to IQ Option, Expert Option, or any MT5 broker to execute trades automatically.
                 </p>
 
                 <div className="mt-6 grid grid-cols-2 gap-3">
                   {[
-                    { val: true,  label: "Yes, I do",      sub: "Ready to connect",      dot: "bg-emerald-400", border: "border-emerald-500/40 bg-emerald-500/[0.07]" },
-                    { val: false, label: "Not yet",        sub: "Show me how to open one", dot: "bg-amber-400",  border: "border-amber-500/40 bg-amber-500/[0.07]" },
+                    { val: true,  label: "Yes, I'm ready",      sub: "I have a broker account",      dot: "bg-emerald-400", border: "border-emerald-500/40 bg-emerald-500/[0.07]" },
+                    { val: false, label: "Not yet",        sub: "I need to open one", dot: "bg-amber-400",  border: "border-amber-500/40 bg-amber-500/[0.07]" },
                   ].map(({ val, label, sub, dot, border }) => (
                     <button
                       key={String(val)}
