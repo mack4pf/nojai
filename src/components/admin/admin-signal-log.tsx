@@ -14,7 +14,7 @@ interface SignalResultSummary {
   userId: string;
   email: string;
   fullName?: string;
-  broker?: "iq" | "eo";
+  broker?: "iq" | "eo" | "mt5";
   accountId?: string;
   accountName?: string;
   accountMode?: string;
@@ -35,9 +35,9 @@ interface SignalEntry {
   ticker: string;
   direction: "buy" | "sell";
   expirationSecs?: number;
-  broker?: "iq" | "eo" | "mixed";
-  botTarget: "pro" | "vip" | "eo-pro" | "eo-vip" | "mixed";
-  botTargets?: Array<"pro" | "vip" | "eo-pro" | "eo-vip">;
+  broker?: "iq" | "eo" | "mt5" | "mixed";
+  botTarget: "pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user" | "mixed";
+  botTargets?: Array<"pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user">;
   source: string;
   totalUsers: number;
   executedCount: number;
@@ -71,8 +71,8 @@ function getMartingaleLabel(results: SignalResultSummary[]): string {
 
 export function AdminSignalLog() {
   const [page, setPage] = useState(1);
-  const [brokerFilter, setBrokerFilter] = useState<"all" | "iq" | "eo">("all");
-  const [targetFilter, setTargetFilter] = useState<"all" | "pro" | "vip">("all");
+  const [brokerFilter, setBrokerFilter] = useState<"all" | "iq" | "eo" | "mt5">("all");
+  const [targetFilter, setTargetFilter] = useState<"all" | "pro" | "vip" | "mt5">("all");
   const [expandedSignalId, setExpandedSignalId] = useState<string | null>(null);
 
   const { data, isLoading, isError, refetch, isFetching } = useQuery({
@@ -88,6 +88,15 @@ export function AdminSignalLog() {
       });
       return res.data;
     },
+    retry: 1,
+  });
+  const { data: expandedSignal, isLoading: isLoadingExpandedSignal } = useQuery({
+    queryKey: ["admin-signal-log-detail", expandedSignalId],
+    queryFn: async () => {
+      const res = await api.get<SignalEntry>(`/admin/signals/${expandedSignalId}`);
+      return res.data;
+    },
+    enabled: Boolean(expandedSignalId),
     retry: 1,
   });
 
@@ -129,7 +138,7 @@ export function AdminSignalLog() {
 
       {/* Filter tabs */}
       <div className="flex flex-wrap gap-2">
-        {(["all", "iq", "eo"] as const).map((f) => (
+        {(["all", "iq", "eo", "mt5"] as const).map((f) => (
           <button
             key={f}
             onClick={() => {
@@ -142,13 +151,13 @@ export function AdminSignalLog() {
                 : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"
             }`}
           >
-            {f === "all" ? "All brokers" : f === "iq" ? "IQ Option" : "ExpertOption"}
+            {f === "all" ? "All brokers" : f === "iq" ? "IQ Option" : f === "mt5" ? "MT5" : "ExpertOption"}
           </button>
         ))}
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {(["all", "vip", "pro"] as const).map((f) => (
+        {(["all", "vip", "pro", "mt5"] as const).map((f) => (
           <button
             key={f}
             onClick={() => {
@@ -161,7 +170,7 @@ export function AdminSignalLog() {
                 : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"
             }`}
           >
-            {f === "all" ? "All tiers" : `${f.toUpperCase()} only`}
+            {f === "all" ? "All tiers" : f === "mt5" ? "MT5" : `${f.toUpperCase()} only`}
           </button>
         ))}
       </div>
@@ -199,6 +208,7 @@ export function AdminSignalLog() {
               </thead>
               <tbody className="divide-y divide-white/[0.05]">
                 {signals.map((signal) => {
+                  const displaySignal = expandedSignal?._id === signal._id ? expandedSignal : signal;
                   const targets = signal.botTargets?.length ? signal.botTargets : [signal.botTarget];
                   const executionRate =
                     signal.totalUsers > 0
@@ -208,7 +218,7 @@ export function AdminSignalLog() {
                   const isPartial = signal.executedCount > 0 && signal.failedCount > 0;
                   const isFailed = signal.executedCount === 0 && signal.failedCount > 0;
                   const isExpanded = expandedSignalId === signal._id;
-                  const resultCounts = signal.results.reduce(
+                  const resultCounts = displaySignal.results.reduce(
                     (counts, res) => {
                       if (res.tradeResult === "won") counts.won += 1;
                       else if (res.tradeResult === "lost") counts.lost += 1;
@@ -267,7 +277,7 @@ export function AdminSignalLog() {
                               </span>
                             ))}
                             <span className="rounded-full bg-white/[0.08] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                              {signal.broker === "eo" ? "EO" : signal.broker === "iq" ? "IQ" : "Mixed"}
+                              {signal.broker === "eo" ? "EO" : signal.broker === "iq" ? "IQ" : signal.broker === "mt5" ? "MT5" : "Mixed"}
                             </span>
                           </div>
                         </td>
@@ -339,8 +349,14 @@ export function AdminSignalLog() {
                                 <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Account Breakdown</h4>
                                 <span className="text-[10px] text-muted-foreground font-mono">ID: {signal.dispatchId}</span>
                               </div>
+                              {isLoadingExpandedSignal ? (
+                                <div className="flex items-center gap-2 rounded-lg border border-white/5 bg-white/[0.02] p-3 text-xs text-muted-foreground">
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                  Loading account breakdown...
+                                </div>
+                              ) : null}
                               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                                {signal.results?.map((res, i) => (
+                                {displaySignal.results?.map((res, i) => (
                                   <div
                                     key={res.rowId ?? `${signal._id}-${res.userId}-${res.accountId ?? res.email}-${res.status}-${i}`}
                                     className={`rounded-lg border p-2.5 text-xs ${
@@ -356,7 +372,7 @@ export function AdminSignalLog() {
                                         <p className="truncate font-medium text-foreground">{res.fullName || res.email || "Unknown user"}</p>
                                         <p className="truncate font-mono text-[10px] text-muted-foreground">{res.email || "No email"}</p>
                                         <p className="truncate font-mono text-[10px] text-muted-foreground">
-                                          {res.broker === "eo" ? "EO" : "IQ"} ID: {res.accountId || res.userId}
+                                          {res.broker === "eo" ? "EO" : res.broker === "mt5" ? "MT5" : "IQ"} ID: {res.accountId || res.userId}
                                           {res.accountName ? ` · ${res.accountName}` : ""}
                                           {res.accountMode ? ` · ${res.accountMode}` : ""}
                                         </p>

@@ -40,10 +40,10 @@ interface SignalLog {
   direction: "buy" | "sell";
   expirationSecs: number;
   broker?: "iq" | "eo" | "mixed";
-  botTarget: "pro" | "vip" | "eo-pro" | "eo-vip" | "mixed";
-  botTargets?: Array<"pro" | "vip" | "eo-pro" | "eo-vip">;
-  source: "tradingview" | "webhook" | "admin_manual" | "mixed";
-  sources?: Array<"tradingview" | "webhook" | "admin_manual">;
+  botTarget: "pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user" | "mixed";
+  botTargets?: Array<"pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user">;
+  source: "tradingview" | "webhook" | "admin_manual" | "mt5_global_webhook" | "mt5_per_account_webhook" | "mixed";
+  sources?: Array<"tradingview" | "webhook" | "admin_manual" | "mt5_global_webhook" | "mt5_per_account_webhook">;
   totalUsers: number;
   executedCount: number;
   skippedCount: number;
@@ -98,8 +98,8 @@ function PlacementBadge({ status }: { status: SignalResult["status"] }) {
 export function AdminSignalsManager() {
   const [page, setPage] = useState(1);
   const [expandedSignalId, setExpandedSignalId] = useState<string | null>(null);
-  const [brokerFilter, setBrokerFilter] = useState<"all" | "iq" | "eo">("all");
-  const [botFilter, setBotFilter] = useState<"all" | "pro" | "vip">("all");
+  const [brokerFilter, setBrokerFilter] = useState<"all" | "iq" | "eo" | "mt5">("all");
+  const [botFilter, setBotFilter] = useState<"all" | "pro" | "vip" | "mt5">("all");
   const [search, setSearch] = useState("");
 
   const { data, isLoading, error } = useQuery({
@@ -203,7 +203,7 @@ export function AdminSignalsManager() {
           <div className="flex flex-col gap-1">
             <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Broker</p>
             <div className="inline-flex rounded-xl border border-white/[0.08] bg-black/20 p-1">
-              {(["all", "iq", "eo"] as const).map((filter) => (
+              {(["all", "iq", "eo", "mt5"] as const).map((filter) => (
                 <button
                   key={filter}
                   onClick={() => {
@@ -216,7 +216,7 @@ export function AdminSignalsManager() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {filter === "all" ? "All brokers" : filter === "iq" ? "IQ Option" : "ExpertOption"}
+                  {filter === "all" ? "All brokers" : filter === "iq" ? "IQ Option" : filter === "mt5" ? "MT5" : "ExpertOption"}
                 </button>
               ))}
             </div>
@@ -225,20 +225,20 @@ export function AdminSignalsManager() {
           <div className="flex flex-col gap-1">
             <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Tier</p>
             <div className="inline-flex rounded-xl border border-white/[0.08] bg-black/20 p-1">
-              {(["all", "pro", "vip"] as const).map((filter) => (
+              {(["all", "pro", "vip", "mt5"] as const).map((filter) => (
                 <button
                   key={filter}
                   onClick={() => {
                     setBotFilter(filter);
                     setPage(1);
                   }}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold uppercase transition-colors ${
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
                     botFilter === filter
                       ? "bg-white/[0.12] text-foreground shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {filter === "all" ? "All" : filter}
+                  {filter === "all" ? "All Tiers" : filter === "pro" ? "PRO" : filter === "mt5" ? "MT5" : "VIP"}
                 </button>
               ))}
             </div>
@@ -296,12 +296,12 @@ export function AdminSignalsManager() {
                           {signal.direction}
                         </span>
                         {(signal.botTargets?.length ? signal.botTargets : [signal.botTarget]).map((target) => (
-                          <Badge key={`${signal._id}-${target}`} variant="secondary" className="bg-white/[0.08] text-muted-foreground">
-                            {target.replace("eo-", "EO ")}
+                          <Badge key={`${signal._id}-${target}`} variant="secondary" className="bg-white/[0.08] text-muted-foreground uppercase">
+                            {target.replace("eo-", "EO ").replace("mt5-", "MT5 ")}
                           </Badge>
                         ))}
                         <Badge variant="secondary" className="border border-white/10 bg-transparent text-muted-foreground">
-                          {signal.broker === "eo" ? "ExpertOption" : signal.broker === "iq" ? "IQ Option" : "Mixed brokers"}
+                          {signal.broker === "eo" ? "ExpertOption" : signal.broker === "iq" ? "IQ Option" : signal.broker === "mt5" ? "MT5 AutoTrade" : "Mixed brokers"}
                         </Badge>
                         {(signal.sources?.length ? signal.sources : [signal.source]).map((source) => (
                           <Badge key={`${signal._id}-${source}`} variant="secondary" className="border border-white/10 bg-transparent text-muted-foreground">

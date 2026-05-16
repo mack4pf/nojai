@@ -90,10 +90,10 @@ const brokerData: Array<{
       logo: "/autobot-assets/metatrader.svg",
       logoWidth: 160,
       logoHeight: 40,
-      status: "soon",
+      status: "live",
       color: "#1565C0",
       bg: "#00030f",
-      description: "MetaTrader 5 support is also coming soon.",
+      description: "MetaTrader 5 is now live. Connect your trading account today.",
     },
   ];
 
@@ -292,7 +292,7 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
             Two live. Four on the way.
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            IQ Option and Expert Option are both connected and live right now. Pocket Option, Crypto, Stock &amp; Forex, and MT5 are actively in development.
+            IQ Option, Expert Option, and MT5 are all connected and live right now. Pocket Option, Crypto, and Stocks are actively in development.
           </p>
         </div>
 
@@ -406,6 +406,64 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
           </div>
         </div>
 
+        {/* MT5 hero card */}
+        <div className="broker-live-card-mt5 animate-nojai-slide-up mt-6 overflow-hidden rounded-[2rem] border-2 border-primary/20 bg-card text-card-foreground">
+          <div className="grid items-center gap-0 lg:grid-cols-[1fr_1fr]">
+            <div className="border-b border-border p-8 lg:border-b-0 lg:border-r lg:p-12">
+              <div className="flex items-center gap-3">
+                <span
+                  className="animate-nojai-live-dot inline-block h-3 w-3 rounded-full"
+                  style={{ background: "#22c55e" }}
+                />
+                <span className="text-sm font-bold uppercase tracking-[0.3em] text-[#22c55e]">Live now</span>
+              </div>
+              <div className="mt-6 flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary p-1.5 ring-1 ring-white/20">
+                  <Image
+                    src="/autobot-assets/metatrader.svg"
+                    alt="MetaTrader 5"
+                    width={32}
+                    height={32}
+                    className="h-6 w-6 object-contain invert dark:invert-0"
+                  />
+                </div>
+                <span className="text-2xl font-black tracking-tight">MetaTrader 5</span>
+              </div>
+              <p className="mt-5 text-xl font-semibold">
+                Forex automation is here. Connect your MT5 account.
+              </p>
+              <p className="mt-3 text-base leading-7 text-muted-foreground">
+                Mirror expert trades or automate your own signals on any MT5 broker. NOJAI handles the execution and risk management, so you can trade Forex and Gold 24/7.
+              </p>
+              <Button asChild className="mt-8" size="lg">
+                <Link href="/mt5-trading">
+                  How to connect MT5
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+            <div className="bg-muted/30 p-8 lg:p-12">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-primary">What you get</p>
+              <ul className="mt-6 space-y-5">
+                {[
+                  ["Manual Trade Copying", "Mirror trades from professional providers with one click"],
+                  ["Webhook Signal Automation", "Connect TradingView and execute MT5 trades automatically"],
+                  ["Risk-Based Lot Sizing", "Specify your exact dollar risk, and the bot calculates the lots"],
+                  ["Works with ALL Brokers", "Search for your server and connect any MT5 broker account"],
+                ].map(([title, desc]) => (
+                  <li key={title} className="flex items-start gap-4">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                    <div>
+                      <p className="font-semibold">{title}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">{desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* Coming soon grid */}
         <p className="mt-12 text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Coming next</p>
         <div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -476,7 +534,7 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
             const currency = getPlanCurrency(plan.currency);
             const planFeatures = [
               ...(plan.features ?? []),
-              "IQ Option and ExpertOption bot support",
+              "IQ Option, ExpertOption, and MT5 bot support",
             ].filter((feature, featureIndex, arr) => arr.findIndex((item) => item.toLowerCase() === feature.toLowerCase()) === featureIndex);
 
             return (

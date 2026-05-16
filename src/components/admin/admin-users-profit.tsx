@@ -25,7 +25,7 @@ import { api } from "@/lib/api";
 
 type SortField = "totalProfit" | "winRate" | "wonCount" | "totalTrades";
 type SortOrder = "asc" | "desc";
-type BrokerFilter = "both" | "iq" | "eo";
+type BrokerFilter = "both" | "iq" | "eo" | "mt5";
 
 interface IQCurrencyBreakdown {
   currency: string;
@@ -97,6 +97,7 @@ interface ProfitUser {
   overall: OverallStat;
   iq: IQStat | null;
   eo: EOStat | null;
+  mt5: EOStat | null;
 }
 
 interface ProfitSummaryResponse {
@@ -189,7 +190,7 @@ export function AdminUsersProfitSummary() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1 rounded-xl border border-white/[0.08] bg-white/[0.03] p-1">
-          {(["both", "iq", "eo"] as BrokerFilter[]).map((b) => (
+          {(["both", "iq", "eo", "mt5"] as BrokerFilter[]).map((b) => (
             <button
               key={b}
               onClick={() => setBroker(b)}
@@ -201,7 +202,7 @@ export function AdminUsersProfitSummary() {
             >
               {b === "iq" && <Image src="/autobot-assets/iq-option-small.svg" alt="IQ" width={12} height={12} className="h-3 w-3 object-contain" />}
               {b === "eo" && <Image src="/autobot-assets/experoptionlogo.png" alt="EO" width={12} height={12} className="h-3 w-3 object-contain" />}
-              {b === "both" ? "All Brokers" : b === "iq" ? "IQ Option" : "ExpertOption"}
+              {b === "both" ? "All Brokers" : b === "iq" ? "IQ Option" : b === "mt5" ? "MT5" : "ExpertOption"}
             </button>
           ))}
         </div>
@@ -247,6 +248,7 @@ export function AdminUsersProfitSummary() {
                 </th>
                 <th className="px-4 py-3 text-center font-medium">IQ Net P&L</th>
                 <th className="px-4 py-3 text-center font-medium">EO Net P&L</th>
+                <th className="px-4 py-3 text-center font-medium">MT5 Net P&L</th>
                 <th className="px-3 py-3" />
               </tr>
             </thead>
@@ -305,6 +307,15 @@ export function AdminUsersProfitSummary() {
                           <span className="text-[11px] text-muted-foreground">—</span>
                         )}
                       </td>
+                      <td className="px-4 py-3 text-center">
+                        {user.mt5 ? (
+                          <p className={`text-xs font-semibold ${user.mt5.netProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                            {fmtNet(user.mt5.netProfit, "USD")}
+                          </p>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">—</span>
+                        )}
+                      </td>
                       <td className="px-3 py-3">
                         <button
                           onClick={() => setExpandedUserId(isExpanded ? null : user.userId)}
@@ -317,8 +328,8 @@ export function AdminUsersProfitSummary() {
 
                     {isExpanded && (
                       <tr key={`${user.userId}-detail`} className="bg-white/[0.012]">
-                        <td colSpan={7} className="px-4 pb-5 pt-3">
-                          <div className="grid gap-3 lg:grid-cols-2">
+                        <td colSpan={8} className="px-4 pb-5 pt-3">
+                          <div className="grid gap-3 lg:grid-cols-3">
 
                             {/* IQ Option */}
                             <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.04] p-3 space-y-3">
@@ -427,6 +438,33 @@ export function AdminUsersProfitSummary() {
                                 </div>
                               ) : (
                                 <p className="text-xs text-muted-foreground">No EO trades recorded</p>
+                              )}
+                            </div>
+
+                            {/* MT5 */}
+                            <div className="rounded-xl border border-sky-500/20 bg-sky-500/[0.04] p-3 space-y-3">
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-sky-300">
+                                MT5
+                              </div>
+
+                              {user.mt5 ? (
+                                <div className="space-y-2">
+                                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Profit/Loss</p>
+                                  <div className="rounded-lg bg-white/[0.03] px-2.5 py-2">
+                                    <div className="flex items-center justify-between mb-1.5 text-[11px]">
+                                      <span className="font-semibold text-foreground">USD</span>
+                                      <span className={`font-bold ${user.mt5.netProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>{fmtNet(user.mt5.netProfit, "USD")}</span>
+                                    </div>
+                                    <p className="mb-1.5 text-[10px] text-muted-foreground">Trade net</p>
+                                    <div className="grid grid-cols-3 gap-1 text-[10px]">
+                                      <div><p className="text-muted-foreground">Trades</p><p className="font-semibold">{user.mt5.totalTrades}</p></div>
+                                      <div><p className="text-muted-foreground">Win%</p><p className={`font-semibold ${user.mt5.winRate >= 50 ? "text-emerald-400" : "text-red-400"}`}>{user.mt5.winRate}%</p></div>
+                                      <div><p className="text-muted-foreground">Won/Lost</p><p className="font-semibold">{user.mt5.wonCount}/{user.mt5.lostCount}</p></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">No MT5 trades recorded</p>
                               )}
                             </div>
                           </div>

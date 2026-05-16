@@ -50,6 +50,15 @@ export function AdminUsersTable() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const resetMt5LockMutation = useMutation({
+    mutationFn: async (userId: string) => api.post(`/admin/users/${userId}/reset-mt5-lock`),
+    onSuccess: () => {
+      toast.success("MT5 lock reset successfully");
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminUsers });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const now = new Date();
 
   const filteredUsers = useMemo(() => {
@@ -176,7 +185,13 @@ export function AdminUsersTable() {
                       {user.subscription?.status && (
                         <span>Status: {String(user.subscription.status).toUpperCase()}</span>
                       )}
+                      {user.subscription?.product && (
+                        <span>Product: {String(user.subscription.product).toUpperCase()}</span>
+                      )}
                       {planPrice && <span>Paid: {planPrice}</span>}
+                      {user.mt5LoginLock && (
+                        <span className="text-amber-400">Locked to MT5 Login: {user.mt5LoginLock}</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -208,6 +223,20 @@ export function AdminUsersTable() {
                     >
                       <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
                     </Button>
+                    {user.mt5LoginLock && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm(`Reset MT5 lock for ${user.name}? They will be able to connect a different account.`)) {
+                            resetMt5LockMutation.mutate(user._id);
+                          }
+                        }}
+                        disabled={resetMt5LockMutation.isPending}
+                      >
+                        Reset MT5 Lock
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>

@@ -1,5 +1,5 @@
-import { LogoLoader } from "@/components/ui/logo-loader";
+import { DashboardSkeleton } from "@/components/dashboard/dashboard-skeleton";
 
-export default function DashboardLoading() {
-  return <LogoLoader label="Opening dashboard" />;
+export default function Loading() {
+  return <DashboardSkeleton />;
 }

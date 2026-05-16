@@ -22,6 +22,7 @@ import {
   supportedTradeCurrencies,
 } from "@/lib/utils";
 import { useFeatureAccess } from "@/hooks/use-feature-access";
+import { Mt5CopyTradingSection } from "./mt5-copy-trading-section";
 
 interface IQAccount {
   _id: string;
@@ -100,6 +101,10 @@ export function CopyTradingSettings() {
     queryFn: async () => (await api.get("/user/profile")).data,
     enabled: isPro,
   });
+
+  const access = (profile as any)?.subscription?.access ?? { binary: false, forex: false };
+  const hasBinary = access.binary;
+  const hasForex = access.forex;
 
   const copyAdminEnabled: boolean = (profile as any)?.iqAccounts?.[0]?.copyAdminEnabled ?? false;
 
@@ -204,7 +209,6 @@ export function CopyTradingSettings() {
     },
   });
 
-  // EO copy-admin toggle per account
   const eoCopyAdminMutation = useMutation({
     mutationFn: ({ accountId, enabled }: { accountId: number; enabled: boolean }) =>
       api.put("/user/eo-copy-admin", { enabled, accountId: String(accountId) }),
@@ -264,160 +268,164 @@ export function CopyTradingSettings() {
       </div>
 
       {/* Copy-Admin Toggle */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold text-white">Copy Admin Trades</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              When enabled, your bot mirrors trades placed manually by the admin.
-            </p>
+      {hasBinary && (
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-white">Copy Admin Trades</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                When enabled, your bot mirrors trades placed manually by the admin.
+              </p>
+            </div>
+            <Switch
+              checked={copyAdminEnabled}
+              onCheckedChange={(checked) => copyAdminMutation.mutate(checked)}
+              disabled={copyAdminMutation.isPending}
+            />
           </div>
-          <Switch
-            checked={copyAdminEnabled}
-            onCheckedChange={(checked) => copyAdminMutation.mutate(checked)}
-            disabled={copyAdminMutation.isPending}
-          />
         </div>
-      </div>
+      )}
 
       {/* Connected Accounts */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-0.5">
-              <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={20} height={20} className="h-full w-full object-contain" />
+      {hasBinary && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-0.5">
+                <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={20} height={20} className="h-full w-full object-contain" />
+              </div>
+              <h2 className="text-sm font-semibold text-white/70">
+                IQ Option Accounts{" "}
+                <span className="text-white/30">({accounts.length}/{accountLimit})</span>
+              </h2>
             </div>
-            <h2 className="text-sm font-semibold text-white/70">
-              IQ Option Accounts{" "}
-              <span className="text-white/30">({accounts.length}/{accountLimit})</span>
-            </h2>
+            {canAddMore && (
+              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowConnectForm(!showConnectForm)}>
+                <Plus className="h-3.5 w-3.5" /> Add account
+              </Button>
+            )}
           </div>
-          {canAddMore && (
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowConnectForm(!showConnectForm)}>
-              <Plus className="h-3.5 w-3.5" /> Add account
-            </Button>
+
+          {accountsLoading && (
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-center text-sm text-muted-foreground">
+              Loading accounts…
+            </div>
           )}
-        </div>
 
-        {accountsLoading && (
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-center text-sm text-muted-foreground">
-            Loading accounts…
-          </div>
-        )}
+          {!accountsLoading && accounts.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
+              <p className="text-sm text-muted-foreground">No IQ Option accounts connected yet.</p>
+              <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={() => setShowConnectForm(true)}>
+                <Plus className="h-3.5 w-3.5" /> Connect account
+              </Button>
+            </div>
+          )}
 
-        {!accountsLoading && accounts.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center">
-            <p className="text-sm text-muted-foreground">No IQ Option accounts connected yet.</p>
-            <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={() => setShowConnectForm(true)}>
-              <Plus className="h-3.5 w-3.5" /> Connect account
-            </Button>
-          </div>
-        )}
+          {accounts.map((account) => {
+            const liveAccount = botStatus?.iqAccounts?.find((a) => a.email === account.email);
+            const balance = liveAccount?.balance ?? account.balance;
+            const currency = liveAccount?.currency ?? account.currency;
+            const isEditing = editAmountFor === account.email;
 
-        {accounts.map((account) => {
-          const liveAccount = botStatus?.iqAccounts?.find((a) => a.email === account.email);
-          const balance = liveAccount?.balance ?? account.balance;
-          const currency = liveAccount?.currency ?? account.currency;
-          const isEditing = editAmountFor === account.email;
-
-          return (
-            <div key={account._id} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-white">{account.email}</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Badge variant={account.accountType === "REAL" ? "default" : "outline"} className="text-[10px]">
-                      {account.accountType === "REAL" ? "Real" : "Practice"}
-                    </Badge>
-                    {balance != null && (
-                      <span className="text-xs text-muted-foreground">
-                        {formatCurrency(Number(balance), currency)}
-                      </span>
-                    )}
+            return (
+              <div key={account._id} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-white">{account.email}</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Badge variant={account.accountType === "REAL" ? "default" : "outline"} className="text-[10px]">
+                        {account.accountType === "REAL" ? "Real" : "Practice"}
+                      </Badge>
+                      {balance != null && (
+                        <span className="text-xs text-muted-foreground">
+                          {formatCurrency(Number(balance), currency)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      size="icon" variant="ghost" className="h-7 w-7"
+                      title="Refresh balance"
+                      onClick={() => refreshMutation.mutate(account.email)}
+                      disabled={refreshMutation.isPending}
+                    >
+                      <RefreshCw className={`h-3.5 w-3.5 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
+                    </Button>
+                    <Button
+                      size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive"
+                      title="Disconnect"
+                      onClick={() => setIqAccountToDisconnect(account)}
+                      disabled={disconnectMutation.isPending}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <Button
-                    size="icon" variant="ghost" className="h-7 w-7"
-                    title="Refresh balance"
-                    onClick={() => refreshMutation.mutate(account.email)}
-                    disabled={refreshMutation.isPending}
-                  >
-                    <RefreshCw className={`h-3.5 w-3.5 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
-                  </Button>
-                  <Button
-                    size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive"
-                    title="Disconnect"
-                    onClick={() => setIqAccountToDisconnect(account)}
-                    disabled={disconnectMutation.isPending}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
 
-              <div className="mt-4 space-y-3 border-t border-white/[0.04] pt-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Trade amount</span>
-                  {isEditing ? (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        className="h-7 w-24 text-xs"
-                        type="number"
-                        min={getTradeAmountMinimum(currency)}
-                        value={editAmount}
-                        onChange={(e) => setEditAmount(e.target.value)}
-                      />
-                      <Button
-                        size="sm" className="h-7 px-2 text-xs"
-                        onClick={() => updateAmountMutation.mutate({ email: account.email, tradeAmount: Number(editAmount) })}
-                        disabled={updateAmountMutation.isPending || Number(editAmount) < getTradeAmountMinimum(currency)}
+                <div className="mt-4 space-y-3 border-t border-white/[0.04] pt-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Trade amount</span>
+                    {isEditing ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          className="h-7 w-24 text-xs"
+                          type="number"
+                          min={getTradeAmountMinimum(currency)}
+                          value={editAmount}
+                          onChange={(e) => setEditAmount(e.target.value)}
+                        />
+                        <Button
+                          size="sm" className="h-7 px-2 text-xs"
+                          onClick={() => updateAmountMutation.mutate({ email: account.email, tradeAmount: Number(editAmount) })}
+                          disabled={updateAmountMutation.isPending || Number(editAmount) < getTradeAmountMinimum(currency)}
+                        >
+                          Save
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEditAmountFor(null)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setEditAmountFor(account.email); setEditAmount(String(account.tradeAmount)); }}
+                        className="text-xs font-semibold text-white transition-colors hover:text-primary"
                       >
-                        Save
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEditAmountFor(null)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => { setEditAmountFor(account.email); setEditAmount(String(account.tradeAmount)); }}
-                      className="text-xs font-semibold text-white transition-colors hover:text-primary"
-                    >
-                      {formatCurrency(account.tradeAmount, currency)} <span className="text-white/30">(edit)</span>
-                    </button>
-                  )}
-                </div>
+                        {formatCurrency(account.tradeAmount, currency)} <span className="text-white/30">(edit)</span>
+                      </button>
+                    )}
+                  </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Martingale</span>
-                  <Switch
-                    checked={account.martingaleEnabled}
-                    onCheckedChange={(checked) => toggleMartingaleMutation.mutate({ email: account.email, enabled: checked })}
-                    disabled={toggleMartingaleMutation.isPending}
-                  />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Martingale</span>
+                    <Switch
+                      checked={account.martingaleEnabled}
+                      onCheckedChange={(checked) => toggleMartingaleMutation.mutate({ email: account.email, enabled: checked })}
+                      disabled={toggleMartingaleMutation.isPending}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-        <ConfirmDialog
-          open={Boolean(iqAccountToDisconnect)}
-          onOpenChange={(open) => { if (!open) setIqAccountToDisconnect(null); }}
-          title="Disconnect IQ account?"
-          description={`Disconnect ${iqAccountToDisconnect?.email ?? "this account"} from copy trading.`}
-          confirmLabel="Disconnect"
-          destructive
-          loading={disconnectMutation.isPending}
-          onConfirm={() => {
-            if (iqAccountToDisconnect) disconnectMutation.mutate(iqAccountToDisconnect.email);
-          }}
-        />
-      </div>
+          <ConfirmDialog
+            open={Boolean(iqAccountToDisconnect)}
+            onOpenChange={(open) => { if (!open) setIqAccountToDisconnect(null); }}
+            title="Disconnect IQ account?"
+            description={`Disconnect ${iqAccountToDisconnect?.email ?? "this account"} from copy trading.`}
+            confirmLabel="Disconnect"
+            destructive
+            loading={disconnectMutation.isPending}
+            onConfirm={() => {
+              if (iqAccountToDisconnect) disconnectMutation.mutate(iqAccountToDisconnect.email);
+            }}
+          />
+        </div>
+      )}
 
       {/* Connect form */}
-      {showConnectForm && (
+      {hasBinary && showConnectForm && (
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5">
           <h3 className="mb-4 text-sm font-semibold text-white">Connect IQ Option Account</h3>
           <div className="space-y-3">
@@ -499,75 +507,80 @@ export function CopyTradingSettings() {
       )}
 
       {/* ── ExpertOption Copy Trading ─────────────────────────────────── */}
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center gap-3 border-b border-white/[0.06] pb-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1">
-            <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={24} height={24} className="h-6 w-6 object-contain" />
+      {hasBinary && (
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center gap-3 border-b border-white/[0.06] pb-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1">
+              <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={24} height={24} className="h-6 w-6 object-contain" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold text-white">ExpertOption Copy Trading</h2>
+              <p className="text-[11px] text-muted-foreground">Mirror admin EO trades on your connected Expert Option accounts.</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-sm font-semibold text-white">ExpertOption Copy Trading</h2>
-            <p className="text-[11px] text-muted-foreground">Mirror admin EO trades on your connected Expert Option accounts.</p>
-          </div>
-        </div>
 
-        {eoAccountsLoading ? (
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-center text-sm text-muted-foreground">
-            Loading EO accounts…
-          </div>
-        ) : eoAccounts.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center">
-            <p className="text-sm text-muted-foreground">No Expert Option accounts connected.</p>
-            <p className="mt-1 text-xs text-muted-foreground/60">Connect an EO account from the Accounts page to enable copy trading.</p>
-            <Button asChild size="sm" variant="outline" className="mt-3">
-              <Link href="/dashboard/accounts?broker=eo">Connect EO Account</Link>
-            </Button>
-          </div>
-        ) : (
-          eoAccounts.map((account) => {
-            const balance = account.isDemo
-              ? (account.demoBalance ?? account.balance)
-              : (account.realBalance ?? account.balance);
-            return (
-              <div key={account.accountId} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1">
-                      <Image src="/autobot-assets/experoptionlogo.png" alt="EO" width={24} height={24} className="h-6 w-6 object-contain" />
+          {eoAccountsLoading ? (
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-center text-sm text-muted-foreground">
+              Loading EO accounts…
+            </div>
+          ) : eoAccounts.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-white/10 p-6 text-center">
+              <p className="text-sm text-muted-foreground">No Expert Option accounts connected.</p>
+              <p className="mt-1 text-xs text-muted-foreground/60">Connect an EO account from the Accounts page to enable copy trading.</p>
+              <Button asChild size="sm" variant="outline" className="mt-3">
+                <Link href="/dashboard/accounts?broker=eo">Connect EO Account</Link>
+              </Button>
+            </div>
+          ) : (
+            eoAccounts.map((account) => {
+              const balance = account.isDemo
+                ? (account.demoBalance ?? account.balance)
+                : (account.realBalance ?? account.balance);
+              return (
+                <div key={account.accountId} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1">
+                        <Image src="/autobot-assets/experoptionlogo.png" alt="EO" width={24} height={24} className="h-6 w-6 object-contain" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-white">
+                          {account.name || `Account #${account.accountId}`}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          ID: {account.accountId}
+                          {balance != null && ` · Balance: ${formatCurrency(balance, account.currency ?? "USD")}`}
+                          {` · ${account.isDemo ? "Demo" : "Real"} · $${account.baseAmount}/trade`}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-semibold text-white">
-                        {account.name || `Account #${account.accountId}`}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        ID: {account.accountId}
-                        {balance != null && ` · Balance: ${formatCurrency(balance, account.currency ?? "USD")}`}
-                        {` · ${account.isDemo ? "Demo" : "Real"} · $${account.baseAmount}/trade`}
-                      </p>
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className={`text-xs font-medium ${account.copyAdminEnabled ? "text-emerald-400" : "text-muted-foreground"}`}>
+                        {account.copyAdminEnabled ? "On" : "Off"}
+                      </span>
+                      <Switch
+                        checked={account.copyAdminEnabled}
+                        onCheckedChange={(checked) =>
+                          eoCopyAdminMutation.mutate({ accountId: account.accountId, enabled: checked })
+                        }
+                        disabled={eoCopyAdminMutation.isPending}
+                      />
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span className={`text-xs font-medium ${account.copyAdminEnabled ? "text-emerald-400" : "text-muted-foreground"}`}>
-                      {account.copyAdminEnabled ? "On" : "Off"}
-                    </span>
-                    <Switch
-                      checked={account.copyAdminEnabled}
-                      onCheckedChange={(checked) =>
-                        eoCopyAdminMutation.mutate({ accountId: account.accountId, enabled: checked })
-                      }
-                      disabled={eoCopyAdminMutation.isPending}
-                    />
-                  </div>
+                  {account.copyAdminEnabled && (
+                    <div className="mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2 text-[11px] text-emerald-300">
+                      Copy trading active — this account will mirror admin EO trades automatically.
+                    </div>
+                  )}
                 </div>
-                {account.copyAdminEnabled && (
-                  <div className="mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2 text-[11px] text-emerald-300">
-                    Copy trading active — this account will mirror admin EO trades automatically.
-                  </div>
-                )}
-              </div>
-            );
-          })
-        )}
-      </div>
+              );
+            })
+          )}
+        </div>
+      )}
+
+      {hasBinary && hasForex && <div className="my-8 h-px bg-white/[0.06]" />}
+      {hasForex && <Mt5CopyTradingSection />}
     </div>
   );
 }

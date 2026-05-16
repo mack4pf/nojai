@@ -7,6 +7,7 @@ const items = [
   { href: "/admin/users", label: "Users", icon: "copy", mobileBottom: true },
   { href: "/admin/trades", label: "Trades", icon: "trades", mobileBottom: true },
   { href: "/admin/copy-trade", label: "Accounts", icon: "broker", mobileBottom: true },
+  { href: "/admin/mt5-copy-trading", label: "MT5 Copy", icon: "copy", mobileBottom: true },
   { href: "/admin/mt5", label: "MT5", icon: "zap", mobileBottom: true },
   { href: "/admin/settings", label: "Settings", icon: "settings", mobileBottom: true },
   { href: "/admin/pricing", label: "Pricing", icon: "plans" },

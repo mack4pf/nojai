@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 
 const links = [
   { href: "/#features", label: "Features" },
+  { href: "/mt5-trading", label: "MT5 Trading" },
   { href: "/blog", label: "Blog" },
   { href: "/#brokers", label: "Our Brokers" },
   { href: "/about", label: "About" },

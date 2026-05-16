@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, ChevronDown, ChevronUp, Crown, Radar, Shield } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { MetaTrader5Icon } from "@/components/icons/metatrader5-icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmailNotice } from "@/components/ui/email-notice";
@@ -281,8 +283,24 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                                 : "border-white/[0.06] bg-white/[0.02] text-muted-foreground hover:text-foreground"
                             }`}
                           >
-                            <span className="block text-xs font-semibold">{option.label}</span>
-                            <span className="mt-0.5 block text-[10px] text-muted-foreground">{option.note}</span>
+                            <div className="mb-1.5 flex items-center gap-1.5">
+                              {option.value === "binary" ? (
+                                <div className="flex -space-x-1.5">
+                                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
+                                    <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={12} height={12} className="h-full w-full object-contain" />
+                                  </div>
+                                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
+                                    <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={12} height={12} className="h-full w-full object-contain" />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
+                                  <MetaTrader5Icon className="h-full w-full" stroke="#011118" />
+                                </div>
+                              )}
+                              <span className="block text-xs font-semibold">{option.label}</span>
+                            </div>
+                            <span className="block text-[10px] text-muted-foreground">{option.note}</span>
                           </button>
                         );
                       })}
@@ -382,8 +400,24 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                               : "border-white/[0.06] bg-white/[0.02] text-muted-foreground hover:text-foreground"
                           }`}
                         >
-                          <span className="block text-xs font-semibold">{option.label}</span>
-                          <span className="mt-0.5 block text-[10px] text-muted-foreground">{option.note}</span>
+                          <div className="mb-1.5 flex items-center gap-1.5">
+                            {option.value === "binary" ? (
+                              <div className="flex -space-x-1.5">
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
+                                  <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={12} height={12} className="h-full w-full object-contain" />
+                                </div>
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
+                                  <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={12} height={12} className="h-full w-full object-contain" />
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
+                                <MetaTrader5Icon className="h-full w-full" stroke="#011118" />
+                              </div>
+                            )}
+                            <span className="block text-xs font-semibold">{option.label}</span>
+                          </div>
+                          <span className="block text-[10px] text-muted-foreground">{option.note}</span>
                         </button>
                       );
                     })}

@@ -23,7 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard/trades", label: "Trades", icon: "trades", mobileBottom: true, show: true },
     { href: "/dashboard/review", label: "Review", icon: "review", mobileBottom: true, show: true },
     { href: "/dashboard/subscription", label: "Plans", icon: "plans", mobileBottom: true, show: true },
-    { href: "/dashboard/copy-trading", label: "Copy Trading", icon: "copy", badge: "Pro", locked: plan === "STANDARD" || plan === "NONE", show: hasBinary },
+    { href: "/dashboard/copy-trading", label: "Copy Trading", icon: "copy", badge: "Pro", locked: plan === "STANDARD" || plan === "NONE", show: hasBinary || hasForex },
     { href: "/dashboard/webhook", label: "Webhook", icon: "webhook", badge: "Pro", locked: plan === "STANDARD" || plan === "NONE", show: hasBinary || hasForex },
     { href: "/dashboard/courses", label: "Courses", icon: "courses", show: true },
     { href: "/dashboard/payments", label: "Payments", icon: "payments", show: true },

@@ -171,6 +171,7 @@ export interface UserProfile {
   subscriptionStartedAt?: string;
   createdAt?: string;
   joinedAt?: string;
+  mt5LoginLock?: string;
 }
 
 export interface DashboardStats {

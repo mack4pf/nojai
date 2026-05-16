@@ -4,6 +4,10 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { WebhookCard } from "@/components/dashboard/webhook-card";
 import { Mt5WebhookSection } from "@/components/dashboard/mt5-webhook-section";
+import { useFeatureAccess } from "@/hooks/use-feature-access";
+import { Lock } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { api, normalizeUserProfile } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import type { UserProfile } from "@/types";
@@ -14,11 +18,33 @@ export function DashboardWebhookPage() {
     queryFn: async () => normalizeUserProfile((await api.get("/user/profile")).data) as UserProfile | null,
   });
 
+  const { isVip, isPro } = useFeatureAccess();
+  const hasAccess = isVip || isPro;
+
   const hasBinary = Boolean(profile?.subscription?.access?.binary);
   const hasForex = Boolean(profile?.subscription?.access?.forex);
   const hasBoth = hasBinary && hasForex;
 
   const [activeTab, setActiveTab] = useState<"binary" | "mt5">(hasBinary ? "binary" : "mt5");
+
+  if (!hasAccess) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight">Webhook</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Receive external trading signals via webhook.</p>
+        </div>
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 py-16 text-center">
+          <Lock className="mb-3 h-8 w-8 text-muted-foreground/30" />
+          <p className="text-sm font-medium text-muted-foreground">PRO or VIP plan required</p>
+          <p className="mt-1 text-xs text-muted-foreground/60">Upgrade to PRO or VIP to get a personal webhook URL for TradingView signals.</p>
+          <Button asChild size="sm" variant="outline" className="mt-4">
+            <Link href="/dashboard/subscription">View plans</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   // Single-product users see their webhook directly — no tabs needed
   if (!hasBoth) {
