@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Loader2, MessageCircle, RefreshCw, Send } from "lucide-react";
+import { AlertCircle, Loader2, MessageCircle, Paperclip, RefreshCw, Send, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,17 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils";
 
+const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "video/mp4", "video/webm", "video/quicktime"];
+
+interface Attachment {
+  url: string;
+  type: "image" | "video";
+  originalName: string;
+  mimeType: string;
+}
+
 interface Conversation {
-  _id: string; // userId
+  _id: string;
   lastMessage: string;
   lastAt: string;
   unreadCount: number;
@@ -25,7 +34,53 @@ interface SupportMessage {
   message: string;
   isFromAdmin: boolean;
   read: boolean;
+  attachments: Attachment[];
   createdAt: string;
+}
+
+function AttachmentPreview({ att, onRemove }: { att: File; onRemove: () => void }) {
+  const url = URL.createObjectURL(att);
+  const isVideo = att.type.startsWith("video/");
+  return (
+    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-white/10">
+      {isVideo ? (
+        <video src={url} className="h-full w-full object-cover" muted />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={url} alt={att.name} className="h-full w-full object-cover" />
+      )}
+      <button
+        onClick={onRemove}
+        className="absolute right-0.5 top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black"
+      >
+        <X className="h-2.5 w-2.5" />
+      </button>
+    </div>
+  );
+}
+
+function MessageAttachment({ att }: { att: Attachment }) {
+  if (att.type === "video") {
+    return (
+      <video
+        src={att.url}
+        controls
+        className="mt-2 max-h-48 w-full max-w-[260px] rounded-xl object-cover"
+        preload="metadata"
+      />
+    );
+  }
+  return (
+    <a href={att.url} target="_blank" rel="noopener noreferrer">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={att.url}
+        alt={att.originalName}
+        className="mt-2 max-h-48 w-full max-w-[260px] rounded-xl object-cover"
+        loading="lazy"
+      />
+    </a>
+  );
 }
 
 export function AdminSupportInbox() {
@@ -33,6 +88,9 @@ export function AdminSupportInbox() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [reply, setReply] = useState("");
   const [search, setSearch] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: conversations = [], isLoading: loadingConvos, refetch, isFetching } = useQuery<Conversation[]>({
     queryKey: ["admin-support-conversations"],
@@ -55,12 +113,41 @@ export function AdminSupportInbox() {
     refetchIntervalInBackground: false,
   });
 
+  // Mark user messages as read when a conversation is selected
+  const adminReadMutation = useMutation({
+    mutationFn: (userId: string) => api.post(`/support/admin-read/${userId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-support-conversations"] });
+    },
+  });
+
+  function selectConversation(userId: string) {
+    setSelectedUserId(userId);
+    adminReadMutation.mutate(userId);
+  }
+
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   const replyMutation = useMutation({
     mutationFn: async () => {
-      await api.post(`/support/reply/${selectedUserId}`, { message: reply.trim() });
+      const text = reply.trim();
+      if (selectedFiles.length > 0) {
+        const form = new FormData();
+        if (text) form.append("message", text);
+        selectedFiles.forEach((f) => form.append("files", f));
+        // false removes the header entirely so the browser sets multipart/form-data + boundary
+        await api.post(`/support/reply/${selectedUserId}`, form, { headers: { "Content-Type": false as any } });
+      } else {
+        await api.post(`/support/reply/${selectedUserId}`, { message: text });
+      }
     },
     onSuccess: () => {
       setReply("");
+      setSelectedFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       queryClient.invalidateQueries({ queryKey: ["admin-support-messages", selectedUserId] });
       queryClient.invalidateQueries({ queryKey: ["admin-support-conversations"] });
     },
@@ -76,12 +163,29 @@ export function AdminSupportInbox() {
     : conversations;
 
   const selectedConvo = conversations.find((c) => c._id === selectedUserId);
-
   const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
+
+  const canReply = (reply.trim().length >= 1 || selectedFiles.length > 0) && !replyMutation.isPending;
+
+  function handleFiles(files: FileList | null) {
+    if (!files) return;
+    const valid = Array.from(files).filter((f) => {
+      if (!ALLOWED_TYPES.includes(f.type)) {
+        toast.error(`${f.name}: unsupported file type`);
+        return false;
+      }
+      if (f.size > 50 * 1024 * 1024) {
+        toast.error(`${f.name}: file exceeds 50 MB limit`);
+        return false;
+      }
+      return true;
+    });
+    setSelectedFiles((prev) => [...prev, ...valid].slice(0, 5));
+  }
 
   return (
     <div className="grid h-[calc(100vh-8rem)] gap-4 lg:grid-cols-[300px_1fr]">
-      {/* Sidebar — conversations */}
+      {/* Sidebar */}
       <div className="flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
         <div className="border-b border-white/[0.06] p-4">
           <div className="flex items-center justify-between gap-2">
@@ -113,14 +217,12 @@ export function AdminSupportInbox() {
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
           ) : filteredConvos.length === 0 ? (
-            <div className="p-6 text-center text-sm text-muted-foreground">
-              No conversations yet.
-            </div>
+            <div className="p-6 text-center text-sm text-muted-foreground">No conversations yet.</div>
           ) : (
             filteredConvos.map((convo) => (
               <button
                 key={convo._id}
-                onClick={() => setSelectedUserId(convo._id)}
+                onClick={() => selectConversation(convo._id)}
                 className={`w-full border-b border-white/[0.04] px-4 py-3 text-left transition-colors hover:bg-white/[0.04] ${
                   selectedUserId === convo._id ? "bg-white/[0.06]" : ""
                 }`}
@@ -150,7 +252,7 @@ export function AdminSupportInbox() {
         </div>
       </div>
 
-      {/* Main — chat thread */}
+      {/* Chat thread */}
       <div className="flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
         {!selectedUserId ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
@@ -159,7 +261,7 @@ export function AdminSupportInbox() {
           </div>
         ) : (
           <>
-            {/* Chat header */}
+            {/* Header */}
             <div className="border-b border-white/[0.06] px-5 py-4">
               <p className="font-semibold text-foreground">
                 {selectedConvo?.user?.fullName ?? selectedConvo?.user?.email ?? "User"}
@@ -190,22 +292,61 @@ export function AdminSupportInbox() {
                           : "rounded-tl-sm bg-white/[0.08] text-foreground"
                       }`}
                     >
-                      <p className="leading-relaxed">{msg.message}</p>
-                      <p
-                        className={`mt-1 text-[10px] ${
+                      {msg.message && !/^\[(image|video|\d+ attachments?)\]$/.test(msg.message) && (
+                        <p className="leading-relaxed">{msg.message}</p>
+                      )}
+                      {msg.attachments?.map((att, i) => (
+                        <MessageAttachment key={i} att={att} />
+                      ))}
+                      <div
+                        className={`mt-1 flex items-center gap-1 text-[10px] ${
                           msg.isFromAdmin ? "text-primary-foreground/60" : "text-muted-foreground"
                         }`}
                       >
-                        {msg.isFromAdmin ? "You (admin)" : "User"} · {formatDate(msg.createdAt, "MMM d · HH:mm")}
-                      </p>
+                        <span>
+                          {msg.isFromAdmin ? "You (admin)" : "User"} · {formatDate(msg.createdAt, "MMM d · HH:mm")}
+                        </span>
+                        {msg.isFromAdmin && msg.read && (
+                          <span className="ml-0.5 font-medium">· Seen</span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 ))
               )}
+              <div ref={messagesEndRef} />
             </div>
 
+            {/* File previews */}
+            {selectedFiles.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto border-t border-white/[0.06] px-4 py-2">
+                {selectedFiles.map((f, i) => (
+                  <AttachmentPreview
+                    key={i}
+                    att={f}
+                    onRemove={() => setSelectedFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                  />
+                ))}
+              </div>
+            )}
+
             {/* Reply box */}
-            <div className="flex gap-3 border-t border-white/[0.06] p-4">
+            <div className="flex items-end gap-3 border-t border-white/[0.06] p-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                className="hidden"
+                onChange={(e) => handleFiles(e.target.files)}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="mb-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-white/[0.08] hover:text-foreground"
+                title="Attach image or video"
+              >
+                <Paperclip className="h-4 w-4" />
+              </button>
               <Textarea
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
@@ -213,7 +354,7 @@ export function AdminSupportInbox() {
                 rows={2}
                 className="resize-none text-sm"
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey && reply.trim().length >= 1) {
+                  if (e.key === "Enter" && !e.shiftKey && canReply) {
                     e.preventDefault();
                     replyMutation.mutate();
                   }
@@ -221,8 +362,8 @@ export function AdminSupportInbox() {
               />
               <Button
                 onClick={() => replyMutation.mutate()}
-                disabled={reply.trim().length < 1 || replyMutation.isPending}
-                className="h-auto self-end"
+                disabled={!canReply}
+                className="mb-1 h-9 w-9 shrink-0 p-0"
               >
                 {replyMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
