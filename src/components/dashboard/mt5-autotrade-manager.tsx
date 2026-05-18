@@ -12,6 +12,8 @@ import {
   Search,
   Server,
   ShieldCheck,
+  ToggleLeft,
+  ToggleRight,
   Trash2,
   TrendingUp,
   WalletCards,
@@ -56,6 +58,16 @@ interface Mt5BrokerSuggestion {
   serverName: string;
   label: string;
   source: "typesense" | "metaapi";
+}
+
+interface Mt5Strategy {
+  _id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  symbol?: string;
+  enabled: boolean;
+  defaultEnabled: boolean;
 }
 
 function getAccountLimit(plan: PlanTier | undefined) {
@@ -111,6 +123,13 @@ export function Mt5AutoTradeManager() {
     },
     enabled: accounts.length > 0,
     refetchInterval: 30_000,
+  });
+
+  const { data: strategies = [] } = useQuery({
+    queryKey: ["mt5-strategies"],
+    queryFn: async () => ((await api.get("/mt5/strategies")).data?.strategies ?? []) as Mt5Strategy[],
+    enabled: accounts.length > 0,
+    staleTime: 30_000,
   });
 
   const { data: brokerSuggestions = [], isFetching: searchingBrokers } = useQuery({
@@ -230,6 +249,19 @@ export function Mt5AutoTradeManager() {
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : "Failed to update signal preference");
+    },
+  });
+
+  const strategyMutation = useMutation({
+    mutationFn: async ({ strategyId, enabled }: { strategyId: string; enabled: boolean }) => {
+      await api.patch(`/mt5/strategies/${strategyId}`, { enabled });
+    },
+    onSuccess: (_data, variables) => {
+      toast.success(variables.enabled ? "Strategy enabled" : "Strategy paused");
+      queryClient.invalidateQueries({ queryKey: ["mt5-strategies"] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to update strategy");
     },
   });
 
@@ -455,6 +487,42 @@ export function Mt5AutoTradeManager() {
           </form>
         </div>
       </div>
+
+      {strategies.length > 0 ? (
+        <section className="rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-base font-semibold">NojAI MT5 Strategies</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">Choose which global MT5 webhook strategies can trade on your connected accounts.</p>
+            </div>
+            <Badge variant="outline">{strategies.filter((strategy) => strategy.enabled).length} enabled</Badge>
+          </div>
+          <div className="mt-4 grid gap-3 xl:grid-cols-2">
+            {strategies.map((strategy) => (
+              <div key={strategy._id} className="flex items-center justify-between gap-4 rounded-2xl border border-white/[0.08] bg-background/50 p-4">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold">{strategy.name}</p>
+                    {strategy.symbol ? <Badge variant="secondary">{strategy.symbol}</Badge> : null}
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{strategy.description || "Global MT5 strategy webhook"}</p>
+                </div>
+                <Button
+                  type="button"
+                  variant={strategy.enabled ? "default" : "outline"}
+                  size="sm"
+                  className="shrink-0 gap-2"
+                  onClick={() => strategyMutation.mutate({ strategyId: strategy._id, enabled: !strategy.enabled })}
+                  disabled={strategyMutation.isPending}
+                >
+                  {strategy.enabled ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+                  {strategy.enabled ? "On" : "Off"}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">

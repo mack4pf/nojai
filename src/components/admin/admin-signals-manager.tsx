@@ -16,7 +16,7 @@ interface SignalResult {
   userId: string;
   email: string;
   fullName?: string;
-  broker?: "iq" | "eo";
+  broker?: "iq" | "eo" | "mt5";
   botTarget?: "pro" | "vip" | "eo-pro" | "eo-vip";
   accountId?: string;
   accountName?: string;
@@ -39,7 +39,7 @@ interface SignalLog {
   ticker: string;
   direction: "buy" | "sell";
   expirationSecs: number;
-  broker?: "iq" | "eo" | "mixed";
+  broker?: "iq" | "eo" | "mt5" | "mixed";
   botTarget: "pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user" | "mixed";
   botTargets?: Array<"pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user">;
   source: "tradingview" | "webhook" | "admin_manual" | "mt5_global_webhook" | "mt5_per_account_webhook" | "mixed";

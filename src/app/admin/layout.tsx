@@ -9,6 +9,7 @@ const items = [
   { href: "/admin/copy-trade", label: "Accounts", icon: "broker", mobileBottom: true },
   { href: "/admin/mt5-copy-trading", label: "MT5 Copy", icon: "copy", mobileBottom: true },
   { href: "/admin/mt5", label: "MT5", icon: "zap", mobileBottom: true },
+  { href: "/admin/mt5-strategies", label: "MT5 Strategies", icon: "webhook" },
   { href: "/admin/settings", label: "Settings", icon: "settings", mobileBottom: true },
   { href: "/admin/pricing", label: "Pricing", icon: "plans" },
   { href: "/admin/bots", label: "Bots", icon: "bot" },
