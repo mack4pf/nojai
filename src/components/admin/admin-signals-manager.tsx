@@ -40,6 +40,9 @@ interface SignalLog {
   direction: "buy" | "sell";
   expirationSecs: number;
   broker?: "iq" | "eo" | "mt5" | "mixed";
+  strategyName?: string;
+  strategySlug?: string;
+  strategySymbol?: string;
   botTarget: "pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user" | "mixed";
   botTargets?: Array<"pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user">;
   source: "tradingview" | "webhook" | "admin_manual" | "mt5_global_webhook" | "mt5_per_account_webhook" | "mixed";
@@ -303,6 +306,11 @@ export function AdminSignalsManager() {
                         <Badge variant="secondary" className="border border-white/10 bg-transparent text-muted-foreground">
                           {signal.broker === "eo" ? "ExpertOption" : signal.broker === "iq" ? "IQ Option" : signal.broker === "mt5" ? "MT5 AutoTrade" : "Mixed brokers"}
                         </Badge>
+                        {signal.strategyName ? (
+                          <Badge variant="secondary" className="border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
+                            {signal.strategyName}{signal.strategySymbol ? ` · ${signal.strategySymbol}` : ""}
+                          </Badge>
+                        ) : null}
                         {(signal.sources?.length ? signal.sources : [signal.source]).map((source) => (
                           <Badge key={`${signal._id}-${source}`} variant="secondary" className="border border-white/10 bg-transparent text-muted-foreground">
                             {source.replaceAll("_", " ")}

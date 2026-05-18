@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, Loader2, Mail, RefreshCw } from "lucide-react";
 
@@ -27,6 +27,7 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendError, setResendError] = useState("");
+  const autoVerifyStarted = useRef(false);
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -74,7 +75,8 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
   }
 
   useEffect(() => {
-    if (token && email) {
+    if (token && email && !autoVerifyStarted.current) {
+      autoVerifyStarted.current = true;
       verifyEmail(email, token);
     }
   }, [token, email]);

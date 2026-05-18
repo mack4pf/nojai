@@ -16,9 +16,18 @@ interface PopulatedUser {
   fullName?: string;
 }
 
+interface PopulatedStrategy {
+  _id: string;
+  name: string;
+  slug?: string;
+  symbol?: string;
+}
+
 interface Mt5Trade {
   _id: string;
   userId?: PopulatedUser | string;
+  strategyId?: PopulatedStrategy | string;
+  strategy?: string;
   asset: string;
   direction: string;
   lot?: number;
@@ -40,6 +49,8 @@ interface Mt5Trade {
 interface ExecutionJob {
   _id: string;
   userId?: PopulatedUser | string;
+  strategyId?: PopulatedStrategy | string;
+  strategy?: string;
   action: string;
   symbol: string;
   calculatedLot: number;
@@ -66,7 +77,20 @@ interface IncomingSignal {
   rejectReason?: string;
   receivedAt: string;
   rawPayload?: Record<string, unknown>;
+  strategyId?: PopulatedStrategy | string;
   jobs: ExecutionJob[];
+}
+
+function getUserLabel(user: PopulatedUser | string | undefined) {
+  return typeof user === "object" && user ? {
+    name: user.fullName || user.email || "Unknown user",
+    email: user.email || "",
+  } : { name: "Unknown user", email: "" };
+}
+
+function getStrategyLabel(strategy: PopulatedStrategy | string | undefined, fallback?: string) {
+  if (typeof strategy === "object" && strategy) return strategy.name || strategy.slug || fallback || "Unknown strategy";
+  return fallback || (typeof strategy === "string" ? strategy : "Unknown strategy");
 }
 
 // ─── Status badge helpers ─────────────────────────────────────────────────────
@@ -141,7 +165,8 @@ function Mt5TradesTab() {
       {/* Mobile cards */}
       <div className="space-y-2 sm:hidden">
         {trades.map((trade) => {
-          const user = typeof trade.userId === "object" ? trade.userId : null;
+          const user = getUserLabel(trade.userId);
+          const strategy = getStrategyLabel(trade.strategyId, trade.strategy);
           const isLong = /buy/i.test(trade.direction);
           const profit = Number(trade.profit ?? 0);
           return (
@@ -156,9 +181,8 @@ function Mt5TradesTab() {
                   {profit >= 0 ? "+" : ""}{profit.toFixed(2)}
                 </span>
               </div>
-              {user && (
-                <p className="mt-1 truncate text-[11px] text-muted-foreground">{user.email}</p>
-              )}
+              <p className="mt-1 truncate text-[11px] text-muted-foreground">{user.email || user.name}</p>
+              <p className="mt-0.5 truncate text-[10px] text-cyan-300">{strategy}</p>
               <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
                 <div><p className="uppercase tracking-wider">Lot</p><p className="mt-0.5 font-medium text-foreground">{trade.lot ?? "—"}</p></div>
                 <div><p className="uppercase tracking-wider">SL</p><p className="mt-0.5 font-medium text-foreground">{trade.stopLoss ?? "—"}</p></div>
@@ -176,6 +200,7 @@ function Mt5TradesTab() {
           <thead>
             <tr className="border-b border-white/5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
               <th className="px-4 py-3">User</th>
+              <th className="px-4 py-3">Strategy</th>
               <th className="px-4 py-3">Symbol</th>
               <th className="px-4 py-3">Direction</th>
               <th className="px-4 py-3">Lot</th>
@@ -187,19 +212,19 @@ function Mt5TradesTab() {
           </thead>
           <tbody>
             {trades.map((trade) => {
-              const user = typeof trade.userId === "object" ? trade.userId : null;
+              const user = getUserLabel(trade.userId);
+              const strategy = getStrategyLabel(trade.strategyId, trade.strategy);
               const isLong = /buy/i.test(trade.direction);
               const profit = Number(trade.profit ?? 0);
               return (
                 <tr key={trade._id} className="border-b border-white/[0.03] last:border-0 hover:bg-white/[0.02]">
                   <td className="max-w-[180px] truncate px-4 py-3 text-xs text-muted-foreground">
-                    {user ? (
-                      <div>
-                        <p className="font-medium text-foreground">{user.fullName ?? user.email}</p>
-                        {user.fullName && <p className="text-[10px]">{user.email}</p>}
-                      </div>
-                    ) : "—"}
+                    <div>
+                      <p className="font-medium text-foreground">{user.name}</p>
+                      {user.email ? <p className="text-[10px]">{user.email}</p> : null}
+                    </div>
                   </td>
+                  <td className="px-4 py-3 text-xs font-medium text-cyan-300">{strategy}</td>
                   <td className="px-4 py-3 font-medium">{trade.asset}</td>
                   <td className="px-4 py-3">
                     <span className={`flex items-center gap-1 ${isLong ? "text-emerald-400" : "text-red-400"}`}>
@@ -287,6 +312,7 @@ function Mt5SignalsTab() {
       <div className="space-y-2">
         {signals.map((signal) => {
           const isExpanded = expandedId === signal._id;
+          const signalStrategy = getStrategyLabel(signal.strategyId, typeof signal.rawPayload?.strategy === "string" ? signal.rawPayload.strategy : undefined);
           const queued = signal.jobs.filter((j) => j.status !== "rejected").length;
           const failed = signal.jobs.filter((j) => j.status === "dead_letter" || j.status === "failed").length;
           const done = signal.jobs.filter((j) => j.status === "done").length;
@@ -308,6 +334,7 @@ function Mt5SignalsTab() {
                   <span className={`font-medium ${signal.action === "BUY" ? "text-emerald-400" : signal.action === "SELL" ? "text-red-400" : "text-foreground"}`}>
                     {signal.action ?? "—"} {signal.symbol ?? "—"}
                   </span>
+                  <Badge variant="secondary" className="bg-cyan-500/10 text-cyan-300">{signalStrategy}</Badge>
                   <StatusBadge status={signal.status} />
                   <span className="text-xs text-muted-foreground">{signal.source.replace("_", " ")}</span>
                   {signal.jobs.length > 0 && (
@@ -356,10 +383,12 @@ function Mt5SignalsTab() {
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Execution jobs</p>
                       {signal.jobs.map((job) => {
                         const user = typeof job.userId === "object" ? job.userId : null;
+                        const jobStrategy = getStrategyLabel(job.strategyId, job.strategy || signalStrategy);
                         return (
                           <div key={job._id} className="flex flex-wrap items-center gap-2 rounded-lg bg-white/[0.03] px-3 py-2 text-xs">
                             <StatusBadge status={job.status} />
                             <span className="font-medium">{job.symbol}</span>
+                            <span className="text-cyan-300">{jobStrategy}</span>
                             <span>{job.calculatedLot} lot</span>
                             <span className="text-muted-foreground">SL {job.stopLoss ?? stopLoss ?? "—"} / TP {job.takeProfit ?? "—"}</span>
                             {user && <span className="text-muted-foreground">{user.email}</span>}

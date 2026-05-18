@@ -83,6 +83,7 @@ function mapPricingPlan(value: unknown): PricingPlan {
     tier,
     planKey: String(plan.plan ?? tier.toLowerCase()),
     price: Number(plan.price ?? plan.priceUSD ?? 0),
+    compareAtPrice: Number(plan.compareAtPrice ?? plan.compareAtPriceUSD ?? plan.originalPriceUSD ?? 0) || undefined,
     currency: String(plan.currency ?? ""),
     durationInDays: Number(plan.durationInDays ?? plan.durationDays ?? 30),
     features: normalizeArray<string>(plan.features),

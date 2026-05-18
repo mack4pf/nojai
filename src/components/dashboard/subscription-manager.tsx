@@ -245,6 +245,9 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                     <div className="mt-2 flex items-end gap-2">
                       <p className="font-display text-3xl font-semibold">{formatCurrency(plan.price, currency)}</p>
                       <span className="pb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{currency}</span>
+                      {plan.compareAtPrice && plan.compareAtPrice > plan.price ? (
+                        <span className="pb-1 text-sm font-semibold text-muted-foreground/50 line-through">{formatCurrency(plan.compareAtPrice, currency)}</span>
+                      ) : null}
                     </div>
                     <p className="mt-0.5 text-xs text-muted-foreground">every {plan.durationInDays} days</p>
                   </div>

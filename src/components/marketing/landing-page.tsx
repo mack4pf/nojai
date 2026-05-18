@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import Image from "next/image";
 
 import { ArrowRight, CheckCircle2, ChevronRight, Crown, Sparkles, Zap ,Star} from "lucide-react";
@@ -128,6 +128,13 @@ interface LandingPageProps {
 
 export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
   const plansToShow = pricingPlans?.length ? pricingPlans : publicPricingPlans;
+  const maxDiscountPercent = Math.max(
+    ...plansToShow.map((plan) => {
+      const compare = plan.compareAtPrice ?? plan.price;
+      return compare > plan.price ? Math.round(((compare - plan.price) / compare) * 100) : 0;
+    }),
+    0,
+  );
 
   const getPlanCurrency = (currency?: string | null) => normalizeCurrencyCode(currency) ?? "USD";
 
@@ -439,7 +446,7 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                 Now live. Automate your Expert Option account.
               </p>
               <p className="mt-3 text-base leading-7 text-muted-foreground">
-                Expert Option is now fully supported on NOJAI. Connect using your browser session token and let the bot trade on demo or real mode — no password required.
+                Expert Option is now fully supported on NOJAI. Connect using your browser session token and let the bot trade on demo or real mode â€” no password required.
               </p>
               <Button asChild className="mt-8" size="lg" style={{ background: "#1565C0" }}>
                 <Link href="/auth/register">
@@ -453,7 +460,7 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
               <ul className="mt-6 space-y-5">
                 {[
                   ["Demo & real mode switching", "Instantly toggle between demo and real trading from your dashboard"],
-                  ["Token-based auth", "No password needed — connect securely with your browser session token"],
+                  ["Token-based auth", "No password needed â€” connect securely with your browser session token"],
                   ["Live dual balance display", "See your demo and real balances side by side, updated in real time"],
                   ["EO copy trading (VIP)", "VIP users can auto-copy trades across multiple Expert Option accounts"],
                 ].map(([title, desc]) => (
@@ -516,7 +523,7 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
           <div className="max-w-2xl">
             <Badge variant="outline">Pricing</Badge>
             <h2 className="mt-5 font-display text-4xl font-semibold tracking-tight sm:text-5xl">
-              Simple plans. 50% off right now.
+              Simple plans. Launch pricing live now.
             </h2>
             <p className="mt-4 text-lg text-muted-foreground">
               Registration is free. Subscribe only when you are ready. Every plan is at launch discount pricing today.
@@ -525,7 +532,7 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
           <div
             className="pricing-discount-card animate-nojai-scale-in flex shrink-0 flex-col items-center justify-center rounded-[1.75rem] px-8 py-6 text-center"
           >
-            <p className="text-4xl font-black" style={{ color: "#4ade80" }}>50%</p>
+            <p className="text-4xl font-black" style={{ color: "#4ade80" }}>{maxDiscountPercent}%</p>
             <p className="mt-1 text-sm font-bold uppercase tracking-[0.22em] text-foreground">OFF</p>
             <p className="mt-2 text-xs text-muted-foreground">Launch campaign</p>
           </div>
@@ -535,7 +542,7 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
         <div className="mt-12 grid gap-6 lg:grid-cols-3">
           {plansToShow.map((plan, index) => {
             const cfg = planConfig[plan.tier as keyof typeof planConfig] ?? planConfig.PRO;
-            const compareAt = cfg.compareAt;
+            const compareAt = plan.compareAtPrice && plan.compareAtPrice > plan.price ? plan.compareAtPrice : cfg.compareAt;
             const Icon = cfg.icon;
             const currency = getPlanCurrency(plan.currency);
             const planFeatures = [
@@ -587,12 +594,14 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                         {formatCurrency(plan.price, currency)}
                       </p>
                       <span className="pb-2 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">{currency}</span>
-                      <div className="pb-2">
-                        <p className="text-2xl font-semibold text-muted-foreground/50 line-through">{formatCurrency(compareAt, currency)}</p>
-                      </div>
+                      {compareAt > plan.price ? (
+                        <div className="pb-2">
+                          <p className="text-2xl font-semibold text-muted-foreground/50 line-through">{formatCurrency(compareAt, currency)}</p>
+                        </div>
+                      ) : null}
                     </div>
                     <p className="mt-2 text-sm text-muted-foreground">
-                      Every {plan.durationInDays} days · You save {formatCurrency(compareAt - plan.price, currency)}
+                      Every {plan.durationInDays} days{compareAt > plan.price ? <> · You save {formatCurrency(compareAt - plan.price, currency)}</> : null}
                     </p>
                   </div>
 

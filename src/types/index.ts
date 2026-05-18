@@ -12,6 +12,7 @@ export interface PricingPlan {
   features: string[];
   isPopular?: boolean;
   planKey?: string;
+  compareAtPrice?: number;
 }
 
 export interface Review {
