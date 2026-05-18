@@ -28,6 +28,13 @@ interface Mt5Trade {
   userId?: PopulatedUser | string;
   strategyId?: PopulatedStrategy | string;
   strategy?: string;
+  account?: {
+    _id: string;
+    login?: string;
+    brokerName?: string;
+    serverName?: string;
+    webhookToken?: string;
+  };
   asset: string;
   direction: string;
   lot?: number;
@@ -81,11 +88,21 @@ interface IncomingSignal {
   jobs: ExecutionJob[];
 }
 
-function getUserLabel(user: PopulatedUser | string | undefined) {
-  return typeof user === "object" && user ? {
-    name: user.fullName || user.email || "Unknown user",
-    email: user.email || "",
-  } : { name: "Unknown user", email: "" };
+function getUserLabel(user: PopulatedUser | string | undefined, account?: Mt5Trade["account"]) {
+  if (typeof user === "object" && user) {
+    return {
+      name: user.fullName || user.email || "Unknown user",
+      email: user.email || "",
+    };
+  }
+  // Fallback: show account broker info so the row is still useful
+  if (account?.brokerName) {
+    return {
+      name: `Login ${account.login ?? "—"} · ${account.brokerName}`,
+      email: "",
+    };
+  }
+  return { name: "Unknown user", email: typeof user === "string" ? user : "" };
 }
 
 function getStrategyLabel(strategy: PopulatedStrategy | string | undefined, fallback?: string) {
@@ -183,6 +200,11 @@ function Mt5TradesTab() {
               </div>
               <p className="mt-1 truncate text-[11px] text-muted-foreground">{user.email || user.name}</p>
               <p className="mt-0.5 truncate text-[10px] text-cyan-300">{strategy}</p>
+              {trade.account?.brokerName && (
+                <p className="mt-0.5 truncate text-[10px] text-muted-foreground/70">
+                  {trade.account.brokerName}{trade.account.login ? ` · ${trade.account.login}` : ""}
+                </p>
+              )}
               <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-muted-foreground">
                 <div><p className="uppercase tracking-wider">Lot</p><p className="mt-0.5 font-medium text-foreground">{trade.lot ?? "—"}</p></div>
                 <div><p className="uppercase tracking-wider">SL</p><p className="mt-0.5 font-medium text-foreground">{trade.stopLoss ?? "—"}</p></div>
@@ -200,7 +222,7 @@ function Mt5TradesTab() {
           <thead>
             <tr className="border-b border-white/5 text-left text-[11px] uppercase tracking-wider text-muted-foreground">
               <th className="px-4 py-3">User</th>
-              <th className="px-4 py-3">Strategy</th>
+              <th className="px-4 py-3">Strategy / Webhook</th>
               <th className="px-4 py-3">Symbol</th>
               <th className="px-4 py-3">Direction</th>
               <th className="px-4 py-3">Lot</th>
@@ -212,7 +234,7 @@ function Mt5TradesTab() {
           </thead>
           <tbody>
             {trades.map((trade) => {
-              const user = getUserLabel(trade.userId);
+              const user = getUserLabel(trade.userId, trade.account, trade.account);
               const strategy = getStrategyLabel(trade.strategyId, trade.strategy);
               const isLong = /buy/i.test(trade.direction);
               const profit = Number(trade.profit ?? 0);
@@ -224,7 +246,14 @@ function Mt5TradesTab() {
                       {user.email ? <p className="text-[10px]">{user.email}</p> : null}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-xs font-medium text-cyan-300">{strategy}</td>
+                  <td className="px-4 py-3 text-xs">
+                    <p className="font-medium text-cyan-300">{strategy}</p>
+                    {trade.account?.brokerName && (
+                      <p className="text-[10px] text-muted-foreground">
+                        {trade.account.brokerName}{trade.account.login ? ` · ${trade.account.login}` : ""}
+                      </p>
+                    )}
+                  </td>
                   <td className="px-4 py-3 font-medium">{trade.asset}</td>
                   <td className="px-4 py-3">
                     <span className={`flex items-center gap-1 ${isLong ? "text-emerald-400" : "text-red-400"}`}>

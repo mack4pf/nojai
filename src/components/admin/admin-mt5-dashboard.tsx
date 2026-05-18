@@ -101,8 +101,8 @@ interface Mt5Account {
   isTradable?: boolean;
   automationEnabled?: boolean;
   blockGlobalSignals?: boolean;
-  defaultLot?: number;
-  maxLot?: number;
+  defaultRiskUsd?: number;
+  maxRiskUsd?: number;
   lastStatusAt?: string;
   lastError?: string;
   createdAt?: string;
@@ -526,8 +526,8 @@ function AccountDrawer({ accountId, onClose }: { accountId: string; onClose: () 
                 </div>
                 <div className="rounded-2xl border border-border bg-muted/40 p-4">
                   <p className="text-xs text-muted-foreground">Risk settings</p>
-                  <p className="mt-1 font-semibold">{account.defaultLot ?? "-"} default lot</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{account.maxLot ?? "-"} max lot</p>
+                  <p className="mt-1 font-semibold">${account.defaultRiskUsd ?? "-"} / trade</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Max ${account.maxRiskUsd ?? "-"} / trade</p>
                 </div>
               </div>
             </ShellCard>

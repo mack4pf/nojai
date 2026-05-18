@@ -45,8 +45,8 @@ interface Mt5Account {
   isTradable: boolean;
   automationEnabled: boolean;
   blockGlobalSignals: boolean;
-  defaultLot: number;
-  maxLot: number;
+  defaultRiskUsd: number;
+  maxRiskUsd: number;
   webhookToken: string;
   lastStatusAt?: string;
   lastError?: string;
@@ -97,7 +97,7 @@ export function Mt5AutoTradeManager() {
   const [disconnectAccount, setDisconnectAccount] = useState<Mt5Account | null>(null);
   const [blockConfirmAccount, setBlockConfirmAccount] = useState<Mt5Account | null>(null);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [settingsDrafts, setSettingsDrafts] = useState<Record<string, { defaultLot: number; maxLot: number }>>({});
+  const [settingsDrafts, setSettingsDrafts] = useState<Record<string, { defaultRiskUsd: number; maxRiskUsd: number }>>({});
 
   const brokerQuery = `${brokerName} ${serverName}`.trim();
 
@@ -211,7 +211,7 @@ export function Mt5AutoTradeManager() {
   });
 
   const saveSettingsMutation = useMutation({
-    mutationFn: async ({ accountId, values }: { accountId: string; values: { defaultLot: number; maxLot: number } }) => {
+    mutationFn: async ({ accountId, values }: { accountId: string; values: { defaultRiskUsd: number; maxRiskUsd: number } }) => {
       await api.patch(`/mt5/accounts/${accountId}/settings`, values);
     },
     onSuccess: () => {
@@ -273,22 +273,22 @@ export function Mt5AutoTradeManager() {
 
   function getDraft(account: Mt5Account) {
     return settingsDrafts[account._id] ?? {
-      defaultLot: Number(account.defaultLot ?? 0.01),
-      maxLot: Number(account.maxLot ?? account.defaultLot ?? 0.01),
+      defaultRiskUsd: Number(account.defaultRiskUsd ?? 10),
+      maxRiskUsd: Number(account.maxRiskUsd ?? 50),
     };
   }
 
-  function updateDraft(account: Mt5Account, values: Partial<{ defaultLot: number; maxLot: number }>) {
+  function updateDraft(account: Mt5Account, values: Partial<{ defaultRiskUsd: number; maxRiskUsd: number }>) {
     setSettingsDrafts((current) => ({
       ...current,
       [account._id]: { ...getDraft(account), ...values },
     }));
   }
 
-  function lotError(draft: { defaultLot: number; maxLot: number }): string | null {
-    if (draft.defaultLot > draft.maxLot) return "Default lot cannot be higher than max lot";
-    if (draft.defaultLot <= 0) return "Default lot must be greater than 0";
-    if (draft.maxLot <= 0) return "Max lot must be greater than 0";
+  function riskError(draft: { defaultRiskUsd: number; maxRiskUsd: number }): string | null {
+    if (draft.defaultRiskUsd > draft.maxRiskUsd) return "Default risk cannot exceed max risk";
+    if (draft.defaultRiskUsd < 0.01) return "Risk per trade must be at least $0.01";
+    if (draft.maxRiskUsd < 0.01) return "Max risk must be at least $0.01";
     return null;
   }
 
@@ -611,33 +611,33 @@ export function Mt5AutoTradeManager() {
                 <div className="mt-4 rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto_auto] xl:items-end">
                     <div className="grid gap-1.5">
-                      <Label htmlFor={`default-lot-${account._id}`}>Default lot</Label>
+                      <Label htmlFor={`default-risk-${account._id}`}>Risk per trade ($)</Label>
                       <Input
-                        id={`default-lot-${account._id}`}
+                        id={`default-risk-${account._id}`}
                         type="number"
                         min="0.01"
                         step="0.01"
-                        value={draft.defaultLot}
-                        className={lotError(draft) ? "border-red-500 focus-visible:ring-red-500" : ""}
-                        onChange={(event) => updateDraft(account, { defaultLot: Number(event.target.value) })}
+                        value={draft.defaultRiskUsd}
+                        className={riskError(draft) ? "border-red-500 focus-visible:ring-red-500" : ""}
+                        onChange={(event) => updateDraft(account, { defaultRiskUsd: Number(event.target.value) })}
                       />
                     </div>
                     <div className="grid gap-1.5">
-                      <Label htmlFor={`max-lot-${account._id}`}>Max lot</Label>
+                      <Label htmlFor={`max-risk-${account._id}`}>Max risk per trade ($)</Label>
                       <Input
-                        id={`max-lot-${account._id}`}
+                        id={`max-risk-${account._id}`}
                         type="number"
                         min="0.01"
                         step="0.01"
-                        value={draft.maxLot}
-                        onChange={(event) => updateDraft(account, { maxLot: Number(event.target.value) })}
+                        value={draft.maxRiskUsd}
+                        onChange={(event) => updateDraft(account, { maxRiskUsd: Number(event.target.value) })}
                       />
                     </div>
                     <Button
                       type="button"
                       variant="secondary"
                       onClick={() => saveSettingsMutation.mutate({ accountId: account._id, values: draft })}
-                      disabled={saveSettingsMutation.isPending || Boolean(lotError(draft))}
+                      disabled={saveSettingsMutation.isPending || Boolean(riskError(draft))}
                       className="w-full xl:w-auto"
                     >
                       Save
@@ -652,8 +652,8 @@ export function Mt5AutoTradeManager() {
                       {account.automationEnabled ? "Pause" : "Resume"}
                     </Button>
                   </div>
-                  {lotError(draft) && (
-                    <p className="mt-2 text-xs font-medium text-red-400">{lotError(draft)}</p>
+                  {riskError(draft) && (
+                    <p className="mt-2 text-xs font-medium text-red-400">{riskError(draft)}</p>
                   )}
                 </div>
 
