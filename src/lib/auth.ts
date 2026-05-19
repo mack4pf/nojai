@@ -66,7 +66,9 @@ export const authOptions: NextAuthOptions = {
         let plan = normalizePlan(user.plan ?? user.subscription?.plan);
         let expiresAt = user.subscription?.expiresAt;
         let displayName = user.name ?? user.fullName ?? user.username;
-        let emailVerified = Boolean(user.emailVerifiedAt);
+        // Start from login response — now includes emailVerifiedAt. Fall back to undefined (not false)
+        // so a failed profile fetch never incorrectly marks a verified user as unverified.
+        let emailVerified: boolean | undefined = user.emailVerifiedAt != null ? true : undefined;
 
         try {
           const profileResponse = await fetch(`${apiUrl}/user/profile`, {
@@ -80,10 +82,11 @@ export const authOptions: NextAuthOptions = {
             plan = normalizePlan(profile.subscription?.plan ?? profile.plan);
             expiresAt = profile.subscription?.expiresAt ?? profile.subscriptionExpiresAt ?? expiresAt;
             displayName = profile.name ?? profile.fullName ?? displayName;
-            emailVerified = Boolean(profile.emailVerifiedAt);
+            // Only override with the definitive value once we have the full profile
+            emailVerified = profile.emailVerifiedAt != null ? true : false;
           }
         } catch {
-          // Ignore profile enrichment failures during auth.
+          // Ignore profile enrichment failures — emailVerified stays as derived from login response
         }
 
         return {

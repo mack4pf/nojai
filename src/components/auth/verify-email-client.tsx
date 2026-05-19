@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, Loader2, Mail, RefreshCw } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,7 @@ interface VerifyEmailClientProps {
 type State = "verifying" | "success" | "expired" | "error";
 
 export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
+  const { update: updateSession } = useSession();
   const [state, setState] = useState<State>(token && email ? "verifying" : "expired");
   const [resendEmail, setResendEmail] = useState(email);
   const [verificationCode, setVerificationCode] = useState(token && token.length === 6 ? token : "");
@@ -54,6 +56,8 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
       });
 
       if (res.ok) {
+        // Refresh the JWT so middleware sees emailVerified: true immediately
+        await updateSession({ user: { emailVerified: true } }).catch(() => null);
         setState("success");
         return;
       }
@@ -154,7 +158,10 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
         <div>
           <h2 className="font-display text-lg font-semibold">Verify with your email code</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter the 6-digit code from your verification email. If you clicked the email button, we try to verify it automatically first.
+            Enter the 6-digit code from your verification email. If you clicked the link in the email, we try to verify automatically.
+          </p>
+          <p className="mt-2 text-xs text-amber-400/80">
+            Don&apos;t see the email? Check your <strong>spam or junk folder</strong> — verification emails sometimes land there.
           </p>
         </div>
       </div>
