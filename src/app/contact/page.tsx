@@ -39,7 +39,7 @@ export default function ContactPage() {
         {
           "@type": "ContactPoint",
           contactType: "customer support",
-          email: "support@nojai.app",
+          email: "support@nojai.io",
           availableLanguage: ["English"],
         },
       ],

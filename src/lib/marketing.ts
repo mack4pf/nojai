@@ -207,9 +207,9 @@ export const freeVideoResources = [
 export const contactChannels = [
   {
     title: "Customer support",
-    value: "support@nojai.app",
+    value: "support@nojai.io",
     description: "General questions, account help, and billing assistance.",
-    href: "mailto:support@nojai.app",
+    href: "mailto:support@nojai.io",
   },
   {
     title: "Founder contact",
