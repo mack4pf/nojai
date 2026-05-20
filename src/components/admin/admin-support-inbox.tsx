@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Loader2, MessageCircle, Paperclip, RefreshCw, Send, X } from "lucide-react";
+import { AlertCircle, Download, Loader2, MessageCircle, Paperclip, RefreshCw, Send, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -59,27 +59,98 @@ function AttachmentPreview({ att, onRemove }: { att: File; onRemove: () => void 
   );
 }
 
-function MessageAttachment({ att }: { att: Attachment }) {
+function MediaViewer({ att, onClose }: { att: Attachment; onClose: () => void }) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="relative flex max-h-full max-w-full flex-col items-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Toolbar */}
+        <div className="mb-3 flex w-full items-center justify-between gap-4 px-1">
+          <span className="truncate text-sm text-white/70">{att.originalName}</span>
+          <div className="flex shrink-0 items-center gap-2">
+            <a
+              href={att.url}
+              download={att.originalName}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+              title="Download"
+            >
+              <Download className="h-4 w-4" />
+            </a>
+            <button
+              onClick={onClose}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+              title="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {att.type === "video" ? (
+          <video
+            src={att.url}
+            controls
+            autoPlay
+            className="max-h-[80vh] max-w-[90vw] rounded-2xl"
+          />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={att.url}
+            alt={att.originalName}
+            className="max-h-[80vh] max-w-[90vw] rounded-2xl object-contain"
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MessageAttachment({ att, onOpen }: { att: Attachment; onOpen: (att: Attachment) => void }) {
   if (att.type === "video") {
     return (
-      <video
-        src={att.url}
-        controls
-        className="mt-2 max-h-48 w-full max-w-[260px] rounded-xl object-cover"
-        preload="metadata"
-      />
+      <button onClick={() => onOpen(att)} className="mt-2 block w-full max-w-[260px] overflow-hidden rounded-xl">
+        <div className="relative">
+          <video
+            src={att.url}
+            className="h-36 w-full object-cover"
+            preload="metadata"
+            muted
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+              <svg className="h-5 w-5 translate-x-0.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </button>
     );
   }
   return (
-    <a href={att.url} target="_blank" rel="noopener noreferrer">
+    <button onClick={() => onOpen(att)} className="mt-2 block w-full max-w-[260px] overflow-hidden rounded-xl">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={att.url}
         alt={att.originalName}
-        className="mt-2 max-h-48 w-full max-w-[260px] rounded-xl object-cover"
+        className="max-h-48 w-full object-cover transition-opacity hover:opacity-90"
         loading="lazy"
       />
-    </a>
+    </button>
   );
 }
 
@@ -89,6 +160,7 @@ export function AdminSupportInbox() {
   const [reply, setReply] = useState("");
   const [search, setSearch] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [viewingAtt, setViewingAtt] = useState<Attachment | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -184,6 +256,8 @@ export function AdminSupportInbox() {
   }
 
   return (
+    <>
+    {viewingAtt && <MediaViewer att={viewingAtt} onClose={() => setViewingAtt(null)} />}
     <div className="grid h-[calc(100vh-8rem)] gap-4 lg:grid-cols-[300px_1fr]">
       {/* Sidebar */}
       <div className="flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03]">
@@ -296,7 +370,7 @@ export function AdminSupportInbox() {
                         <p className="leading-relaxed">{msg.message}</p>
                       )}
                       {msg.attachments?.map((att, i) => (
-                        <MessageAttachment key={i} att={att} />
+                        <MessageAttachment key={i} att={att} onOpen={setViewingAtt} />
                       ))}
                       <div
                         className={`mt-1 flex items-center gap-1 text-[10px] ${
@@ -372,5 +446,6 @@ export function AdminSupportInbox() {
         )}
       </div>
     </div>
+    </>
   );
 }
