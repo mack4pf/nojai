@@ -53,17 +53,7 @@ const nextConfig = {
       },
     ];
   },
-  async redirects() {
-    return [
-      // Redirect www → non-www (canonical domain)
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "www.nojai.io" }],
-        destination: "https://nojai.io/:path*",
-        permanent: true,
-      },
-    ];
-  },
+
   async headers() {
     return [
       {
