@@ -91,7 +91,7 @@ export const metadata: Metadata = {
   },
   manifest: "/site.webmanifest",
   alternates: {
-    canonical: SITE_URL,
+    canonical: "https://nojai.io",
   },
   verification: {
     google: process.env.GOOGLE_SITE_VERIFICATION,

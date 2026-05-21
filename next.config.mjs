@@ -25,6 +25,10 @@ const isDevelopment = process.env.NODE_ENV === "development";
 const nextConfig = {
   distDir: isDevelopment ? ".next-dev" : ".next",
   allowedDevOrigins: ["192.168.1.160"],
+  // Remove X-Powered-By header (security + SEO)
+  poweredByHeader: false,
+  // Compress responses
+  compress: true,
   images: {
     remotePatterns: [
       {
@@ -46,6 +50,33 @@ const nextConfig = {
       {
         source: "/socket.io/:path*",
         destination: `${backendUrl}/socket.io/:path*`,
+      },
+    ];
+  },
+  async redirects() {
+    return [
+      // Redirect www → non-www (canonical domain)
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "www.nojai.io" }],
+        destination: "https://nojai.io/:path*",
+        permanent: true,
+      },
+    ];
+  },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+        ],
       },
     ];
   },

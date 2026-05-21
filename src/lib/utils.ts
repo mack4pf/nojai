@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 
 const TRADE_AMOUNT_MINIMUMS: Record<string, number> = {
   USD: 1,
-  NGN: 1500,
+  NGN: 500,
 };
 
 export const supportedTradeCurrencies = ["USD", "NGN"] as const;

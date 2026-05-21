@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ExternalLink, FileText, ImagePlus, Loader2, Play, Trash2, UploadCloud, X } from "lucide-react";
+import { ExternalLink, FileText, ImagePlus, Loader2, Play, SendHorizonal, Trash2, UploadCloud, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -155,6 +155,7 @@ export function AdminBlogManager() {
   const [values, setValues] = useState<BlogFormValues>(emptyPost);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const { data: posts = [] } = useQuery({
     queryKey: ["admin-blog"],
@@ -196,6 +197,33 @@ export function AdminBlogManager() {
     },
     onError: (error) => toast.error(error.message),
   });
+
+  const handleSendNewsletter = async (post: BlogPost) => {
+    if (sendingId) return;
+    const confirmed = window.confirm(
+      `Send "${post.title}" to ALL users now?\n\nThis will email every registered user immediately.`,
+    );
+    if (!confirmed) return;
+    setSendingId(post._id);
+    try {
+      const siteUrl =
+        process.env.NEXT_PUBLIC_SITE_URL ??
+        process.env.NEXT_PUBLIC_APP_URL ??
+        "https://nojai.app";
+      const res = await fetch("/api/blog/send-newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId: post._id, siteUrl }),
+      });
+      const data = await res.json() as { message?: string };
+      if (!res.ok) throw new Error(data.message ?? "Failed to send newsletter");
+      toast.success(data.message ?? "Newsletter sent to all users!");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to send newsletter");
+    } finally {
+      setSendingId(null);
+    }
+  };
 
   const handleGalleryUpload = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -317,12 +345,26 @@ export function AdminBlogManager() {
                   className={inputClassName("min-h-0")}
                 />
                 <Textarea
-                  placeholder="Featured video URL (optional)"
+                  placeholder="Featured video URL — YouTube, TikTok, Instagram, Telegram (optional)"
                   rows={1}
                   value={values.featuredVideo}
                   onChange={(e) => setValues((v) => ({ ...v, featuredVideo: e.target.value }))}
                   className={inputClassName("min-h-0")}
                 />
+                {values.featuredVideo && /youtube\.com|youtu\.be/.test(values.featuredVideo) && (() => {
+                  const yt = values.featuredVideo.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+                  return yt ? (
+                    <div className="aspect-video w-full overflow-hidden border border-border">
+                      <iframe
+                        src={`https://www.youtube.com/embed/${yt[1]}`}
+                        title="Video preview"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="h-full w-full"
+                      />
+                    </div>
+                  ) : null;
+                })()}
               </div>
             </div>
 
@@ -484,6 +526,21 @@ export function AdminBlogManager() {
                           </Link>
                         </Button>
                       ) : null}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-none border-emerald-500 bg-card text-emerald-500 hover:bg-emerald-500 hover:text-white"
+                        onClick={() => handleSendNewsletter(post)}
+                        disabled={sendingId === post._id}
+                        title="Send this post to all users via email"
+                      >
+                        {sendingId === post._id ? (
+                          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <SendHorizonal className="mr-1.5 h-3.5 w-3.5" />
+                        )}
+                        Send to users
+                      </Button>
                       <Button
                         variant="danger"
                         size="sm"
