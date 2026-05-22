@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import type React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { ArrowLeft, BookOpen, ImageIcon, Mail, Video } from "lucide-react";
+import { ArrowLeft, BookOpen, ImageIcon, Mail, Share2, Video } from "lucide-react";
 
 import { BlogEditorialShell } from "@/components/blog/blog-editorial-shell";
 import { getBlogPost, getBlogPosts } from "@/lib/api";
@@ -34,91 +33,183 @@ function articleSection(postTitle: string) {
   return "Trading Strategy";
 }
 
-function renderPostContent(content: string) {
-  const lines = content.split(/\r?\n/);
-  const nodes: React.ReactNode[] = [];
-  let listItems: string[] = [];
-  let listType: "ol" | "ul" | null = null;
-
-  const flushList = () => {
-    if (!listType || listItems.length === 0) return;
-    const Tag = listType;
-    nodes.push(
-      <Tag key={`list-${nodes.length}`} className="space-y-3 pl-6 text-lg leading-8 text-foreground/90 marker:text-primary">
-        {listItems.map((item, index) => (
-          <li key={`${item}-${index}`}>{stripHtml(item)}</li>
-        ))}
-      </Tag>,
+/**
+ * Converts markdown + HTML mixed content into a sanitised HTML string
+ * so we can render it with dangerouslySetInnerHTML inside .blog-content.
+ * All links get target="_blank" rel="noopener noreferrer".
+ * Video URLs (YouTube, Instagram, TikTok, Telegram) become embeds / cards.
+ */
+function contentToHtml(content: string): string {
+  const processInline = (text: string): string => {
+    return (
+      text
+        // Keep existing <a> but ensure they open in new tab
+        .replace(/<a\s+(?![^>]*target=)/gi, '<a target="_blank" rel="noopener noreferrer" ')
+        // Markdown links [text](url)
+        .replace(
+          /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
+          '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
+        )
+        // Bold **text**
+        .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+        // Italic _text_ (not already in a tag)
+        .replace(/(?<![a-zA-Z])_([^_\n]+)_(?![a-zA-Z])/g, "<em>$1</em>")
+        // Raw URLs not already inside an href attribute
+        .replace(
+          /(?<!href=["'])(https?:\/\/[^\s<>"')\]]+)/g,
+          '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>',
+        )
     );
-    listItems = [];
-    listType = null;
   };
 
-  lines.forEach((rawLine, index) => {
-    const line = rawLine.trim();
-    if (!line) {
-      flushList();
-      return;
-    }
-
-    const htmlHeading = line.match(/^<h([23])[^>]*>(.*?)<\/h\1>$/i);
-    const ordered = line.match(/^\d+\.\s+(.+)$/);
-    const unordered = line.match(/^[-*]\s+(.+)$/);
-
-    if (ordered) {
-      if (listType !== "ol") flushList();
-      listType = "ol";
-      listItems.push(ordered[1]);
-      return;
-    }
-
-    if (unordered) {
-      if (listType !== "ul") flushList();
-      listType = "ul";
-      listItems.push(unordered[1]);
-      return;
-    }
-
-    flushList();
-
-    if (htmlHeading?.[1] === "2" || line.startsWith("## ")) {
-      const text = htmlHeading ? htmlHeading[2] : line.replace(/^##\s+/, "");
-      nodes.push(
-        <h2 key={index} className="mt-12 font-display text-3xl font-semibold leading-snug text-foreground">
-          {stripHtml(text)}
-        </h2>,
-      );
-      return;
-    }
-
-    if (htmlHeading?.[1] === "3" || line.startsWith("### ")) {
-      const text = htmlHeading ? htmlHeading[2] : line.replace(/^###\s+/, "");
-      nodes.push(
-        <h3 key={index} className="mt-10 font-display text-2xl font-semibold leading-snug text-foreground">
-          {stripHtml(text)}
-        </h3>,
-      );
-      return;
-    }
-
-    if (/^<blockquote/i.test(line)) {
-      nodes.push(
-        <blockquote key={index} className="border-l-4 border-primary bg-muted px-8 py-6 text-xl italic leading-9 text-foreground">
-          {stripHtml(line)}
-        </blockquote>,
-      );
-      return;
-    }
-
-    nodes.push(
-      <p key={index} className="text-lg leading-9 text-foreground/90">
-        {stripHtml(line)}
-      </p>,
+  const videoEmbed = (url: string): string | null => {
+    const yt = url.match(
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
     );
-  });
+    if (yt)
+      return `<div class="blog-video-embed"><iframe src="https://www.youtube.com/embed/${yt[1]}" title="YouTube video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`;
 
-  flushList();
-  return nodes;
+    const ig = url.match(
+      /instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/,
+    );
+    if (ig)
+      return `<div class="blog-video-embed blog-video-embed--ig"><iframe src="https://www.instagram.com/p/${ig[1]}/embed/" scrolling="no" allowtransparency="true"></iframe></div>`;
+
+    if (/tiktok\.com\//.test(url))
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="blog-platform-card"><span class="blog-platform-card__icon">🎵</span><div><strong>Watch on TikTok</strong><p style="margin:0;font-size:0.85rem;opacity:0.65">${url}</p></div></a>`;
+
+    if (/t\.me\//.test(url))
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="blog-platform-card"><span class="blog-platform-card__icon">✈️</span><div><strong>View on Telegram</strong><p style="margin:0;font-size:0.85rem;opacity:0.65">${url}</p></div></a>`;
+
+    return null;
+  };
+
+  const lines = content.split(/\r?\n/);
+  let html = "";
+  let inUl = false;
+  let inOl = false;
+
+  const closeList = () => {
+    if (inUl) { html += "</ul>\n"; inUl = false; }
+    if (inOl) { html += "</ol>\n"; inOl = false; }
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) { closeList(); continue; }
+
+    // Pass-through HTML block elements (already valid HTML)
+    if (/^<(h[1-6]|p|div|section|article|blockquote|ul|ol|li|figure|table|pre|hr)\b/i.test(line)) {
+      closeList();
+      html += processInline(line) + "\n";
+      continue;
+    }
+
+    // Markdown headings
+    if (line.startsWith("### ")) { closeList(); html += `<h3>${processInline(line.slice(4))}</h3>\n`; continue; }
+    if (line.startsWith("## "))  { closeList(); html += `<h2>${processInline(line.slice(3))}</h2>\n`; continue; }
+    if (line.startsWith("# "))   { closeList(); html += `<h1>${processInline(line.slice(2))}</h1>\n`; continue; }
+
+    // Horizontal rule
+    if (/^---+$/.test(line)) { closeList(); html += "<hr />\n"; continue; }
+
+    // Blockquote
+    if (line.startsWith("> ")) { closeList(); html += `<blockquote>${processInline(line.slice(2))}</blockquote>\n`; continue; }
+
+    // Ordered list
+    const olMatch = line.match(/^\d+\.\s+(.+)$/);
+    if (olMatch) {
+      if (!inOl) { closeList(); html += "<ol>\n"; inOl = true; }
+      html += `<li>${processInline(olMatch[1])}</li>\n`;
+      continue;
+    }
+
+    // Unordered list
+    const ulMatch = line.match(/^[-*]\s+(.+)$/);
+    if (ulMatch) {
+      if (!inUl) { closeList(); html += "<ul>\n"; inUl = true; }
+      html += `<li>${processInline(ulMatch[1])}</li>\n`;
+      continue;
+    }
+
+    closeList();
+
+    // Bare video URL → embed
+    const bareUrl = line.match(/^(https?:\/\/\S+)$/);
+    if (bareUrl) {
+      const embed = videoEmbed(bareUrl[1]);
+      if (embed) { html += embed + "\n"; continue; }
+    }
+
+    // Normal paragraph
+    html += `<p>${processInline(line)}</p>\n`;
+  }
+
+  closeList();
+  return html;
+}
+
+/** Render the featured video field — detects YouTube, Instagram, TikTok, Telegram or falls back to <video> */
+function renderFeaturedVideo(url: string) {
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (yt) {
+    return (
+      <div className="mb-12 aspect-video w-full overflow-hidden rounded-xl border border-border">
+        <iframe
+          src={`https://www.youtube.com/embed/${yt[1]}`}
+          title="Featured video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="h-full w-full"
+        />
+      </div>
+    );
+  }
+
+  const ig = url.match(/instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/);
+  if (ig) {
+    return (
+      <div className="mb-12 overflow-hidden rounded-xl border border-border" style={{ minHeight: 520 }}>
+        <iframe
+          src={`https://www.instagram.com/p/${ig[1]}/embed/`}
+          className="w-full"
+          style={{ minHeight: 520, border: "none" }}
+          scrolling="no"
+        />
+      </div>
+    );
+  }
+
+  if (/tiktok\.com\//.test(url)) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="mb-12 flex items-center gap-4 rounded-xl border border-border bg-card p-5 transition-colors hover:bg-muted">
+        <span className="text-3xl">🎵</span>
+        <div>
+          <p className="font-semibold text-foreground">Watch on TikTok</p>
+          <p className="mt-1 break-all text-sm text-muted-foreground">{url}</p>
+        </div>
+      </a>
+    );
+  }
+
+  if (/t\.me\//.test(url)) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="mb-12 flex items-center gap-4 rounded-xl border border-border bg-card p-5 transition-colors hover:bg-muted">
+        <span className="text-3xl">✈️</span>
+        <div>
+          <p className="font-semibold text-foreground">View on Telegram</p>
+          <p className="mt-1 break-all text-sm text-muted-foreground">{url}</p>
+        </div>
+      </a>
+    );
+  }
+
+  return (
+    <div className="mb-12 overflow-hidden rounded-xl border border-border bg-card p-2">
+      <video src={url} controls className="w-full rounded-lg" />
+    </div>
+  );
 }
 
 function mediaItems(post: BlogPost) {
@@ -211,6 +302,37 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-foreground">By {post.author ?? "NOJAI Editorial"}</p>
                   <p className="mt-1 text-sm italic text-muted-foreground">{formatDate(post.publishedAt ?? post.createdAt)} / {readingTime(post.content)}</p>
                 </div>
+                {/* Social share */}
+                <div className="ml-auto flex items-center gap-3">
+                  <span className="hidden text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:block">Share</span>
+                  <a
+                    href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(postUrl)}&text=${encodeURIComponent(post.title)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Share on X / Twitter"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.253 5.622 5.91-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  </a>
+                  <a
+                    href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(postUrl)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Share on Facebook"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </a>
+                  <a
+                    href={`https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(postUrl)}&title=${encodeURIComponent(post.title)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Share on LinkedIn"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:border-primary hover:text-primary"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </a>
+                </div>
               </div>
             </header>
 
@@ -223,15 +345,12 @@ export default async function BlogDetailPage({ params }: BlogDetailPageProps) {
               </figure>
             ) : null}
 
-            {post.featuredVideo ? (
-              <div className="mb-12 bg-card p-2">
-                <video src={post.featuredVideo} controls className="w-full" />
-              </div>
-            ) : null}
+            {post.featuredVideo ? renderFeaturedVideo(post.featuredVideo) : null}
 
-            <div className="mx-auto max-w-[720px] space-y-8">
-              {renderPostContent(post.content ?? "")}
-            </div>
+            <div
+              className="blog-content mx-auto max-w-[720px]"
+              dangerouslySetInnerHTML={{ __html: contentToHtml(post.content ?? "") }}
+            />
 
             {gallery.length > 0 ? (
               <section className="mt-16">

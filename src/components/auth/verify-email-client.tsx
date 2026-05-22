@@ -100,7 +100,10 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
       const res = await fetch(`${API_BASE_URL}/auth/verify-email/request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: resendEmail.trim().toLowerCase() }),
+        body: JSON.stringify({
+          email: resendEmail.trim().toLowerCase(),
+          siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "https://nojai.app",
+        }),
       });
 
       if (res.ok) {

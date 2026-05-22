@@ -16,7 +16,7 @@ import { AdminMartingaleSettings } from "@/components/admin/admin-martingale-set
 export function AdminSettingsForm() {
   const [value, setValue] = useState(`{
   "maintenanceMode": false,
-  "supportEmail": "support@nojai.app"
+  "supportEmail": "support@nojai.io"
 }`);
 
   const mutation = useMutation({

@@ -251,6 +251,23 @@ export function Mt5ProfitabilityChart({
     refetchInterval: isIntraday ? 30_000 : 60_000,
   });
 
+  const { data: growthStats } = useQuery({
+    queryKey: ["mt5-growth-stats"],
+    queryFn: async () => {
+      const res = await api.get<{
+        accountGrowthPercent: number;
+        maxDrawdownPercent: number;
+        totalDeposited: number;
+        totalWithdrawn: number;
+        netDeposited: number;
+        currentBalance: number;
+      }>("/mt5/growth-stats");
+      return res.data;
+    },
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+  });
+
   const points = data?.data ?? [];
 
   const totalWins = points.reduce((s, p) => s + p.wins, 0);
@@ -293,18 +310,22 @@ export function Mt5ProfitabilityChart({
       {/* ── Bottom two small stats ──────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3">
         <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.06] p-3 sm:p-4">
-          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-cyan-300/60 sm:text-[10px]">Win Rate</p>
-          <p className={`mt-1 text-lg font-bold leading-none sm:text-xl ${winRate >= 50 ? "text-emerald-400" : "text-red-400"}`}>
-            {winRate}%
+          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-cyan-300/60 sm:text-[10px]">Account Growth</p>
+          <p className={`mt-1 text-lg font-bold leading-none sm:text-xl ${(growthStats?.accountGrowthPercent ?? 0) >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+            {(growthStats?.accountGrowthPercent ?? 0) >= 0 ? "+" : ""}{growthStats?.accountGrowthPercent ?? "—"}%
           </p>
-          <p className="mt-1 text-[10px] text-muted-foreground sm:text-[11px]">{totalWins}W&nbsp;/&nbsp;{totalLosses}L</p>
+          <p className="mt-1 text-[10px] text-muted-foreground sm:text-[11px]">
+            {growthStats ? `Deposited $${growthStats.netDeposited.toFixed(0)}` : "Loading…"}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] p-3 sm:p-4">
-          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-amber-300/60 sm:text-[10px]">Trades</p>
-          <p className="mt-1 text-lg font-bold leading-none sm:text-xl">{totalTrades}</p>
+          <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-amber-300/60 sm:text-[10px]">Max Drawdown</p>
+          <p className={`mt-1 text-lg font-bold leading-none sm:text-xl ${(growthStats?.maxDrawdownPercent ?? 0) > 20 ? "text-red-400" : "text-amber-400"}`}>
+            -{growthStats?.maxDrawdownPercent ?? "—"}%
+          </p>
           <p className="mt-1 text-[10px] text-muted-foreground sm:text-[11px]">
-            {isIntraday ? "Last 24 h" : `Last ${days} days`}
+            {totalTrades} trades · {totalWins}W&nbsp;/&nbsp;{totalLosses}L
           </p>
         </div>
       </div>

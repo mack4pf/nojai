@@ -61,6 +61,8 @@ interface EOStat {
   profitBasis?: "balance" | "trades";
   winRate: number;
   isProfitable: boolean;
+  pipsWon?: number;
+  pipsLost?: number;
 }
 
 interface IQAccount {
@@ -458,8 +460,8 @@ export function AdminUsersProfitSummary() {
                                     <p className="mb-1.5 text-[10px] text-muted-foreground">Trade net</p>
                                     <div className="grid grid-cols-3 gap-1 text-[10px]">
                                       <div><p className="text-muted-foreground">Trades</p><p className="font-semibold">{user.mt5.totalTrades}</p></div>
-                                      <div><p className="text-muted-foreground">Win%</p><p className={`font-semibold ${user.mt5.winRate >= 50 ? "text-emerald-400" : "text-red-400"}`}>{user.mt5.winRate}%</p></div>
-                                      <div><p className="text-muted-foreground">Won/Lost</p><p className="font-semibold">{user.mt5.wonCount}/{user.mt5.lostCount}</p></div>
+                                      <div><p className="text-muted-foreground">Pips Won</p><p className="font-semibold text-emerald-400">+{user.mt5.pipsWon ?? 0}</p></div>
+                                      <div><p className="text-muted-foreground">Pips Lost</p><p className="font-semibold text-red-400">-{user.mt5.pipsLost ?? 0}</p></div>
                                     </div>
                                   </div>
                                 </div>

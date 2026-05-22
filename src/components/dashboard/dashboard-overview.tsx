@@ -201,7 +201,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
     queryKey: ["mt5-overview"],
     queryFn: async () => {
       const res = await api.get("/mt5/overview");
-      return res.data as { totalPips: number; totalProfit: number; winRate: number; totalTrades: number; pipsToday: number; profitToday: number };
+      return res.data as { totalPips: number; totalProfit: number; winRate: number; totalTrades: number; pipsToday: number; profitToday: number; pipsWon: number; pipsLost: number };
     },
     enabled: hasSubscription && activeBroker === "mt5",
     refetchInterval: 30_000,
@@ -541,10 +541,14 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
             </div>
             <div className="dashboard-solid-panel col-span-2 rounded-2xl border border-violet-500/20 bg-violet-500/10 p-4 xl:col-span-1">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-violet-300/70 sm:text-[11px]">TP / SL</p>
+                <p className="text-[10px] font-medium uppercase tracking-wider text-violet-300/70 sm:text-[11px]">Pips</p>
                 <Zap className="h-3.5 w-3.5 text-violet-300" />
               </div>
-              <p className="mt-2 font-display text-base font-semibold sm:mt-3 sm:text-2xl">{mt5TpCount} TP / {mt5SlCount} SL</p>
+              <p className="mt-2 font-display text-base font-semibold sm:mt-3 sm:text-2xl">
+                {mt5OverviewStats
+                  ? `+${mt5OverviewStats.pipsWon ?? 0} / -${mt5OverviewStats.pipsLost ?? 0}`
+                  : "—"}
+              </p>
               <p className={`mt-0.5 text-[10px] sm:mt-1 sm:text-xs ${mt5NetProfit >= 0 ? "text-emerald-300/70" : "text-red-300/70"}`}>
                 Net P/L: {mt5NetProfit >= 0 ? "+" : ""}{mt5NetProfit.toFixed(2)}
               </p>

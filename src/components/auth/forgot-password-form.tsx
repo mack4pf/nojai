@@ -24,7 +24,10 @@ export function ForgotPasswordForm() {
       await fetch(`${API_BASE_URL}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          siteUrl: process.env.NEXT_PUBLIC_SITE_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "https://nojai.app",
+        }),
       });
       // Always show neutral success regardless of whether account exists
       setSubmitted(true);

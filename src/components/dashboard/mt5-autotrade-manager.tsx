@@ -71,7 +71,7 @@ interface Mt5Strategy {
 }
 
 function getAccountLimit(plan: PlanTier | undefined) {
-  if (plan === "VIP") return 3;
+  if (plan === "VIP") return 2;
   if (plan === "PRO") return 1;
   return 0;
 }
@@ -308,7 +308,7 @@ export function Mt5AutoTradeManager() {
             </div>
             <h1 className="mt-4 font-display text-2xl font-semibold tracking-tight sm:text-3xl">MetaTrader execution, inside NojAI.</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Connect your MT5 accounts, verify sync status, and automate your trades from TradingView signals.
+              Connect your MT5 accounts, verify sync status, and automate your trades from TradingView signals. VIP supports 2 MT5 accounts.
             </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-4">
@@ -611,7 +611,7 @@ export function Mt5AutoTradeManager() {
                 <div className="mt-4 rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto_auto] xl:items-end">
                     <div className="grid gap-1.5">
-                      <Label htmlFor={`default-risk-${account._id}`}>Risk per trade ($)</Label>
+                      <Label htmlFor={`default-risk-${account._id}`}>Position amount / risk ($)</Label>
                       <Input
                         id={`default-risk-${account._id}`}
                         type="number"
@@ -623,7 +623,7 @@ export function Mt5AutoTradeManager() {
                       />
                     </div>
                     <div className="grid gap-1.5">
-                      <Label htmlFor={`max-risk-${account._id}`}>Max risk per trade ($)</Label>
+                      <Label htmlFor={`max-risk-${account._id}`}>Max position risk ($)</Label>
                       <Input
                         id={`max-risk-${account._id}`}
                         type="number"
