@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Pencil, RefreshCw, ShieldCheck, TrendingUp, Users, Webhook, X, Zap } from "lucide-react";
+import { Activity, Copy, Pencil, RefreshCw, ShieldCheck, TrendingUp, Users, Webhook, X, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,15 @@ interface Strategy {
     tradeCount: number;
     netProfit: number;
     winRate: number;
+    recentSignals?: Array<{
+      _id: string;
+      action?: string;
+      symbol?: string;
+      status: string;
+      rejectReason?: string;
+      receivedAt: string;
+      rawText?: string;
+    }>;
   };
 }
 
@@ -268,6 +277,41 @@ export function AdminMt5Strategies() {
                     <p className="mt-2 text-xl font-bold">{strategy.stats.winRate}%</p>
                     <p className="text-xs text-muted-foreground">win rate</p>
                   </div>
+                </div>
+
+                <div className="mt-5 rounded-2xl border border-border bg-background/70 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Activity className="h-4 w-4 text-primary" />
+                      <h4 className="text-sm font-semibold">Recent webhook logs</h4>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{strategy.stats.recentSignals?.length ?? 0} latest</span>
+                  </div>
+                  {strategy.stats.recentSignals?.length ? (
+                    <div className="mt-3 divide-y divide-border overflow-hidden rounded-xl border border-border">
+                      {strategy.stats.recentSignals.map((signal) => (
+                        <div key={signal._id} className="grid gap-2 bg-card px-3 py-3 text-xs sm:grid-cols-[140px_100px_120px_minmax(0,1fr)] sm:items-center">
+                          <span className="text-muted-foreground">{new Date(signal.receivedAt).toLocaleString()}</span>
+                          <span className="font-bold text-foreground">{signal.symbol || strategy.symbol || "SIGNAL"}</span>
+                          <span className={cn(
+                            "w-fit rounded-full px-2 py-1 font-bold uppercase",
+                            signal.status === "dispatched" ? "bg-emerald-500/10 text-emerald-400" :
+                              signal.status === "rejected" ? "bg-danger/10 text-danger" :
+                                "bg-primary/10 text-primary",
+                          )}>
+                            {signal.action ? `${signal.action} · ` : ""}{signal.status}
+                          </span>
+                          <span className="min-w-0 truncate text-muted-foreground">
+                            {signal.rejectReason || signal.rawText || "Signal received"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-3 rounded-xl border border-dashed border-border p-4 text-xs text-muted-foreground">
+                      No signal has been received for this strategy yet.
+                    </p>
+                  )}
                 </div>
               </article>
               );
