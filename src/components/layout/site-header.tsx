@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { useSession } from "next-auth/react";
-import { ArrowUpRight, Menu, X } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import { ArrowUpRight, LogOut, Menu, X } from "lucide-react";
 
 import { BrandLogo } from "@/components/layout/brand-logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -54,11 +54,22 @@ export function SiteHeader() {
               </div>
               <ThemeToggle />
               {session ? (
-                <Button asChild className="hidden sm:inline-flex">
-                  <Link href={session.user.role === "admin" ? "/admin" : "/dashboard"}>
-                    Open dashboard
-                  </Link>
-                </Button>
+                <>
+                  <Button asChild className="hidden sm:inline-flex">
+                    <Link href={session.user.role === "admin" ? "/admin" : "/dashboard"}>
+                      Open dashboard
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hidden sm:inline-flex"
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    aria-label="Logout"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </>
               ) : (
                 <>
                   <Button asChild variant="ghost" className="hidden md:inline-flex">
@@ -101,9 +112,19 @@ export function SiteHeader() {
               </nav>
               <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                 {session ? (
-                  <Button asChild className="w-full sm:w-auto">
-                    <Link href={session.user.role === "admin" ? "/admin" : "/dashboard"}>Open dashboard</Link>
-                  </Button>
+                  <>
+                    <Button asChild className="w-full sm:w-auto">
+                      <Link href={session.user.role === "admin" ? "/admin" : "/dashboard"}>Open dashboard</Link>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="w-full sm:w-auto"
+                      onClick={() => signOut({ callbackUrl: "/" })}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Logout
+                    </Button>
+                  </>
                 ) : (
                   <>
                     <Button asChild variant="ghost" className="w-full sm:w-auto">
