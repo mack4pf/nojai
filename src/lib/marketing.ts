@@ -42,7 +42,7 @@ export const featureList = [
   },
   {
     title: "Simple upgrade path",
-    description: "Start with Standard, move to Pro for copy trading, or go VIP for TradingView strategy access and more bot power.",
+    description: "Start with Standard for bot access and copy trading, move to Pro for more power, or go VIP for TradingView strategy access.",
   },
 ];
 
@@ -244,6 +244,6 @@ export const faqItems = [
   {
     question: "Is there a setup fee for MT5?",
     answer:
-      "No separate setup fee. MT5 automation and copy trading are included in our Pro and VIP plans.",
+      "No separate setup fee. MT5 automation and copy trading are included with active MT5 access.",
   },
 ];

@@ -216,7 +216,7 @@ export function Mt5CopyTradingSection() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* STEP 1: BECOME A PROVIDER (FOR VIP) */}
+        {/* STEP 1: BECOME A PROVIDER */}
         <div className="flex flex-col rounded-[1.5rem] border border-white/[0.08] bg-white/[0.02] p-5">
            <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
@@ -234,14 +234,14 @@ export function Mt5CopyTradingSection() {
                   })}
                 />
               ) : (
-                <Badge variant="warning" className="text-[9px]">VIP Required</Badge>
+                <Badge variant="warning" className="text-[9px]">MT5 Required</Badge>
               )}
            </div>
 
            {!canProvide ? (
              <div className="mt-4 flex-1 rounded-xl bg-amber-500/5 p-4 text-center">
                 <ShieldCheck className="mx-auto mb-2 h-5 w-5 text-amber-500" />
-                <p className="text-[11px] font-medium text-amber-200/80">Only VIP users can be providers.</p>
+                <p className="text-[11px] font-medium text-amber-200/80">Active MT5 access is required to provide copy trading.</p>
                 <Button asChild variant="outline" size="sm" className="mt-3 h-7 text-[10px] uppercase font-bold">
                    <Link href="/dashboard/subscription">Upgrade Now</Link>
                 </Button>

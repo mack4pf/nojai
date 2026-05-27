@@ -57,7 +57,7 @@ interface BotStatus {
 const PLAN_LIMITS: Record<string, number> = { NONE: 0, STANDARD: 1, PRO: 1, VIP: 3 };
 
 export function CopyTradingSettings() {
-  const { isPro, plan } = useFeatureAccess();
+  const { hasSubscription, plan } = useFeatureAccess();
   const queryClient = useQueryClient();
 
   const [showConnectForm, setShowConnectForm] = useState(false);
@@ -76,7 +76,7 @@ export function CopyTradingSettings() {
   const { data: accounts = [], isLoading: accountsLoading } = useQuery<IQAccount[]>({
     queryKey: ["iq-accounts"],
     queryFn: async () => (await api.get("/user/iq-account")).data,
-    enabled: isPro,
+    enabled: hasSubscription,
   });
 
   const { data: eoAccounts = [], isLoading: eoAccountsLoading } = useQuery<EOAccount[]>({
@@ -86,20 +86,20 @@ export function CopyTradingSettings() {
       const raw = res.data?.accounts ?? res.data;
       return (Array.isArray(raw) ? raw : []) as EOAccount[];
     },
-    enabled: isPro,
+    enabled: hasSubscription,
   });
 
   const { data: botStatus } = useQuery<BotStatus>({
     queryKey: ["bot-status"],
     queryFn: async () => (await api.get("/user/bot-status")).data,
-    enabled: isPro,
+    enabled: hasSubscription,
     refetchInterval: 15000,
   });
 
   const { data: profile } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => (await api.get("/user/profile")).data,
-    enabled: isPro,
+    enabled: hasSubscription,
   });
 
   const access = (profile as any)?.subscription?.access ?? { binary: false, forex: false };
@@ -231,7 +231,7 @@ export function CopyTradingSettings() {
     },
   });
 
-  if (!isPro) {
+  if (!hasSubscription) {
     return (
       <div className="space-y-5">
         <div>
@@ -240,7 +240,7 @@ export function CopyTradingSettings() {
         </div>
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 py-16 text-center">
           <Lock className="mb-3 h-8 w-8 text-muted-foreground/30" />
-          <p className="text-sm font-medium text-muted-foreground">Pro or VIP plan required</p>
+          <p className="text-sm font-medium text-muted-foreground">Active plan required</p>
           <p className="mt-1 text-xs text-muted-foreground/60">Upgrade your plan to unlock copy trading.</p>
           <Button asChild size="sm" variant="outline" className="mt-4">
             <Link href="/dashboard/subscription">View plans</Link>

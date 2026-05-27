@@ -106,7 +106,7 @@ export default async function Home() {
     },
     {
       question: "Can I copy trade on MT5 with NOJAI?",
-      answer: "Yes, NOJAI Pro and VIP plans offer advanced MT5 copy trading and automation features, allowing you to mirror expert strategies automatically.",
+      answer: "Yes, NOJAI plans with MT5 access offer copy trading and automation features, allowing you to mirror expert strategies automatically.",
     },
     {
       question: "What is a Binary Options trading bot?",
@@ -202,10 +202,10 @@ export default async function Home() {
         <h2>Plans and pricing</h2>
         <p>
           The Standard plan starts at $30 per month and includes bot access and
-          trading signals. The Pro plan at $50 per month adds copy trading so you
-          can mirror professional traders automatically. The VIP plan at $75 per
-          month gives you access to TradingView webhook automation, the ability to
-          use your own strategy, and multi-account support.
+          trading signals. Standard users can enable copy trading, while higher
+          plans add more automation power. The VIP plan at $75 per month gives
+          you access to TradingView webhook automation, the ability to use your
+          own strategy, and multi-account support.
         </p>
         <h2>Pass your prop firm challenge with MT5 automation</h2>
         <p>
@@ -217,9 +217,10 @@ export default async function Home() {
         </p>
         <h2>Copy trading for beginners</h2>
         <p>
-          With the NOJAI Pro plan, you can copy trades from professional traders
-          directly onto your broker account. No strategy knowledge is required.
-          The bot mirrors entry, exit, stop loss, and take profit automatically.
+          With an active NOJAI plan, you can copy trades from professional
+          traders directly onto your broker account. No strategy knowledge is
+          required. The bot mirrors entry, exit, stop loss, and take profit
+          automatically.
         </p>
         <nav aria-label="Important pages">
           <ul>
