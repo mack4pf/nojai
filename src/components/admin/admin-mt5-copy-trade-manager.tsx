@@ -122,7 +122,9 @@ export function AdminMt5CopyTradeManager() {
     queryKey: ["mt5-brokers-admin", brokerQuery],
     queryFn: async () => {
       const res = await api.get("/mt5/brokers", { params: { query: brokerQuery } });
-      return (res.data?.suggestions ?? []) as Mt5BrokerSuggestion[];
+      return ((res.data?.suggestions ?? []) as Mt5BrokerSuggestion[]).filter(
+        (suggestion) => !/\b(demo|trial|practice)\b/i.test(suggestion.serverName)
+      );
     },
     enabled: brokerQuery.length >= 2,
     staleTime: 5 * 60 * 1000,
@@ -138,7 +140,7 @@ export function AdminMt5CopyTradeManager() {
 
   const connectMutation = useMutation({
     mutationFn: async () =>
-      api.post("/mt5/accounts", { brokerName, serverName, login, password, accountType: /demo/i.test(serverName) ? "demo" : "real" }),
+      api.post("/mt5/accounts", { brokerName, serverName, login, password, accountType: "real" }),
     onSuccess: () => {
       toast.success("MT5 account connection started");
       setBrokerName("");

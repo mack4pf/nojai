@@ -92,7 +92,7 @@ export function Mt5AutoTradeManager() {
   const [serverName, setServerName] = useState("");
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
-  const [accountType, setAccountType] = useState<"demo" | "real">("real");
+  const accountType: "real" = "real";
   const [showPassword, setShowPassword] = useState(false);
   const [disconnectAccount, setDisconnectAccount] = useState<Mt5Account | null>(null);
   const [blockConfirmAccount, setBlockConfirmAccount] = useState<Mt5Account | null>(null);
@@ -136,7 +136,9 @@ export function Mt5AutoTradeManager() {
     queryKey: ["mt5-brokers", brokerQuery],
     queryFn: async () => {
       const response = await api.get("/mt5/brokers", { params: { query: brokerQuery } });
-      return (response.data?.suggestions ?? []) as Mt5BrokerSuggestion[];
+      return ((response.data?.suggestions ?? []) as Mt5BrokerSuggestion[]).filter(
+        (suggestion) => !/\b(demo|trial|practice)\b/i.test(suggestion.serverName)
+      );
     },
     enabled: brokerQuery.length >= 2,
     staleTime: 5 * 60 * 1000,
@@ -174,7 +176,6 @@ export function Mt5AutoTradeManager() {
       setServerName("");
       setLogin("");
       setPassword("");
-      setAccountType("real");
       setSuggestionsOpen(false);
       queryClient.invalidateQueries({ queryKey: queryKeys.mt5Accounts });
     },
@@ -359,20 +360,9 @@ export function Mt5AutoTradeManager() {
                 <h2 className="text-base font-semibold">Connect MT5</h2>
                 <p className="mt-1 text-xs text-muted-foreground">Search broker servers or enter one manually.</p>
               </div>
-              <div className="flex w-full rounded-full border border-white/[0.08] bg-white/[0.04] p-1 sm:w-auto">
-                {(["real", "demo"] as const).map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setAccountType(type)}
-                    className={`flex-1 rounded-full px-3 py-1.5 text-xs font-bold uppercase transition-colors sm:flex-none ${
-                      accountType === type ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
+              <span className="inline-flex w-fit rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-bold uppercase text-emerald-300">
+                Real accounts only
+              </span>
             </div>
 
             <div className="space-y-4">
@@ -543,7 +533,7 @@ export function Mt5AutoTradeManager() {
               </div>
               <div>
                 <p className="font-semibold">No MT5 account connected yet</p>
-                <p className="mt-1 text-sm text-muted-foreground">Connect a demo account first, then refresh until the account is reported as synchronized.</p>
+                <p className="mt-1 text-sm text-muted-foreground">Connect a real MT5 account, then refresh until the account is reported as synchronized.</p>
               </div>
             </div>
           </div>
