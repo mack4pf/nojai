@@ -47,6 +47,8 @@ interface SignalLog {
   botTargets?: Array<"pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user">;
   source: "tradingview" | "webhook" | "admin_manual" | "mt5_global_webhook" | "mt5_per_account_webhook" | "mixed";
   sources?: Array<"tradingview" | "webhook" | "admin_manual" | "mt5_global_webhook" | "mt5_per_account_webhook">;
+  origin?: "user" | "global";
+  sourceUser?: { id?: string | null; fullName?: string | null; email?: string | null } | null;
   totalUsers: number;
   executedCount: number;
   skippedCount: number;
@@ -316,6 +318,15 @@ export function AdminSignalsManager() {
                             {source.replaceAll("_", " ")}
                           </Badge>
                         ))}
+                        {signal.origin === "user" ? (
+                          <Badge variant="secondary" className="border border-sky-500/30 bg-sky-500/15 text-sky-300">
+                            User · {signal.sourceUser?.fullName || signal.sourceUser?.email || "Unknown"}
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="border border-amber-500/30 bg-amber-500/15 text-amber-300">
+                            Global
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {formatDate(signal.receivedAt, "MMM d, yyyy · HH:mm:ss")} · {signal.totalUsers} targeted accounts

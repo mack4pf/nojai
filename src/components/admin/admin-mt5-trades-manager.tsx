@@ -74,6 +74,8 @@ interface ExecutionJob {
 interface IncomingSignal {
   _id: string;
   source: string;
+  origin?: "user" | "global";
+  sourceUser?: { id?: string | null; fullName?: string | null; email?: string | null } | null;
   action?: string;
   symbol?: string;
   stopLoss?: number;
@@ -234,7 +236,7 @@ function Mt5TradesTab() {
           </thead>
           <tbody>
             {trades.map((trade) => {
-              const user = getUserLabel(trade.userId, trade.account, trade.account);
+              const user = getUserLabel(trade.userId, trade.account);
               const strategy = getStrategyLabel(trade.strategyId, trade.strategy);
               const isLong = /buy/i.test(trade.direction);
               const profit = Number(trade.profit ?? 0);
@@ -365,6 +367,15 @@ function Mt5SignalsTab() {
                   </span>
                   <Badge variant="secondary" className="bg-cyan-500/10 text-cyan-300">{signalStrategy}</Badge>
                   <StatusBadge status={signal.status} />
+                  {signal.origin === "user" ? (
+                    <Badge variant="secondary" className="border border-sky-500/30 bg-sky-500/15 text-sky-300">
+                      User · {signal.sourceUser?.fullName || signal.sourceUser?.email || "Unknown"}
+                    </Badge>
+                  ) : signal.origin === "global" ? (
+                    <Badge variant="secondary" className="border border-amber-500/30 bg-amber-500/15 text-amber-300">
+                      Global
+                    </Badge>
+                  ) : null}
                   <span className="text-xs text-muted-foreground">{signal.source.replace("_", " ")}</span>
                   {signal.jobs.length > 0 && (
                     <span className="text-xs text-muted-foreground">

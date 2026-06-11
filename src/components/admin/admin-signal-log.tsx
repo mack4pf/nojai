@@ -39,6 +39,8 @@ interface SignalEntry {
   botTarget: "pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user" | "mixed";
   botTargets?: Array<"pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user">;
   source: string;
+  origin?: "user" | "global";
+  sourceUser?: { id?: string | null; fullName?: string | null; email?: string | null } | null;
   totalUsers: number;
   executedCount: number;
   skippedCount: number;
@@ -199,6 +201,7 @@ export function AdminSignalLog() {
                   <th className="px-5 py-4">Asset</th>
                   <th className="px-5 py-4">Direction</th>
                   <th className="px-5 py-4">Target</th>
+                  <th className="px-5 py-4">Origin</th>
                   <th className="px-5 py-4">Placement</th>
                   <th className="px-5 py-4">Result</th>
                   <th className="px-5 py-4">Martingale</th>
@@ -282,6 +285,24 @@ export function AdminSignalLog() {
                           </div>
                         </td>
 
+                        {/* Origin */}
+                        <td className="px-5 py-4">
+                          {signal.origin === "user" ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="inline-flex w-fit rounded-full bg-sky-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300">
+                                User
+                              </span>
+                              <span className="max-w-[150px] truncate text-[11px] text-foreground" title={signal.sourceUser?.email ?? undefined}>
+                                {signal.sourceUser?.fullName || signal.sourceUser?.email || "Unknown user"}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="inline-flex rounded-full bg-amber-500/15 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-300">
+                              Global
+                            </span>
+                          )}
+                        </td>
+
                         {/* Placement */}
                         <td className="px-5 py-4">
                           {isSuccess ? (
@@ -343,7 +364,7 @@ export function AdminSignalLog() {
                       {/* Detail View */}
                       {isExpanded && (
                         <tr className="bg-black/20 border-t-0">
-                          <td colSpan={9} className="px-5 py-4">
+                          <td colSpan={10} className="px-5 py-4">
                             <div className="space-y-3">
                               <div className="flex items-center justify-between">
                                 <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Account Breakdown</h4>
