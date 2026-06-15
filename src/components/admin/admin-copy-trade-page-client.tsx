@@ -7,14 +7,16 @@ import Image from "next/image";
 import { AdminCopyTradeManager } from "@/components/admin/admin-copy-trade-manager";
 import { AdminEoCopyTradeManager } from "@/components/admin/admin-eo-copy-trade-manager";
 import { AdminMt5CopyTradeManager } from "@/components/admin/admin-mt5-copy-trade-manager";
+import { AdminOlympAccountsManager } from "@/components/admin/admin-olymp-accounts-manager";
 import { MetaTrader5Icon } from "@/components/icons/metatrader5-icon";
 
-type Platform = "iq" | "eo" | "mt5";
+type Platform = "iq" | "eo" | "olymp" | "mt5";
 
 const PLATFORMS: { key: Platform; label: string; sub: string }[] = [
-  { key: "iq",  label: "IQ Option",     sub: "Binary / Turbo" },
-  { key: "eo",  label: "Expert Option", sub: "Binary / Turbo" },
-  { key: "mt5", label: "MetaTrader 5",  sub: "Forex / CFD"    },
+  { key: "iq",     label: "IQ Option",     sub: "Binary / Turbo" },
+  { key: "eo",     label: "Expert Option", sub: "Binary / Turbo" },
+  { key: "olymp",  label: "Olymp Trade",   sub: "Binary / Turbo" },
+  { key: "mt5",    label: "MetaTrader 5",  sub: "Forex / CFD"    },
 ];
 
 function PlatformIcon({ platform }: { platform: Platform }) {
@@ -24,7 +26,9 @@ function PlatformIcon({ platform }: { platform: Platform }) {
   const src =
     platform === "iq"
       ? "/autobot-assets/iq-option-small.svg"
-      : "/autobot-assets/experoptionlogo.png";
+      : platform === "olymp"
+        ? "/autobot-assets/olymptrade.jpeg"
+        : "/autobot-assets/experoptionlogo.png";
   return (
     <div className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-md bg-white p-0.5">
       <Image src={src} alt={platform} width={16} height={16} className="h-4 w-4 object-contain" />
@@ -43,7 +47,7 @@ export function AdminCopyTradePageClient() {
           Copy-Trade Management
         </h1>
         <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-          Manage admin copy trading accounts across IQ Option, Expert Option and MetaTrader 5.
+          Manage admin broker accounts across IQ Option, Expert Option, Olymp Trade and MetaTrader 5.
         </p>
       </div>
 
@@ -84,6 +88,7 @@ export function AdminCopyTradePageClient() {
       {/* Tab content */}
       {active === "iq"  && <AdminCopyTradeManager />}
       {active === "eo"  && <AdminEoCopyTradeManager />}
+      {active === "olymp" && <AdminOlympAccountsManager />}
       {active === "mt5" && <AdminMt5CopyTradeManager />}
     </div>
   );

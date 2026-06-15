@@ -125,6 +125,7 @@ export function normalizeUserProfile(value: unknown): UserProfile | null {
       paymentMethod: typeof subscriptionRecord?.paymentMethod === "string" ? subscriptionRecord.paymentMethod : undefined,
     },
     iqAccounts: normalizeArray<IQAccount>(record.iqAccounts),
+    olympAccounts: normalizeArray(record.olympAccounts),
     subscriptionId: typeof record.subscriptionId === "string" ? record.subscriptionId : undefined,
     subscriptionExpiresAt: expiresAt || undefined,
     subscriptionStartedAt: startedAt || undefined,

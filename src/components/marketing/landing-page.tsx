@@ -66,6 +66,16 @@ const brokerData: Array<{
       description: "Connect your Expert Option account and start automated trading now.",
     },
     {
+      name: "Olymp Trade",
+      logo: "/autobot-assets/olymptrade.jpeg",
+      logoWidth: 160,
+      logoHeight: 40,
+      status: "live",
+      color: "#10B981",
+      bg: "#00140d",
+      description: "Connect Olymp Trade accounts and automate EURUSD binary signals.",
+    },
+    {
       name: "Crypto Trading",
       logo: "/autobot-assets/crypto-trading.svg",
       logoWidth: 160,
@@ -120,6 +130,9 @@ const planConfig = {
     summary: "TradingView strategy and multi-account access.",
   },
 } as const;
+
+const BINARY_DEFAULT_ASSETS = ["EURUSD"];
+const MT5_DEFAULT_ASSETS = ["BTCUSD", "EURUSD", "XAUUSD"];
 
 interface LandingPageProps {
   pricingPlans?: PricingPlan[];
@@ -178,11 +191,25 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                 </span>
                 <span className="text-xs font-bold text-foreground">ExpertOption</span>
               </span>
+              <span className="inline-flex h-10 items-center gap-2 rounded-full border border-emerald-500/25 bg-card px-3 shadow-sm transition-transform hover:scale-105">
+                <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white p-0.5">
+                  <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={28} height={28} className="h-full w-full rounded-full object-cover" />
+                </span>
+                <span className="text-xs font-bold text-foreground">Olymp Trade</span>
+              </span>
               <span className="inline-flex h-10 items-center gap-2 rounded-full border border-[#2962ff]/25 bg-[#2962ff] px-3 shadow-sm transition-transform hover:scale-105">
                 <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full">
                   <Image src="/autobot-assets/tradingview.svg" alt="TradingView" width={28} height={28} className="h-full w-full object-contain" />
                 </span>
                 <span className="text-xs font-bold text-white">TradingView</span>
+              </span>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-2 text-sm text-muted-foreground">
+              <span className="rounded-full border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-2">
+                Binary Options default: <strong className="font-bold text-foreground">{BINARY_DEFAULT_ASSETS.join(", ")}</strong>
+              </span>
+              <span className="rounded-full border border-cyan-500/20 bg-cyan-500/[0.06] px-4 py-2">
+                MT5 leverage defaults: <strong className="font-bold text-foreground">{MT5_DEFAULT_ASSETS.join(", ")}</strong>
               </span>
             </div>
             <div className="mt-8 flex flex-wrap gap-4">
@@ -305,7 +332,7 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
             Connect any broker. Trade any market.
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
-            NOJAI is built to be broker-agnostic. Whether you trade Binary Options on IQ Option or Expert Option, or Forex on MT5, we have you covered.
+            NOJAI is built to be broker-agnostic. Whether you trade Binary Options on IQ Option, Expert Option, or Olymp Trade, or Forex on MT5, we have you covered.
           </p>
         </div>
 
@@ -477,6 +504,55 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
           </div>
         </div>
 
+        {/* Olymp Trade hero card */}
+        <div className="animate-nojai-slide-up mt-6 overflow-hidden rounded-[2rem] border-2 border-emerald-500/25 bg-emerald-500/[0.03]">
+          <div className="grid items-center gap-0 lg:grid-cols-[1fr_1fr]">
+            <div className="border-b border-emerald-500/20 p-8 lg:border-b-0 lg:border-r lg:p-12">
+              <div className="flex items-center gap-3">
+                <span className="animate-nojai-live-dot inline-block h-3 w-3 rounded-full bg-emerald-500" />
+                <span className="text-sm font-bold uppercase tracking-[0.3em] text-emerald-400">Live now</span>
+              </div>
+              <div className="mt-6 flex items-center gap-3">
+                <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-white p-1.5">
+                  <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={44} height={44} className="h-full w-full rounded-xl object-cover" />
+                </span>
+                <span className="text-2xl font-black tracking-tight">Olymp Trade</span>
+              </div>
+              <p className="mt-5 text-xl font-semibold text-foreground">
+                Olymp Trade automation is ready for binary users.
+              </p>
+              <p className="mt-3 text-base leading-7 text-muted-foreground">
+                Connect with your Olymp session token, trade live or demo groups, and route TradingView signals to all connected Olymp accounts.
+              </p>
+              <Button asChild className="mt-8 bg-emerald-600 hover:bg-emerald-500" size="lg">
+                <Link href="/auth/register">
+                  Connect Olymp Trade
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+            <div className="p-8 lg:p-12">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-emerald-400">Production-ready flow</p>
+              <ul className="mt-6 space-y-5">
+                {[
+                  ["Default binary asset", <>Signals default to <strong className="font-bold text-foreground">EURUSD</strong> for Binary Options.</>],
+                  ["Multi-user execution", "PRO and VIP Olymp accounts receive broadcast signals through the same dispatcher as the other brokers."],
+                  ["Currency-aware analytics", "Balances and P/L stay grouped by each account currency on the dashboard."],
+                  ["Result reconciliation", "Expired Olymp trades are reconciled from balance movement so history and charts do not stay pending."],
+                ].map(([title, desc]) => (
+                  <li key={String(title)} className="flex items-start gap-4">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+                    <div>
+                      <p className="font-semibold text-foreground">{title}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">{desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* Coming soon grid */}
         <p className="mt-12 text-xs font-bold uppercase tracking-[0.3em] text-muted-foreground">Coming next</p>
         <div className="mt-5 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -547,6 +623,9 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
             const currency = getPlanCurrency(plan.currency);
             const planFeatures = [
               ...(plan.features ?? []),
+              "Binary Options on IQ Option, ExpertOption, and Olymp Trade",
+              `Binary default asset: ${BINARY_DEFAULT_ASSETS.join(", ")}`,
+              `MT5 leverage defaults: ${MT5_DEFAULT_ASSETS.join(", ")}`,
               "Binary Options & Forex support",
               "Multi-broker account management",
             ].filter((feature, featureIndex, arr) => arr.findIndex((item) => item.toLowerCase() === feature.toLowerCase()) === featureIndex);

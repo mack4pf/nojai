@@ -25,7 +25,7 @@ import { api } from "@/lib/api";
 
 type SortField = "totalProfit" | "winRate" | "wonCount" | "totalTrades";
 type SortOrder = "asc" | "desc";
-type BrokerFilter = "both" | "iq" | "eo" | "mt5";
+type BrokerFilter = "both" | "iq" | "eo" | "olymp" | "mt5";
 
 interface IQCurrencyBreakdown {
   currency: string;
@@ -80,6 +80,14 @@ interface EOAccount {
   isDemo: boolean;
 }
 
+interface OlympAccount {
+  accountId: string;
+  name: string;
+  currency: string;
+  balance: number;
+  accountGroup: "demo" | "real";
+}
+
 interface OverallStat {
   totalTrades: number;
   wonCount: number;
@@ -94,11 +102,14 @@ interface ProfitUser {
   plan: string;
   iqAccounts: number;
   eoAccounts: number;
+  olympAccounts: number;
   iqAccountsList: IQAccount[];
   eoAccountsList: EOAccount[];
+  olympAccountsList: OlympAccount[];
   overall: OverallStat;
   iq: IQStat | null;
   eo: EOStat | null;
+  olymp: EOStat | null;
   mt5: EOStat | null;
 }
 
@@ -135,6 +146,14 @@ function fmtAbs(n: number, currency: string) {
     maximumFractionDigits: currency === "NGN" ? 0 : 2,
     minimumFractionDigits: currency === "NGN" ? 0 : 2,
   })}`;
+}
+
+function brokerFilterLabel(b: BrokerFilter) {
+  if (b === "both") return "All Brokers";
+  if (b === "iq") return "IQ Option";
+  if (b === "eo") return "ExpertOption";
+  if (b === "olymp") return "Olymp Trade";
+  return "MT5";
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -192,7 +211,7 @@ export function AdminUsersProfitSummary() {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1 rounded-xl border border-white/[0.08] bg-white/[0.03] p-1">
-          {(["both", "iq", "eo", "mt5"] as BrokerFilter[]).map((b) => (
+          {(["both", "iq", "eo", "olymp", "mt5"] as BrokerFilter[]).map((b) => (
             <button
               key={b}
               onClick={() => setBroker(b)}
@@ -204,7 +223,7 @@ export function AdminUsersProfitSummary() {
             >
               {b === "iq" && <Image src="/autobot-assets/iq-option-small.svg" alt="IQ" width={12} height={12} className="h-3 w-3 object-contain" />}
               {b === "eo" && <Image src="/autobot-assets/experoptionlogo.png" alt="EO" width={12} height={12} className="h-3 w-3 object-contain" />}
-              {b === "both" ? "All Brokers" : b === "iq" ? "IQ Option" : b === "mt5" ? "MT5" : "ExpertOption"}
+              {brokerFilterLabel(b)}
             </button>
           ))}
         </div>
@@ -250,6 +269,7 @@ export function AdminUsersProfitSummary() {
                 </th>
                 <th className="px-4 py-3 text-center font-medium">IQ Net P&L</th>
                 <th className="px-4 py-3 text-center font-medium">EO Net P&L</th>
+                <th className="px-4 py-3 text-center font-medium">Olymp Net P&L</th>
                 <th className="px-4 py-3 text-center font-medium">MT5 Net P&L</th>
                 <th className="px-3 py-3" />
               </tr>
@@ -310,6 +330,15 @@ export function AdminUsersProfitSummary() {
                         )}
                       </td>
                       <td className="px-4 py-3 text-center">
+                        {user.olymp ? (
+                          <p className={`text-xs font-semibold ${user.olymp.netProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                            {fmtNet(user.olymp.netProfit, "USD")}
+                          </p>
+                        ) : (
+                          <span className="text-[11px] text-muted-foreground">â€”</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">
                         {user.mt5 ? (
                           <p className={`text-xs font-semibold ${user.mt5.netProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                             {fmtNet(user.mt5.netProfit, "USD")}
@@ -330,8 +359,8 @@ export function AdminUsersProfitSummary() {
 
                     {isExpanded && (
                       <tr key={`${user.userId}-detail`} className="bg-white/[0.012]">
-                        <td colSpan={8} className="px-4 pb-5 pt-3">
-                          <div className="grid gap-3 lg:grid-cols-3">
+                        <td colSpan={9} className="px-4 pb-5 pt-3">
+                          <div className="grid gap-3 lg:grid-cols-4">
 
                             {/* IQ Option */}
                             <div className="rounded-xl border border-blue-500/20 bg-blue-500/[0.04] p-3 space-y-3">
@@ -440,6 +469,60 @@ export function AdminUsersProfitSummary() {
                                 </div>
                               ) : (
                                 <p className="text-xs text-muted-foreground">No EO trades recorded</p>
+                              )}
+                            </div>
+
+                            {/* Olymp Trade */}
+                            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-3 space-y-3">
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-300">
+                                <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp" width={12} height={12} className="h-3 w-3 rounded-sm object-contain" />
+                                Olymp Trade
+                                <span className="ml-auto text-muted-foreground font-normal">{user.olympAccounts} account{user.olympAccounts !== 1 ? "s" : ""}</span>
+                              </div>
+
+                              {user.olympAccountsList.length > 0 && (
+                                <div className="space-y-1">
+                                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1">
+                                    <Wallet className="h-2.5 w-2.5" /> Account Balances
+                                  </p>
+                                  {user.olympAccountsList.map((acc, i) => (
+                                    <div key={i} className="flex items-center justify-between rounded-lg bg-white/[0.03] px-2.5 py-1.5 text-[11px]">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className={`h-1.5 w-1.5 rounded-full ${acc.accountGroup === "demo" ? "bg-amber-400" : "bg-emerald-400"}`} />
+                                        <span className="text-muted-foreground truncate max-w-[110px]">{acc.name || `ID: ${acc.accountId}`}</span>
+                                        <span className="text-muted-foreground/50">·</span>
+                                        <span className="text-muted-foreground">{acc.accountGroup.toUpperCase()}</span>
+                                      </div>
+                                      <span className="font-semibold text-foreground">
+                                        {fmtAbs(acc.balance, acc.currency)}
+                                        <span className="ml-1 text-[9px] text-muted-foreground">{acc.currency}</span>
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {user.olymp ? (
+                                <div className="space-y-2">
+                                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Profit/Loss</p>
+                                  <div className="rounded-lg bg-white/[0.03] px-2.5 py-2">
+                                    <div className="flex items-center justify-between mb-1.5 text-[11px]">
+                                      <span className="font-semibold text-foreground">USD</span>
+                                      <span className={`font-bold ${user.olymp.netProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>{fmtNet(user.olymp.netProfit, "USD")}</span>
+                                    </div>
+                                    <p className="mb-1.5 text-[10px] text-muted-foreground">
+                                      {user.olymp.profitBasis === "balance" ? "Growth since connected" : "Trade net"}
+                                      {user.olymp.profitBasis === "balance" && typeof user.olymp.growthPercent === "number" ? ` · ${user.olymp.growthPercent.toFixed(2)}%` : ""}
+                                    </p>
+                                    <div className="grid grid-cols-3 gap-1 text-[10px]">
+                                      <div><p className="text-muted-foreground">Trades</p><p className="font-semibold">{user.olymp.totalTrades}</p></div>
+                                      <div><p className="text-muted-foreground">Win%</p><p className={`font-semibold ${user.olymp.winRate >= 50 ? "text-emerald-400" : "text-red-400"}`}>{user.olymp.winRate}%</p></div>
+                                      <div><p className="text-muted-foreground">Won/Lost</p><p className="font-semibold">{user.olymp.wonCount}/{user.olymp.lostCount}</p></div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">No Olymp trades recorded</p>
                               )}
                             </div>
 

@@ -41,6 +41,8 @@ type PaidPlanTier = Exclude<PlanTier, "NONE">;
 type ProductChoice = "binary" | "forex";
 
 const PLAN_RANK: Record<string, number> = { NONE: 0, STANDARD: 1, PRO: 2, VIP: 3 };
+const BINARY_DEFAULT_ASSETS = ["EURUSD"];
+const MT5_DEFAULT_ASSETS = ["BTCUSD", "EURUSD", "XAUUSD"];
 
 const planStyles = {
   STANDARD: { icon: Shield, color: "text-sky-300", bg: "bg-sky-400/10 border-sky-400/20" },
@@ -141,6 +143,18 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
         <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
           {required ? "Choose a plan to get started with NOJAI." : "Manage your subscription and billing."}
         </p>
+      </div>
+
+      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-300/70">Default trading assets</p>
+        <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+          <p className="text-muted-foreground">
+            Binary Options: <strong className="font-bold text-foreground">{BINARY_DEFAULT_ASSETS.join(", ")}</strong>
+          </p>
+          <p className="text-muted-foreground">
+            MT5 Leverage: <strong className="font-bold text-foreground">{MT5_DEFAULT_ASSETS.join(", ")}</strong>
+          </p>
+        </div>
       </div>
 
       {/* Status banner */}
@@ -271,8 +285,8 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Choose product</p>
                     <div className="mt-3 grid grid-cols-2 gap-2">
                       {([
-                        { value: "binary" as const, label: "Binary Options", note: "IQ/EO bot" },
-                        { value: "forex" as const, label: "Forex / MT5", note: "Leverage trading" },
+                        { value: "binary" as const, label: "Binary Options", note: `Default asset: ${BINARY_DEFAULT_ASSETS.join(", ")}` },
+                        { value: "forex" as const, label: "Forex / MT5", note: `Defaults: ${MT5_DEFAULT_ASSETS.join(", ")}` },
                       ]).map((option) => {
                         const selected = (productByPlan[tier] ?? "binary") === option.value;
                         return (
@@ -295,6 +309,9 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                                   <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
                                     <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={12} height={12} className="h-full w-full object-contain" />
                                   </div>
+                                  <div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
+                                    <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={12} height={12} className="h-full w-full rounded-full object-cover" />
+                                  </div>
                                 </div>
                               ) : (
                                 <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
@@ -311,7 +328,7 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                   </div>
                 ) : tier === "VIP" && !isCurrent ? (
                   <div className="mt-5 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-3 text-xs text-emerald-200">
-                    VIP includes both Binary Options and Forex Leverage / MT5 access.
+                    VIP includes both Binary Options and Forex Leverage / MT5 access. Binary default: <strong className="font-bold">EURUSD</strong>. MT5 defaults: <strong className="font-bold">BTCUSD, EURUSD, XAUUSD</strong>.
                   </div>
                 ) : null}
 
@@ -388,8 +405,8 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">What are you subscribing for?</p>
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     {([
-                      { value: "binary" as const, label: "Binary Options", note: "IQ Option / Expert Option bot" },
-                      { value: "forex" as const, label: "Forex / MT5", note: "Leverage trading on MT5" },
+                      { value: "binary" as const, label: "Binary Options", note: `IQ / ExpertOption / Olymp · ${BINARY_DEFAULT_ASSETS.join(", ")}` },
+                      { value: "forex" as const, label: "Forex / MT5", note: `MT5 defaults: ${MT5_DEFAULT_ASSETS.join(", ")}` },
                     ]).map((option) => {
                       const selected = accessCodeProduct === option.value;
                       return (
@@ -412,6 +429,9 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                                 <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
                                   <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={12} height={12} className="h-full w-full object-contain" />
                                 </div>
+                                <div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
+                                  <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={12} height={12} className="h-full w-full rounded-full object-cover" />
+                                </div>
                               </div>
                             ) : (
                               <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
@@ -428,7 +448,7 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                 </div>
               ) : (
                 <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-3 text-xs text-emerald-200">
-                  VIP includes both Binary Options and Forex Leverage / MT5 access.
+                  VIP includes both Binary Options and Forex Leverage / MT5 access. Binary default: <strong className="font-bold">EURUSD</strong>. MT5 defaults: <strong className="font-bold">BTCUSD, EURUSD, XAUUSD</strong>.
                 </div>
               )}
 

@@ -79,7 +79,7 @@ interface AnalyticsResponse {
     previousFrom: string;
     previousTo: string;
     items: Array<{
-      broker: "iq" | "eo";
+      broker: "iq" | "eo" | "olymp";
       currency: string;
       currentProfit: number;
       previousProfit: number;
@@ -122,6 +122,11 @@ interface AnalyticsResponse {
     };
   };
   eoData: {
+    profitabilityUSD: ChartPoint[];
+    tradesData: ChartPoint[];
+    summary: BrokerCurrencySummary & { balances?: { USD?: BalanceSummaryItem } };
+  };
+  olympData: {
     profitabilityUSD: ChartPoint[];
     tradesData: ChartPoint[];
     summary: BrokerCurrencySummary & { balances?: { USD?: BalanceSummaryItem } };
@@ -275,7 +280,7 @@ function NormalProfitPanel({ data }: { data?: AnalyticsResponse["normalProfit"] 
           return (
             <div key={`${item.broker}-${item.currency}`} className={`rounded-2xl border p-4 ${item.isGrowth ? "border-emerald-500/20 bg-emerald-500/[0.05]" : "border-red-500/20 bg-red-500/[0.05]"}`}>
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                {item.broker === "eo" ? "ExpertOption" : "IQ Option"} · {item.currency}
+                {item.broker === "eo" ? "ExpertOption" : item.broker === "olymp" ? "Olymp Trade" : "IQ Option"} · {item.currency}
               </p>
               <p className={`mt-2 font-display text-2xl font-bold ${item.isGrowth ? "text-emerald-300" : "text-red-300"}`}>
                 {item.difference >= 0 ? "+" : ""}{symbol}{Math.abs(item.difference).toLocaleString(undefined, { maximumFractionDigits: 2 })}
@@ -292,7 +297,7 @@ function NormalProfitPanel({ data }: { data?: AnalyticsResponse["normalProfit"] 
   );
 }
 
-function BrokerSwitch({ value, onChange }: { value: "iq" | "eo"; onChange: (v: "iq" | "eo") => void }) {
+function BrokerSwitch({ value, onChange }: { value: "iq" | "eo" | "olymp"; onChange: (v: "iq" | "eo" | "olymp") => void }) {
   return (
     <div className="flex items-center rounded-2xl border border-white/10 bg-white/[0.03] p-1">
       <button
@@ -309,6 +314,13 @@ function BrokerSwitch({ value, onChange }: { value: "iq" | "eo"; onChange: (v: "
         <img src="/autobot-assets/experoptionlogo.png" alt="EO" className="h-3.5 w-3.5 object-contain" />
         ExpertOption
       </button>
+      <button
+        onClick={() => onChange("olymp")}
+        className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${value === "olymp" ? "bg-emerald-500/20 text-emerald-300" : "text-muted-foreground hover:text-foreground"}`}
+      >
+        <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp" width={14} height={14} className="h-3.5 w-3.5 rounded-sm object-contain" />
+        Olymp Trade
+      </button>
     </div>
   );
 }
@@ -317,7 +329,7 @@ export function AdminAnalytics() {
   const [timeframe, setTimeframe] = useState<"1H" | "1D" | "1W" | "1M" | "ALL">("1W");
   const [chartType, setChartType] = useState<"line" | "bar" | "pie">("line");
   const [revenueCurrency, setRevenueCurrency] = useState<"ALL" | "NGN" | "USD">("ALL");
-  const [broker, setBroker] = useState<"iq" | "eo">("iq");
+  const [broker, setBroker] = useState<"iq" | "eo" | "olymp">("iq");
   const [iqCurrency, setIqCurrency] = useState<"NGN" | "USD">("NGN");
   const [iqAccountType, setIqAccountType] = useState<"REAL" | "PRACTICE">("REAL");
 
@@ -329,6 +341,7 @@ export function AdminAnalytics() {
   const summary = data?.summary;
   const iqData = data?.iqData;
   const eoData = data?.eoData;
+  const olympData = data?.olympData;
 
   const activeRevenueData =
     revenueCurrency === "NGN" ? (data?.revenueNGN ?? [])
@@ -379,6 +392,9 @@ export function AdminAnalytics() {
   const eoCurrentBalance = eoData?.summary.balances?.USD?.totalBalance ?? 0;
   const eoCurrentAccounts = eoData?.summary.balances?.USD?.accountCount ?? 0;
   const eoNetFromGross = (eoData?.summary.totalProfit ?? 0) - (eoData?.summary.totalLoss ?? 0);
+  const olympCurrentBalance = olympData?.summary.balances?.USD?.totalBalance ?? 0;
+  const olympCurrentAccounts = olympData?.summary.balances?.USD?.accountCount ?? 0;
+  const olympNetFromGross = (olympData?.summary.totalProfit ?? 0) - (olympData?.summary.totalLoss ?? 0);
 
   return (
     <div className="space-y-6">
@@ -553,6 +569,32 @@ export function AdminAnalytics() {
               </div>
             </>
           )}
+
+          {broker === "olymp" && (
+            <>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Net Profit · USD</p>
+                  <p className={`mt-2 font-display text-3xl font-bold ${olympNetFromGross >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    {olympNetFromGross >= 0 ? "" : "-"}${Math.abs(olympNetFromGross).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Gross ${(olympData?.summary.totalProfit ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} - Loss ${(olympData?.summary.totalLoss ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+                <StatCard label="Win Rate" value={`${olympData?.summary.winRate ?? 0}%`} color="text-emerald-400" sub={`${olympData?.summary.totalWon ?? 0} won · ${olympData?.summary.totalLost ?? 0} lost`} />
+                <StatCard label="Current Balance · USD" value={`$${olympCurrentBalance.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} sub={`${olympCurrentAccounts} connected account${olympCurrentAccounts === 1 ? "" : "s"}`} />
+              </div>
+
+              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <h2 className="font-display text-xl font-bold">Olymp Trade Profit Over Time <span className="text-sm font-semibold text-emerald-400">(USD)</span></h2>
+                  <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp" width={20} height={20} className="h-5 w-5 rounded-sm object-contain opacity-80" />
+                </div>
+                <RenderChart chartData={olympData?.profitabilityUSD ?? []} key1="value" key2="loss" label1="Net Profit (USD)" label2="Gross Loss (USD)" symbol="$" isCurrency color1={GREEN} color2={RED} chartType={chartType} />
+              </div>
+            </>
+          )}
         </TabsContent>
 
         {/* ── Revenue ── */}
@@ -649,7 +691,7 @@ export function AdminAnalytics() {
                 <RenderChart chartData={iqData?.tradesData ?? []} key1="value" key2="secondary" label1="Won" label2="Lost" color1={GREEN} color2={RED} chartType={chartType} />
               </div>
             </>
-          ) : (
+          ) : broker === "eo" ? (
             <>
               <div className="grid gap-4 sm:grid-cols-3">
                 <StatCard label="Won · USD" value={(eoData?.summary.totalWon ?? 0).toLocaleString()} color="text-emerald-400" sub={`${eoData?.summary.winRate ?? 0}% win rate`} />
@@ -659,6 +701,18 @@ export function AdminAnalytics() {
               <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
                 <h2 className="mb-4 font-display text-xl font-bold">ExpertOption — Win vs Loss Over Time</h2>
                 <RenderChart chartData={eoData?.tradesData ?? []} key1="value" key2="secondary" label1="Won" label2="Lost" color1={GREEN} color2={RED} chartType={chartType} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <StatCard label="Won · USD" value={(olympData?.summary.totalWon ?? 0).toLocaleString()} color="text-emerald-400" sub={`${olympData?.summary.winRate ?? 0}% win rate`} />
+                <StatCard label="Lost · USD" value={(olympData?.summary.totalLost ?? 0).toLocaleString()} color="text-red-400" />
+                <StatCard label="Net Profit · USD" value={`$${((olympData?.summary.totalProfit ?? 0) - (olympData?.summary.totalLoss ?? 0)).toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
+              </div>
+              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+                <h2 className="mb-4 font-display text-xl font-bold">Olymp Trade — Win vs Loss Over Time</h2>
+                <RenderChart chartData={olympData?.tradesData ?? []} key1="value" key2="secondary" label1="Won" label2="Lost" color1={GREEN} color2={RED} chartType={chartType} />
               </div>
             </>
           )}

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency, formatTimeAgo } from "@/lib/utils";
 
 interface ConnectedAccount {
-  broker: "iq" | "eo";
+  broker: "iq" | "eo" | "olymp";
   accountId?: string | null;
   accountName?: string;
   status: "connected" | "disconnected" | "connecting" | "error";
@@ -31,6 +31,7 @@ interface ConnectedAccountsResponse {
   byBroker?: {
     iq: { total: number; connected: number };
     eo: { total: number; connected: number };
+    olymp: { total: number; connected: number };
   };
   accounts: ConnectedAccount[];
 }
@@ -128,7 +129,7 @@ export function AdminConnectedAccounts() {
 
       {/* Search */}
       {data?.byBroker && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-blue-500/20 bg-blue-500/[0.05] p-4">
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-blue-300/70">IQ Option</p>
             <p className="mt-2 font-display text-2xl font-bold">{data.byBroker.iq.connected} live</p>
@@ -138,6 +139,16 @@ export function AdminConnectedAccounts() {
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-purple-300/70">ExpertOption</p>
             <p className="mt-2 font-display text-2xl font-bold">{data.byBroker.eo.connected} live</p>
             <p className="mt-1 text-xs text-muted-foreground">{data.byBroker.eo.total} saved accounts</p>
+          </div>
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-lg bg-white p-0.5">
+                <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={20} height={20} className="h-5 w-5 object-contain" />
+              </span>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-300/70">Olymp Trade</p>
+            </div>
+            <p className="mt-2 font-display text-2xl font-bold">{data.byBroker.olymp?.connected ?? 0} live</p>
+            <p className="mt-1 text-xs text-muted-foreground">{data.byBroker.olymp?.total ?? 0} saved accounts</p>
           </div>
         </div>
       )}
@@ -194,8 +205,17 @@ export function AdminConnectedAccounts() {
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${acc.broker === "eo" ? "bg-purple-500/15 text-purple-300" : "bg-blue-500/15 text-blue-300"}`}>
-                        {acc.broker === "eo" ? "ExpertOption" : "IQ Option"}
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        acc.broker === "eo"
+                          ? "bg-purple-500/15 text-purple-300"
+                          : acc.broker === "olymp"
+                            ? "bg-emerald-500/15 text-emerald-300"
+                            : "bg-blue-500/15 text-blue-300"
+                      }`}>
+                        {acc.broker === "olymp" && (
+                          <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp" width={14} height={14} className="h-3.5 w-3.5 rounded-sm object-contain" />
+                        )}
+                        {acc.broker === "eo" ? "ExpertOption" : acc.broker === "olymp" ? "Olymp Trade" : "IQ Option"}
                       </span>
                     </td>
                     <td className="px-5 py-4">

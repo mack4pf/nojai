@@ -95,7 +95,19 @@ export interface Trade {
   result: "WIN" | "LOSS" | "PENDING";
   pnl: number;
   createdAt: string;
-  broker?: "iq" | "eo";
+  broker?: "iq" | "eo" | "olymp" | "mt5";
+}
+
+export interface OlympAccount {
+  accountId: number;
+  email?: string;
+  name: string;
+  baseAmount: number;
+  accountGroup: "real" | "demo";
+  balance?: number;
+  currency?: string;
+  lastConnected?: string;
+  status: "connected" | "disconnected";
 }
 
 export interface EOAccount {
@@ -167,6 +179,7 @@ export interface UserProfile {
   subscription?: Subscription;
   iqAccounts?: IQAccount[];
   eoAccounts?: EOAccount[];
+  olympAccounts?: OlympAccount[];
   subscriptionId?: string;
   subscriptionExpiresAt?: string;
   subscriptionStartedAt?: string;

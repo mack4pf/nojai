@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Copy, Lock, Plus, Trash2, Webhook as WebhookIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,7 +31,7 @@ export function WebhookCard({ hideTitleHeader }: { hideTitleHeader?: boolean } =
   const hasAccess = isVip || isPro;
   const maxWebhooks = isVip ? 5 : 1;
   const queryClient = useQueryClient();
-  const [signalTarget, setSignalTarget] = useState<"iq" | "eo" | "both">("both");
+  const [signalTarget, setSignalTarget] = useState<"iq" | "eo" | "olymp" | "all">("all");
   const [webhookToDelete, setWebhookToDelete] = useState<WebhookToken | null>(null);
 
   const { data: webhooks = [], isLoading } = useQuery<WebhookToken[]>({
@@ -214,20 +215,39 @@ export function WebhookCard({ hideTitleHeader }: { hideTitleHeader?: boolean } =
             <h3 className="text-sm font-semibold text-white">Signal Target</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">Choose which broker(s) receive this signal.</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {(["iq", "eo", "both"] as const).map((t) => (
+              {([
+                { value: "iq" as const, label: "IQ Option", icon: "/autobot-assets/iq-option-small.svg", rounded: false },
+                { value: "eo" as const, label: "ExpertOption", icon: "/autobot-assets/experoptionlogo.png", rounded: false },
+                { value: "olymp" as const, label: "Olymp Trade", icon: "/autobot-assets/olymptrade.jpeg", rounded: true },
+                { value: "all" as const, label: "All", icon: null, rounded: false },
+              ]).map((targetOption) => (
                 <button
-                  key={t}
-                  onClick={() => setSignalTarget(t)}
-                  className={`rounded-lg border px-4 py-2 text-xs font-medium transition-colors ${
-                    signalTarget === t
+                  key={targetOption.value}
+                  onClick={() => setSignalTarget(targetOption.value)}
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-xs font-medium transition-colors ${
+                    signalTarget === targetOption.value
                       ? "border-primary bg-primary/15 text-primary"
                       : "border-white/10 text-muted-foreground hover:border-white/20 hover:text-foreground"
                   }`}
                 >
-                  {t === "iq" ? "IQ Option" : t === "eo" ? "Expert Option" : "Both"}
+                  {targetOption.icon ? (
+                    <span className="flex h-4 w-4 items-center justify-center overflow-hidden rounded-full bg-white p-0.5">
+                      <Image
+                        src={targetOption.icon}
+                        alt={targetOption.label}
+                        width={14}
+                        height={14}
+                        className={`h-full w-full ${targetOption.rounded ? "rounded-full object-cover" : "object-contain"}`}
+                      />
+                    </span>
+                  ) : null}
+                  {targetOption.label}
                 </button>
               ))}
             </div>
+            <p className="mt-2 text-[11px] text-muted-foreground/60">
+              All sends one signal to every connected Binary Options broker: IQ Option, ExpertOption, and Olymp Trade.
+            </p>
           </div>
 
           {/* Message template */}

@@ -16,8 +16,8 @@ interface SignalResult {
   userId: string;
   email: string;
   fullName?: string;
-  broker?: "iq" | "eo" | "mt5";
-  botTarget?: "pro" | "vip" | "eo-pro" | "eo-vip";
+  broker?: "iq" | "eo" | "olymp" | "mt5";
+  botTarget?: "pro" | "vip" | "eo-pro" | "eo-vip" | "olymp-pro" | "olymp-vip";
   accountId?: string;
   accountName?: string;
   accountMode?: string;
@@ -39,12 +39,12 @@ interface SignalLog {
   ticker: string;
   direction: "buy" | "sell";
   expirationSecs: number;
-  broker?: "iq" | "eo" | "mt5" | "mixed";
+  broker?: "iq" | "eo" | "olymp" | "mt5" | "mixed";
   strategyName?: string;
   strategySlug?: string;
   strategySymbol?: string;
-  botTarget: "pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user" | "mixed";
-  botTargets?: Array<"pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user">;
+  botTarget: "pro" | "vip" | "eo-pro" | "eo-vip" | "olymp-pro" | "olymp-vip" | "mt5-global" | "mt5-user" | "mixed";
+  botTargets?: Array<"pro" | "vip" | "eo-pro" | "eo-vip" | "olymp-pro" | "olymp-vip" | "mt5-global" | "mt5-user">;
   source: "tradingview" | "webhook" | "admin_manual" | "mt5_global_webhook" | "mt5_per_account_webhook" | "mixed";
   sources?: Array<"tradingview" | "webhook" | "admin_manual" | "mt5_global_webhook" | "mt5_per_account_webhook">;
   origin?: "user" | "global";
@@ -66,6 +66,26 @@ interface SignalsResponse {
 }
 
 const QUERY_KEY = "admin-signals";
+
+function brokerLabel(broker?: SignalLog["broker"]) {
+  if (broker === "eo") return "ExpertOption";
+  if (broker === "olymp") return "Olymp Trade";
+  if (broker === "mt5") return "MT5 AutoTrade";
+  if (broker === "iq") return "IQ Option";
+  return "Mixed brokers";
+}
+
+function brokerShortLabel(broker?: SignalResult["broker"] | SignalLog["broker"]) {
+  if (broker === "eo") return "EO";
+  if (broker === "olymp") return "Olymp";
+  if (broker === "mt5") return "MT5";
+  if (broker === "iq") return "IQ";
+  return "Mixed";
+}
+
+function targetLabel(target: string) {
+  return target.replace("eo-", "EO ").replace("olymp-", "Olymp ").replace("mt5-", "MT5 ");
+}
 
 function ResultBadge({ result }: { result?: SignalResult["tradeResult"] }) {
   const value = result ?? "pending";
@@ -103,7 +123,7 @@ function PlacementBadge({ status }: { status: SignalResult["status"] }) {
 export function AdminSignalsManager() {
   const [page, setPage] = useState(1);
   const [expandedSignalId, setExpandedSignalId] = useState<string | null>(null);
-  const [brokerFilter, setBrokerFilter] = useState<"all" | "iq" | "eo" | "mt5">("all");
+  const [brokerFilter, setBrokerFilter] = useState<"all" | "iq" | "eo" | "olymp" | "mt5">("all");
   const [botFilter, setBotFilter] = useState<"all" | "pro" | "vip" | "mt5">("all");
   const [search, setSearch] = useState("");
 
@@ -208,7 +228,7 @@ export function AdminSignalsManager() {
           <div className="flex flex-col gap-1">
             <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Broker</p>
             <div className="inline-flex rounded-xl border border-white/[0.08] bg-black/20 p-1">
-              {(["all", "iq", "eo", "mt5"] as const).map((filter) => (
+              {(["all", "iq", "eo", "olymp", "mt5"] as const).map((filter) => (
                 <button
                   key={filter}
                   onClick={() => {
@@ -221,7 +241,7 @@ export function AdminSignalsManager() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {filter === "all" ? "All brokers" : filter === "iq" ? "IQ Option" : filter === "mt5" ? "MT5" : "ExpertOption"}
+                  {filter === "all" ? "All brokers" : filter === "iq" ? "IQ Option" : filter === "eo" ? "ExpertOption" : filter === "olymp" ? "Olymp Trade" : "MT5"}
                 </button>
               ))}
             </div>
@@ -302,11 +322,11 @@ export function AdminSignalsManager() {
                         </span>
                         {(signal.botTargets?.length ? signal.botTargets : [signal.botTarget]).map((target) => (
                           <Badge key={`${signal._id}-${target}`} variant="secondary" className="bg-white/[0.08] text-muted-foreground uppercase">
-                            {target.replace("eo-", "EO ").replace("mt5-", "MT5 ")}
+                            {targetLabel(target)}
                           </Badge>
                         ))}
                         <Badge variant="secondary" className="border border-white/10 bg-transparent text-muted-foreground">
-                          {signal.broker === "eo" ? "ExpertOption" : signal.broker === "iq" ? "IQ Option" : signal.broker === "mt5" ? "MT5 AutoTrade" : "Mixed brokers"}
+                          {brokerLabel(signal.broker)}
                         </Badge>
                         {signal.strategyName ? (
                           <Badge variant="secondary" className="border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
@@ -412,7 +432,7 @@ export function AdminSignalsManager() {
                                   <p>{result.fullName || result.email || "Unknown user"}</p>
                                   <p className="mt-0.5 text-xs font-normal text-muted-foreground">{result.email || "No email"}</p>
                                   <p className="mt-0.5 font-mono text-[10px] font-normal text-muted-foreground">
-                                    {result.broker === "eo" ? "EO" : "IQ"} ID: {result.accountId || result.userId}
+                                    {brokerShortLabel(result.broker)} ID: {result.accountId || result.userId}
                                     {result.accountName ? ` · ${result.accountName}` : ""}
                                     {result.accountMode ? ` · ${result.accountMode}` : ""}
                                   </p>

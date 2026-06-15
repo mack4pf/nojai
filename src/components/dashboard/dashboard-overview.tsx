@@ -33,7 +33,7 @@ import { MetaTrader5Icon } from "@/components/icons/metatrader5-icon";
 import { api, normalizeUserProfile } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import { formatCurrency, formatCurrencyBreakdown, formatDate, formatSignedCurrency } from "@/lib/utils";
-import type { EOAccount, UserProfile } from "@/types";
+import type { EOAccount, OlympAccount, UserProfile } from "@/types";
 
 interface BotStatusResponse {
   subscriptionActive: boolean;
@@ -70,6 +70,7 @@ interface Mt5TradeSummaryItem {
 
 interface ReturnsAccount {
   accountEmail?: string;
+  accountId?: string | number;
   broker?: string;
   currency: string;
   totalProfit: number;
@@ -111,9 +112,12 @@ interface DashboardOverviewProps {
   status?: string;
 }
 
+const BINARY_DEFAULT_ASSETS = ["EURUSD"];
+const MT5_DEFAULT_ASSETS = ["BTCUSD", "EURUSD", "XAUUSD"];
+
 export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOverviewProps) {
   const queryClient = useQueryClient();
-  const [activeBrokerState, setActiveBroker] = useState<"iq" | "eo" | "mt5" | null>(null);
+  const [activeBrokerState, setActiveBroker] = useState<"iq" | "eo" | "olymp" | "mt5" | null>(null);
   const [mobileBrokerMenuOpen, setMobileBrokerMenuOpen] = useState(false);
 
   const { data: profile } = useQuery({
@@ -147,6 +151,12 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
     enabled: hasSubscription,
   });
 
+  const { data: olympReturns } = useQuery<ReturnsResponse>({
+    queryKey: ["user-returns", "olymp"],
+    queryFn: async () => (await api.get("/user/returns?broker=olymp")).data as ReturnsResponse,
+    enabled: hasSubscription,
+  });
+
   // Today-only stats (refresh every 60s)
   const { data: iqTodayRaw } = useQuery<ReturnsResponse>({
     queryKey: ["user-returns-today", "iq"],
@@ -162,8 +172,16 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
     refetchInterval: 60_000,
   });
 
+  const { data: olympTodayRaw } = useQuery<ReturnsResponse>({
+    queryKey: ["user-returns-today", "olymp"],
+    queryFn: async () => (await api.get("/user/returns?broker=olymp&period=today")).data as ReturnsResponse,
+    enabled: hasSubscription,
+    refetchInterval: 60_000,
+  });
+
   const iqToday = iqTodayRaw as ReturnsResponse;
   const eoToday = eoTodayRaw as ReturnsResponse;
+  const olympToday = olympTodayRaw as ReturnsResponse;
 
 
 
@@ -173,6 +191,16 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
       const res = await api.get("/user/eo-accounts");
       const raw = res.data?.accounts ?? res.data;
       return (Array.isArray(raw) ? raw : []) as EOAccount[];
+    },
+    enabled: hasSubscription,
+  });
+
+  const { data: olympAccountsList } = useQuery({
+    queryKey: queryKeys.olympAccounts,
+    queryFn: async () => {
+      const res = await api.get("/user/olymp-accounts");
+      const raw = res.data?.accounts ?? res.data;
+      return (Array.isArray(raw) ? raw : []) as OlympAccount[];
     },
     enabled: hasSubscription,
   });
@@ -260,6 +288,47 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
     return Math.min((tradeProfit / invested) * 100, 150);
   })();
 
+  // Olymp Trade computed. Olymp supports several live accounts with their own
+  // currencies, so keep balances grouped instead of forcing one display currency.
+  const connectedOlympAccounts = Array.isArray(olympAccountsList) ? olympAccountsList.filter((a) => a.status === "connected") : [];
+  const hasOlymp = connectedOlympAccounts.length > 0;
+  const olympBalanceSummary = hasOlymp
+    ? formatCurrencyBreakdown(connectedOlympAccounts.map((a) => ({ currency: a.currency ?? "USD", amount: Number(a.balance ?? 0) })))
+    : null;
+  const olympRealBalanceSummary = hasOlymp
+    ? formatCurrencyBreakdown(
+        connectedOlympAccounts
+          .filter((a) => a.accountGroup !== "demo")
+          .map((a) => ({ currency: a.currency ?? "USD", amount: Number(a.balance ?? 0) })),
+      )
+    : null;
+  const olympDemoBalanceSummary = hasOlymp
+    ? formatCurrencyBreakdown(
+        connectedOlympAccounts
+          .filter((a) => a.accountGroup === "demo")
+          .map((a) => ({ currency: a.currency ?? "USD", amount: Number(a.balance ?? 0) })),
+      )
+    : null;
+  const olympAccountReturnsById = new Map(
+    (olympReturns?.byAccount ?? []).map((entry) => [String(entry.accountId ?? entry.accountEmail ?? ""), entry]),
+  );
+  const olympTodayProfitSummary = olympToday?.byAccount?.length
+    ? formatCurrencyBreakdown(olympToday.byAccount.map((entry) => ({ currency: entry.currency, amount: entry.totalProfit })))
+    : formatSignedCurrency(olympToday?.totalProfit ?? 0, "USD");
+
+  const olympGrowthPercent = (() => {
+    if (!hasOlymp || !olympReturns) return 0;
+    const balProfit = olympReturns.balanceProfit;
+    const startBal  = olympReturns.startingBalance ?? 0;
+    if (typeof balProfit === "number" && balProfit > 0 && startBal >= 20) {
+      return Math.min((balProfit / startBal) * 100, 150);
+    }
+    const tradeProfit = olympReturns.tradeNetProfit ?? olympReturns.totalProfit ?? 0;
+    const invested    = olympReturns.totalInvested ?? 0;
+    if (invested <= 0 || tradeProfit <= 0) return 0;
+    return Math.min((tradeProfit / invested) * 100, 150);
+  })();
+
   const connectedMt5Accounts = mt5Accounts.filter((a) => a.status !== "disconnected");
   const readyMt5Accounts = connectedMt5Accounts.filter((a) => a.status === "connected" && a.isSynchronized);
   const mt5Balance = connectedMt5Accounts.reduce((sum, account) => sum + Number(account.balance ?? 0), 0);
@@ -270,7 +339,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
   const mt5SlCount = mt5Trades.filter((trade) => String(trade.result ?? "").toLowerCase() === "sl").length;
   const mt5NetProfit = mt5Trades.reduce((sum, trade) => sum + Number(trade.profit ?? 0), 0);
 
-  const growthPercent = activeBroker === "eo" ? eoGrowthPercent : iqGrowthPercent;
+  const growthPercent = activeBroker === "eo" ? eoGrowthPercent : activeBroker === "olymp" ? olympGrowthPercent : iqGrowthPercent;
   const nextPlan = String(selectedPlan ?? "").trim().toUpperCase();
   const { isConnected } = useDashboardSocket();
 
@@ -299,6 +368,24 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
       </div>
 
       {hasSubscription && <NotificationPermissionPrompt />}
+
+      {hasSubscription && (
+        <div className="dashboard-solid-panel rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-300/70">Default trading assets</p>
+          <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+            {hasBinaryAccess && (
+              <p className="text-muted-foreground">
+                Binary Options: <strong className="font-bold text-foreground">{BINARY_DEFAULT_ASSETS.join(", ")}</strong>
+              </p>
+            )}
+            {hasForexAccess && (
+              <p className="text-muted-foreground">
+                MT5 Leverage: <strong className="font-bold text-foreground">{MT5_DEFAULT_ASSETS.join(", ")}</strong>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Payment banners */}
       {status === "success" && (
@@ -335,7 +422,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
       )}
 
       {/* Broker switcher tabs */}
-      {hasSubscription && (hasBinaryAccess && hasForexAccess) && (
+      {hasSubscription && (hasBinaryAccess || hasForexAccess) && (
         <>
           <div className="dashboard-solid-panel relative rounded-2xl border border-white/[0.07] bg-white/[0.02] p-2 sm:hidden">
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Overview broker</p>
@@ -352,12 +439,14 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
                     <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={18} height={18} className="h-full w-full object-contain" />
                   ) : activeBroker === "eo" ? (
                     <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={18} height={18} className="h-full w-full object-contain" />
+                  ) : activeBroker === "olymp" ? (
+                    <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={18} height={18} className="h-full w-full rounded-lg object-cover" />
                   ) : (
                     <MetaTrader5Icon className="h-full w-full" stroke="#011118" />
                   )}
                 </span>
                 <span className="truncate">
-                  {activeBroker === "iq" ? "IQ Option" : activeBroker === "eo" ? "ExpertOption" : "MT5"}
+                  {activeBroker === "iq" ? "IQ Option" : activeBroker === "eo" ? "ExpertOption" : activeBroker === "olymp" ? "Olymp Trade" : "MT5"}
                 </span>
               </span>
               <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${mobileBrokerMenuOpen ? "rotate-180" : ""}`} />
@@ -402,6 +491,26 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
                     {hasEo && <span className="rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-bold text-blue-400">{connectedEoAccounts.length}</span>}
                   </span>
                   {activeBroker === "eo" ? <Check className="h-4 w-4 text-blue-400" /> : null}
+                </button>
+                )}
+
+                {hasBinaryAccess && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveBroker("olymp");
+                    setMobileBrokerMenuOpen(false);
+                  }}
+                  className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left hover:bg-muted/60 dark:hover:bg-white/[0.06]"
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-sm">
+                      <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={18} height={18} className="h-full w-full rounded-lg object-cover" />
+                    </span>
+                    <span className="text-sm font-semibold">Olymp Trade</span>
+                    {hasOlymp && <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400">{connectedOlympAccounts.length}</span>}
+                  </span>
+                  {activeBroker === "olymp" ? <Check className="h-4 w-4 text-emerald-400" /> : null}
                 </button>
                 )}
 
@@ -465,6 +574,26 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
             {hasEo && (
               <span className="rounded-full bg-blue-500/20 px-1.5 py-0.5 text-[10px] font-bold text-blue-400">
                 {connectedEoAccounts.length}
+              </span>
+            )}
+          </button>
+          )}
+          {hasBinaryAccess && (
+          <button
+            onClick={() => setActiveBroker("olymp")}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all ${
+              activeBroker === "olymp"
+                ? "bg-emerald-600 text-white shadow-sm ring-1 ring-emerald-400/25"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1 shadow-sm">
+              <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={18} height={18} className="h-full w-full rounded-lg object-cover" />
+            </span>
+            <span>Olymp Trade</span>
+            {hasOlymp && (
+              <span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400">
+                {connectedOlympAccounts.length}
               </span>
             )}
           </button>
@@ -1054,16 +1183,245 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
         </>
       )}
 
+      {activeBroker === "olymp" && hasSubscription && hasBinaryAccess && (
+        <>
+          <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+            <div className="dashboard-solid-panel rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-emerald-300/70 sm:text-[11px]">Plan</p>
+                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-500/20 sm:h-7 sm:w-7">
+                  <CreditCard className="h-3 w-3 text-emerald-400 sm:h-3.5 sm:w-3.5" />
+                </div>
+              </div>
+              <p className="mt-2 font-display text-base font-semibold sm:mt-3 sm:text-2xl">{activePlan === "NONE" ? "â€”" : activePlan}</p>
+              <p className="mt-0.5 text-[10px] text-emerald-300/50 sm:mt-1 sm:text-xs">
+                {hasSubscription ? `Expires ${formatDate(botStatus?.expiresAt ?? profile?.subscription?.expiresAt)}` : "No active plan"}
+              </p>
+            </div>
+            <div className="dashboard-solid-panel rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-cyan-300/70 sm:text-[11px]">Olymp Accounts</p>
+                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-cyan-500/20 sm:h-7 sm:w-7">
+                  <MonitorSmartphone className="h-3 w-3 text-cyan-400 sm:h-3.5 sm:w-3.5" />
+                </div>
+              </div>
+              <p className="mt-2 font-display text-base font-semibold sm:mt-3 sm:text-2xl">
+                {hasOlymp ? `${connectedOlympAccounts.length} Active` : "â€”"}
+              </p>
+              <p className="mt-0.5 text-[10px] text-cyan-300/50 sm:mt-1 sm:text-xs">
+                {hasOlymp
+                  ? `${connectedOlympAccounts.filter((a) => a.accountGroup !== "demo").length} live · ${connectedOlympAccounts.filter((a) => a.accountGroup === "demo").length} demo`
+                  : "No Olymp account linked"}
+              </p>
+            </div>
+            <div className="dashboard-solid-panel rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-amber-300/70 sm:text-[11px]">Total Balance</p>
+                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-500/20 sm:h-7 sm:w-7">
+                  <Wallet className="h-3 w-3 text-amber-400 sm:h-3.5 sm:w-3.5" />
+                </div>
+              </div>
+              <p className="mt-2 font-display text-base font-semibold sm:mt-3 sm:text-2xl">
+                {hasOlymp ? olympBalanceSummary : "â€”"}
+              </p>
+              <p className="mt-0.5 text-[10px] text-amber-300/50 sm:mt-1 sm:text-xs">Grouped by account currency</p>
+            </div>
+            <div className="dashboard-solid-panel rounded-2xl border border-teal-500/20 bg-teal-500/10 p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-teal-300/70 sm:text-[11px]">Live Balance</p>
+                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-teal-500/20 sm:h-7 sm:w-7">
+                  <TrendingUp className="h-3 w-3 text-teal-400 sm:h-3.5 sm:w-3.5" />
+                </div>
+              </div>
+              <p className="mt-2 font-display text-base font-semibold sm:mt-3 sm:text-2xl">
+                {hasOlymp ? olympRealBalanceSummary : "â€”"}
+              </p>
+              <p className="mt-0.5 text-[10px] text-teal-300/50 sm:mt-1 sm:text-xs">Demo: {hasOlymp ? olympDemoBalanceSummary : "â€”"}</p>
+            </div>
+            <div className="dashboard-solid-panel col-span-2 rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 xl:col-span-1">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-rose-300/70 sm:text-[11px]">Olymp Returns</p>
+                <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-rose-500/20 sm:h-7 sm:w-7">
+                  <PercentCircle className="h-3 w-3 text-rose-400 sm:h-3.5 sm:w-3.5" />
+                </div>
+              </div>
+              <p className="mt-2 font-display text-base font-semibold sm:mt-3 sm:text-2xl">
+                {olympReturns ? `${olympReturns.winRate}% win` : "â€”"}
+              </p>
+              <p className="mt-0.5 text-[10px] text-rose-300/50 sm:mt-1 sm:text-xs">
+                {olympReturns ? `${olympReturns.wonCount}W / ${olympReturns.lostCount}L · ${olympReturns.totalTrades} trades` : "No Olymp trades yet"}
+              </p>
+              {olympReturns && (olympReturns.byAccount || []).length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {(olympReturns.byAccount || []).map((entry, idx) => (
+                    <span key={entry.accountEmail ?? `${entry.currency}-${idx}`} className={`text-[10px] font-semibold ${entry.totalProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {formatSignedCurrency(entry.totalProfit, entry.currency)}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {olympToday && olympToday.totalTrades > 0 && (
+            <div className={`rounded-2xl border p-4 ${
+              olympToday.isProfitable
+                ? "border-emerald-500/20 bg-emerald-500/[0.06]"
+                : "border-red-500/20 bg-red-500/[0.06]"
+            }`}>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className={`text-[10px] font-semibold uppercase tracking-wider sm:text-[11px] ${
+                    olympToday.isProfitable ? "text-emerald-300/70" : "text-red-300/70"
+                  }`}>Today's Olymp Performance</p>
+                  <p className={`mt-1 font-display text-2xl font-bold sm:text-3xl ${
+                    olympToday.isProfitable ? "text-emerald-300" : "text-red-400"
+                  }`}>
+                    {olympTodayProfitSummary}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-3 text-[10px] sm:text-xs">
+                    <span className="text-muted-foreground">Basis: <span className="font-medium text-foreground">{olympToday.profitBasis === "balance" ? "balance" : "closed trades"}</span></span>
+                    <span className="text-emerald-400 font-semibold">Gross wins: +{olympToday.grossWinnings.toFixed(2)}</span>
+                    <span className="text-red-400 font-semibold">Loss stake: -{olympToday.grossLosses.toFixed(2)}</span>
+                    <span className="text-muted-foreground">Trade net: <span className="font-medium text-foreground">{(olympToday.tradeNetProfit ?? olympToday.totalProfit).toFixed(2)}</span></span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className={`text-[10px] font-semibold uppercase tracking-wider ${
+                    olympToday.isProfitable ? "text-emerald-300/60" : "text-red-300/60"
+                  }`}>{olympToday.startingBalance ? "Account Growth" : "Trade ROI"}</p>
+                  <p className={`font-display text-xl font-bold ${
+                    olympToday.isProfitable ? "text-emerald-300" : "text-red-400"
+                  }`}>
+                    {olympToday.startingBalance
+                      ? `${((olympToday.totalProfit / olympToday.startingBalance!) * 100).toFixed(1)}%`
+                      : olympToday.totalInvested > 0
+                      ? `${(((olympToday.tradeNetProfit ?? olympToday.totalProfit) / olympToday.totalInvested) * 100).toFixed(1)}%`
+                      : "â€”"}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">{olympToday.winRate}% win · {olympToday.recoveryRate ?? 0}% recovery · {olympToday.totalTrades} trades</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {hasOlymp ? (
+            <div className="dashboard-solid-panel rounded-3xl border border-emerald-500/25 bg-emerald-500/[0.03] p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-lg bg-white p-1">
+                      <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={20} height={20} className="h-full w-full rounded-md object-cover" />
+                    </span>
+                    <h3 className="font-display text-base font-bold sm:text-lg">Olymp Trade Accounts</h3>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground sm:text-sm">Balances, live/demo account groups, trade amount, and currency-aware profit analytics.</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-emerald-600 px-2.5 py-1 text-[10px] font-bold text-white">{connectedOlympAccounts.length} Active</span>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {connectedOlympAccounts.map((account) => {
+                  const accountReturns = olympAccountReturnsById.get(String(account.accountId));
+                  return (
+                    <div key={account.accountId} className="dashboard-solid-panel rounded-2xl border border-emerald-500/20 bg-white/[0.03] p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-display text-sm font-bold sm:text-base">{account.name || account.email || `Account #${account.accountId}`}</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground sm:text-xs">ID: {account.accountId}</p>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">Connected</span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${account.accountGroup === "demo" ? "bg-slate-500/20 text-slate-300" : "bg-amber-500/20 text-amber-300"}`}>
+                            {account.accountGroup === "demo" ? "Demo" : "Live"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <div className="dashboard-solid-panel rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2.5 ring-1 ring-emerald-500/20 sm:p-3">
+                          <p className="text-[9px] font-semibold uppercase tracking-wider text-emerald-300/70 sm:text-[10px]">Balance</p>
+                          <p className="mt-1 font-display text-base font-bold text-emerald-100 sm:text-lg">{formatCurrency(Number(account.balance ?? 0), account.currency ?? "USD")}</p>
+                        </div>
+                        <div className="dashboard-solid-panel rounded-xl border border-blue-500/20 bg-blue-500/10 p-2.5 ring-1 ring-blue-500/20 sm:p-3">
+                          <p className="text-[9px] font-semibold uppercase tracking-wider text-blue-300/70 sm:text-[10px]">Trade Amount</p>
+                          <p className="mt-1 font-display text-base font-bold text-blue-100 sm:text-lg">{formatCurrency(account.baseAmount, account.currency ?? "USD")}</p>
+                        </div>
+                        <div className="dashboard-solid-panel rounded-xl border border-white/[0.04] bg-white/[0.04] p-2.5 ring-1 ring-white/10 sm:p-3">
+                          <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-[10px]">Currency</p>
+                          <p className="mt-1 text-xs font-semibold sm:text-sm">{account.currency ?? "USD"}</p>
+                        </div>
+                        <div className="dashboard-solid-panel rounded-xl border border-white/[0.04] bg-white/[0.04] p-2.5 ring-1 ring-white/10 sm:p-3">
+                          <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-[10px]">Last Sync</p>
+                          <p className="mt-1 text-xs font-semibold sm:text-sm">{formatDate(account.lastConnected)}</p>
+                        </div>
+                      </div>
+                      {accountReturns && accountReturns.totalTrades > 0 && (
+                        <div className="dashboard-solid-panel mt-3 rounded-xl border border-white/[0.04] bg-white/[0.03] p-2.5 ring-1 ring-white/[0.06]">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] text-muted-foreground">Net profit</span>
+                            <span className={`text-xs font-bold ${accountReturns.totalProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                              {formatSignedCurrency(accountReturns.totalProfit, accountReturns.currency ?? account.currency ?? "USD")}
+                            </span>
+                          </div>
+                          <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
+                            <div className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400" style={{ width: `${Math.min(accountReturns.winRate, 100)}%` }} />
+                          </div>
+                          <p className="mt-1 text-[10px] text-muted-foreground">{accountReturns.winRate}% win rate · {accountReturns.totalTrades} trades</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <Button asChild variant="outline" size="sm" className="mt-3 w-full sm:w-auto">
+                <Link href="/dashboard/accounts?broker=olymp">Manage Olymp accounts <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-3xl border border-emerald-500/[0.12] bg-emerald-500/[0.03] p-6 text-center sm:p-8">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center overflow-hidden rounded-2xl bg-white p-2">
+                <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={44} height={44} className="h-10 w-10 rounded-xl object-cover" />
+              </div>
+              <h3 className="mt-4 font-display text-base font-bold sm:text-lg">Connect Olymp Trade</h3>
+              <p className="mt-2 text-sm text-muted-foreground">Link your Olymp Trade account to start automated trading and see currency-aware balances here.</p>
+              <Button asChild className="mt-5" style={{ background: "#059669" }}>
+                <Link href="/dashboard/accounts?broker=olymp">Connect Olymp Trade <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+            </div>
+          )}
+        </>
+      )}
+
       {/* Broker card (Trading Plan only shown when not yet subscribed) */}
       <div className={`grid grid-cols-1 gap-4 ${!hasSubscription ? "lg:grid-cols-2" : ""}`}>
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <h3 className="font-display text-sm font-semibold sm:text-base">Broker Connection</h3>
-            <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${hasIq || hasEo ? "bg-emerald-500 text-white" : "bg-amber-500/80 text-white"}`}>
-              {hasIq || hasEo ? "Connected" : "Pending"}
+            <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${hasIq || hasEo || hasOlymp ? "bg-emerald-500 text-white" : "bg-amber-500/80 text-white"}`}>
+              {hasIq || hasEo || hasOlymp ? "Connected" : "Pending"}
             </span>
           </div>
           <div className="mt-3 space-y-2">
+            {hasBinaryAccess && (
+            <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1 sm:h-10 sm:w-10">
+                <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={32} height={32} className="h-7 w-7 rounded-lg object-cover sm:h-8 sm:w-8" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold">Olymp Trade</p>
+                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold text-white ${hasOlymp ? "bg-emerald-500" : "bg-slate-600"}`}>{hasOlymp ? "Active" : "Connect"}</span>
+                </div>
+                <p className="truncate text-[11px] text-muted-foreground">
+                  {hasOlymp ? `${connectedOlympAccounts.length} account${connectedOlympAccounts.length > 1 ? "s" : ""} connected` : "Multi-currency binary trading"}
+                </p>
+              </div>
+              {!hasOlymp && (
+                <Button asChild size="sm" variant="outline" className="shrink-0 text-xs h-7 px-2">
+                  <Link href="/dashboard/accounts?broker=olymp">Connect</Link>
+                </Button>
+              )}
+            </div>
+            )}
             {hasBinaryAccess && (
             <div className="flex items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-1 sm:h-10 sm:w-10">
@@ -1121,7 +1479,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
           </div>
           <Button asChild variant="outline" size="sm" className="mt-3 w-full sm:w-auto">
             <Link href="/dashboard/accounts">
-              {hasIq || hasEo ? "Manage brokers" : "Connect broker"} <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              {hasIq || hasEo || hasOlymp ? "Manage brokers" : "Connect broker"} <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
             </Link>
           </Button>
         </div>
@@ -1137,10 +1495,10 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
           <div className="mt-3 space-y-2">
             {(hasSubscription
               ? activePlan === "VIP"
-                ? ["IQ Option automation", "Expert Option automation", "Copy trading", "Webhook integrations", "Priority support"]
+                ? ["IQ Option automation", "Expert Option automation", "Olymp Trade automation", "Copy trading", "Webhook integrations", "Priority support"]
                 : activePlan === "PRO"
-                  ? ["IQ Option automation", "Expert Option automation", "Copy trading", "Expanded controls"]
-                  : ["IQ Option automation", "Expert Option automation", "Basic dashboard access"]
+                  ? ["IQ Option automation", "Expert Option automation", "Olymp Trade automation", "Copy trading", "Expanded controls"]
+                  : ["IQ Option automation", "Expert Option automation", "Olymp Trade automation", "Basic dashboard access"]
               : ["Choose a plan to get started"]
             ).map((f) => (
               <div key={f} className="flex items-center gap-2 text-xs text-muted-foreground sm:text-sm">
@@ -1185,7 +1543,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
         </div>
       )}
 
-      {/* Profitability chart — MT5 uses its own chart; IQ/EO use BalanceChart */}
+      {/* Profitability chart — MT5 uses its own chart; binary brokers use BalanceChart */}
       {hasSubscription && activeBroker === "mt5" && hasForexAccess ? (
         <Mt5ProfitabilityChart
           totalPips={mt5OverviewStats?.totalPips}
@@ -1194,7 +1552,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
           profitToday={mt5OverviewStats?.profitToday}
         />
       ) : (
-        hasSubscription && hasBinaryAccess && <BalanceChart broker={activeBroker as "iq" | "eo"} />
+        hasSubscription && hasBinaryAccess && activeBroker !== "mt5" && <BalanceChart broker={activeBroker as "iq" | "eo" | "olymp"} />
       )}
 
       {/* Review popup — only fires when account is genuinely growing */}

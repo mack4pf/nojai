@@ -14,7 +14,7 @@ interface SignalResultSummary {
   userId: string;
   email: string;
   fullName?: string;
-  broker?: "iq" | "eo" | "mt5";
+  broker?: "iq" | "eo" | "olymp" | "mt5";
   accountId?: string;
   accountName?: string;
   accountMode?: string;
@@ -35,9 +35,9 @@ interface SignalEntry {
   ticker: string;
   direction: "buy" | "sell";
   expirationSecs?: number;
-  broker?: "iq" | "eo" | "mt5" | "mixed";
-  botTarget: "pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user" | "mixed";
-  botTargets?: Array<"pro" | "vip" | "eo-pro" | "eo-vip" | "mt5-global" | "mt5-user">;
+  broker?: "iq" | "eo" | "olymp" | "mt5" | "mixed";
+  botTarget: "pro" | "vip" | "eo-pro" | "eo-vip" | "olymp-pro" | "olymp-vip" | "mt5-global" | "mt5-user" | "mixed";
+  botTargets?: Array<"pro" | "vip" | "eo-pro" | "eo-vip" | "olymp-pro" | "olymp-vip" | "mt5-global" | "mt5-user">;
   source: string;
   origin?: "user" | "global";
   sourceUser?: { id?: string | null; fullName?: string | null; email?: string | null } | null;
@@ -71,9 +71,29 @@ function getMartingaleLabel(results: SignalResultSummary[]): string {
   return `Up to Step ${max} · ${placements} account${placements !== 1 ? "s" : ""}`;
 }
 
+function targetLabel(target: string) {
+  return target.replace("eo-", "EO ").replace("olymp-", "Olymp ").replace("mt5-", "MT5 ");
+}
+
+function brokerShortLabel(broker?: SignalEntry["broker"] | SignalResultSummary["broker"]) {
+  if (broker === "eo") return "EO";
+  if (broker === "olymp") return "Olymp";
+  if (broker === "mt5") return "MT5";
+  if (broker === "iq") return "IQ";
+  return "Mixed";
+}
+
+function brokerLabel(broker?: SignalEntry["broker"]) {
+  if (broker === "eo") return "ExpertOption";
+  if (broker === "olymp") return "Olymp Trade";
+  if (broker === "mt5") return "MT5";
+  if (broker === "iq") return "IQ Option";
+  return "All brokers";
+}
+
 export function AdminSignalLog() {
   const [page, setPage] = useState(1);
-  const [brokerFilter, setBrokerFilter] = useState<"all" | "iq" | "eo" | "mt5">("all");
+  const [brokerFilter, setBrokerFilter] = useState<"all" | "iq" | "eo" | "olymp" | "mt5">("all");
   const [targetFilter, setTargetFilter] = useState<"all" | "pro" | "vip" | "mt5">("all");
   const [expandedSignalId, setExpandedSignalId] = useState<string | null>(null);
 
@@ -140,7 +160,7 @@ export function AdminSignalLog() {
 
       {/* Filter tabs */}
       <div className="flex flex-wrap gap-2">
-        {(["all", "iq", "eo", "mt5"] as const).map((f) => (
+        {(["all", "iq", "eo", "olymp", "mt5"] as const).map((f) => (
           <button
             key={f}
             onClick={() => {
@@ -153,7 +173,7 @@ export function AdminSignalLog() {
                 : "text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"
             }`}
           >
-            {f === "all" ? "All brokers" : f === "iq" ? "IQ Option" : f === "mt5" ? "MT5" : "ExpertOption"}
+            {f === "all" ? "All brokers" : brokerLabel(f)}
           </button>
         ))}
       </div>
@@ -276,11 +296,11 @@ export function AdminSignalLog() {
                                       : "bg-white/[0.08] text-muted-foreground"
                                 }`}
                               >
-                                {t.replace("eo-", "EO ")}
+                                {targetLabel(t)}
                               </span>
                             ))}
                             <span className="rounded-full bg-white/[0.08] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                              {signal.broker === "eo" ? "EO" : signal.broker === "iq" ? "IQ" : signal.broker === "mt5" ? "MT5" : "Mixed"}
+                              {brokerShortLabel(signal.broker)}
                             </span>
                           </div>
                         </td>
@@ -393,7 +413,7 @@ export function AdminSignalLog() {
                                         <p className="truncate font-medium text-foreground">{res.fullName || res.email || "Unknown user"}</p>
                                         <p className="truncate font-mono text-[10px] text-muted-foreground">{res.email || "No email"}</p>
                                         <p className="truncate font-mono text-[10px] text-muted-foreground">
-                                          {res.broker === "eo" ? "EO" : res.broker === "mt5" ? "MT5" : "IQ"} ID: {res.accountId || res.userId}
+                                          {brokerShortLabel(res.broker)} ID: {res.accountId || res.userId}
                                           {res.accountName ? ` · ${res.accountName}` : ""}
                                           {res.accountMode ? ` · ${res.accountMode}` : ""}
                                         </p>

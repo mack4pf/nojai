@@ -9,6 +9,7 @@ import { AlertTriangle, CheckCircle2, Eye, EyeOff, Info, RefreshCw, Trash2 } fro
 import { toast } from "sonner";
 
 import { EOAccountsManager } from "@/components/dashboard/eo-accounts-manager";
+import { OlympAccountsManager } from "@/components/dashboard/olymp-accounts-manager";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -57,11 +58,11 @@ export function AccountsManager() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Tab: "iq" or "eo", driven by ?broker= URL param
+  // Tab: "iq", "eo", or "olymp", driven by ?broker= URL param
   const brokerParam = searchParams?.get("broker");
-  const activeTab: "iq" | "eo" = brokerParam === "eo" ? "eo" : "iq";
+  const activeTab: "iq" | "eo" | "olymp" = brokerParam === "eo" ? "eo" : brokerParam === "olymp" ? "olymp" : "iq";
 
-  function switchTab(tab: "iq" | "eo") {
+  function switchTab(tab: "iq" | "eo" | "olymp") {
     router.replace(`/dashboard/accounts?broker=${tab}`);
   }
 
@@ -240,6 +241,19 @@ export function AccountsManager() {
             <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={20} height={20} className="h-5 w-5 object-contain" />
           </div>
           ExpertOption
+        </button>
+        <button
+          onClick={() => switchTab("olymp")}
+          className={`flex flex-1 items-center justify-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${
+            activeTab === "olymp"
+              ? "bg-emerald-500 text-white shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-xs font-black text-emerald-300">
+            OT
+          </div>
+          Olymp Trade
         </button>
       </div>
 
@@ -665,6 +679,11 @@ export function AccountsManager() {
       {/* Expert Option Tab */}
       {activeTab === "eo" && (
         <EOAccountsManager profile={profile} />
+      )}
+
+      {/* Olymp Trade Tab */}
+      {activeTab === "olymp" && (
+        <OlympAccountsManager profile={profile} />
       )}
     </div>
   );

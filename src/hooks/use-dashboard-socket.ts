@@ -10,7 +10,9 @@ import { toast } from "sonner";
 import { SOCKET_PROXY_PATH, BACKEND_ORIGIN } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import { useBrowserNotifications } from "@/hooks/use-browser-notifications";
-import type { EOAccount, IQAccount } from "@/types";
+import type { EOAccount, IQAccount, OlympAccount } from "@/types";
+
+type BinaryBroker = "iq" | "eo" | "olymp";
 
 let socket: Socket | null = null;
 
@@ -43,14 +45,14 @@ export function useDashboardSocket(enabled = true) {
       setIsConnected(false);
     });
 
-    socket.on("new-signal", (data: { ticker: string; signal: "buy" | "sell"; strategy: string; broker?: "iq" | "eo" }) => {
+    socket.on("new-signal", (data: { ticker: string; signal: "buy" | "sell"; strategy: string; broker?: BinaryBroker }) => {
       const brokerLabel = data.broker ? ` on ${data.broker.toUpperCase()}` : "";
       toast(`New ${data.strategy?.toUpperCase() ?? "SIGNAL"} Signal`, {
         description: `${data.ticker} ${data.signal.toUpperCase()}${brokerLabel}`,
       });
     });
 
-    socket.on("trade-placed", (data: { ticker: string; direction: string; amount: number; martingaleStep: number; account?: string; broker?: "iq" | "eo"; tokenId?: string }) => {
+    socket.on("trade-placed", (data: { ticker: string; direction: string; amount: number; martingaleStep: number; account?: string; broker?: BinaryBroker; tokenId?: string }) => {
       const brokerLabel = data.broker ? ` [${data.broker.toUpperCase()}]` : "";
       toast.success(`🚀 Trade Placed${brokerLabel}`, {
         description: `${data.ticker} for $${data.amount} (Step ${data.martingaleStep})`,
@@ -62,7 +64,7 @@ export function useDashboardSocket(enabled = true) {
       queryClient.invalidateQueries({ queryKey: queryKeys.trades() });
     });
 
-    socket.on("trade-completed", (data: { asset: string; result: string; profit: number; balance: number; account?: string; broker?: "iq" | "eo"; tokenId?: string }) => {
+    socket.on("trade-completed", (data: { asset: string; result: string; profit: number; balance: number; account?: string; broker?: BinaryBroker; tokenId?: string; tradeId?: string }) => {
       const won = data.result === "won" || data.result === "win";
       const draw = data.result === "draw";
       const brokerLabel = data.broker ? ` [${data.broker.toUpperCase()}]` : "";
@@ -98,11 +100,15 @@ export function useDashboardSocket(enabled = true) {
         );
       }
 
+      if (data.broker === "olymp") {
+        queryClient.invalidateQueries({ queryKey: queryKeys.olympAccounts });
+      }
+
       queryClient.invalidateQueries({ queryKey: queryKeys.trades() });
       queryClient.invalidateQueries({ queryKey: ["user-returns"] });
     });
 
-    socket.on("trade-error", (data: { asset: string; error: string; account?: string; broker?: "iq" | "eo"; tradeId?: string }) => {
+    socket.on("trade-error", (data: { asset: string; error: string; account?: string; broker?: BinaryBroker; tradeId?: string }) => {
       toast.error(`❌ Trade Failed: ${data.asset}`, {
         description: data.error,
       });
@@ -112,7 +118,7 @@ export function useDashboardSocket(enabled = true) {
       });
     });
 
-    socket.on("balance-update", (payload: { broker?: "iq" | "eo"; accountId?: string | number; accountEmail?: string; balance?: number; demoBalance?: number; realBalance?: number }) => {
+    socket.on("balance-update", (payload: { broker?: BinaryBroker; accountId?: string | number; accountEmail?: string; balance?: number; demoBalance?: number; realBalance?: number }) => {
       if (!payload.broker || payload.broker === "iq") {
         // IQ Option: update by accountId or email
         queryClient.setQueryData<IQAccount[]>(queryKeys.accounts, (current = []) =>
@@ -137,6 +143,17 @@ export function useDashboardSocket(enabled = true) {
                   realBalance: payload.realBalance ?? account.realBalance,
                   balance: payload.balance ?? account.balance,
                 }
+              : account,
+          ),
+        );
+      }
+
+      if (payload.broker === "olymp" && payload.accountId != null) {
+        const accountId = Number(payload.accountId);
+        queryClient.setQueryData<OlympAccount[]>(queryKeys.olympAccounts, (current = []) =>
+          current.map((account) =>
+            account.accountId === accountId
+              ? { ...account, balance: payload.balance ?? account.balance }
               : account,
           ),
         );

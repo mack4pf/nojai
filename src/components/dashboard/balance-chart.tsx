@@ -407,7 +407,7 @@ function ProfitabilityCanvas({ points, currency }: ProfitabilityCanvasProps) {
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export interface BalanceChartProps {
-  broker?: "iq" | "eo";
+  broker?: "iq" | "eo" | "olymp";
 }
 
 export function BalanceChart({ broker = "iq" }: BalanceChartProps) {
@@ -458,7 +458,7 @@ export function BalanceChart({ broker = "iq" }: BalanceChartProps) {
     queryFn: async () => {
       try {
         const params: Record<string, string | number> = { limit: 1000, page: 1 };
-        params.broker = broker === "eo" ? "eo" : "iq";
+        params.broker = broker;
         const res = await api.get<TradesResponse>("/user/trades", { params });
         return res.data;
       } catch {
@@ -751,7 +751,7 @@ export function BalanceChart({ broker = "iq" }: BalanceChartProps) {
     }, [isMultiDay, dailyReturnsData, tradesData, balanceHistory, period, customFrom, customTo, customInterval, dailyInterval, selectedCurrency]);
 
   const isPositive = totalPnl >= 0;
-  const brokerLabel = broker === "eo" ? "ExpertOption" : "IQ Option";
+  const brokerLabel = broker === "eo" ? "ExpertOption" : broker === "olymp" ? "Olymp Trade" : "IQ Option";
   const hasMultipleCurrencies = availableCurrencies.length > 1;
 
   return (

@@ -29,7 +29,7 @@ interface TradeItem {
   status: string;
   source: string;
   martingaleStep: number;
-  broker?: "iq" | "eo" | "mt5";
+  broker?: "iq" | "eo" | "olymp" | "mt5";
   lot?: number;
   openPrice?: number;
   closePrice?: number;
@@ -66,7 +66,7 @@ function normalizeTradeDirection(direction?: string) {
   return value === "call" ? "call" : value === "put" ? "put" : "call";
 }
 
-function BrokerBadge({ broker }: { broker?: "iq" | "eo" | "mt5" }) {
+function BrokerBadge({ broker }: { broker?: "iq" | "eo" | "olymp" | "mt5" }) {
   if (broker === "mt5") {
     return (
       <span className="flex items-center gap-1.5 rounded bg-cyan-500/20 px-2 py-0.5 text-[10px] font-bold text-cyan-300">
@@ -74,6 +74,21 @@ function BrokerBadge({ broker }: { broker?: "iq" | "eo" | "mt5" }) {
           <MetaTrader5Icon className="h-full w-full" stroke="#011118" />
         </span>
         MT5
+      </span>
+    );
+  }
+
+  if (broker === "olymp") {
+    return (
+      <span className="flex items-center gap-1.5 rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
+        <Image
+          src="/autobot-assets/olymptrade.jpeg"
+          alt="Olymp"
+          width={12}
+          height={12}
+          className="h-3 w-3 rounded-sm object-contain"
+        />
+        Olymp Trade
       </span>
     );
   }
@@ -96,7 +111,7 @@ function BrokerBadge({ broker }: { broker?: "iq" | "eo" | "mt5" }) {
 
 export function TradesHistory() {
   const [page, setPage] = useState(1);
-  const [brokerFilter, setBrokerFilter] = useState<"all" | "iq" | "eo" | "mt5">("all");
+  const [brokerFilter, setBrokerFilter] = useState<"all" | "iq" | "eo" | "olymp" | "mt5">("all");
   const limit = 20;
 
   const { data: profile } = useQuery({
@@ -153,6 +168,20 @@ export function TradesHistory() {
           <Image src="/autobot-assets/iq-option-small.svg" alt="IQ" width={14} height={14} className="h-3 w-3 object-contain sm:h-3.5 sm:w-3.5" />
           <span className="sm:hidden">IQ</span>
           <span className="hidden sm:inline">IQ Option</span>
+        </button>
+        )}
+        {hasBinary && (
+        <button
+          onClick={() => { setBrokerFilter("olymp"); setPage(1); }}
+          className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors sm:gap-1.5 sm:px-3 ${
+            brokerFilter === "olymp"
+              ? "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-500/30"
+              : "border border-white/10 text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp" width={14} height={14} className="h-3 w-3 rounded-sm object-contain sm:h-3.5 sm:w-3.5" />
+          <span className="sm:hidden">Olymp</span>
+          <span className="hidden sm:inline">Olymp Trade</span>
         </button>
         )}
         {hasBinary && (

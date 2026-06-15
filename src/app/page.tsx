@@ -11,7 +11,7 @@ export const revalidate = 0;
 export const metadata: Metadata = {
   title: "NOJAI — Automated Trading for Binary Options & Forex",
   description:
-    "Automated trading for Binary Options, Forex, and MT5. Over 15k+ successful trades executed. Connect any broker including IQ Option, Expert Option, and more.",
+    "Automated trading for Binary Options, Forex, and MT5. Connect IQ Option, Expert Option, Olymp Trade, or MT5. Binary default: EURUSD. MT5 defaults: BTCUSD, EURUSD, XAUUSD.",
   alternates: { canonical: "https://nojai.io" },
   openGraph: {
     title: "NOJAI — Advanced Trading Automation & Copy Trading",
@@ -72,7 +72,7 @@ export default async function Home() {
     applicationCategory: "FinanceApplication",
     operatingSystem: "Web",
     description:
-      "Advanced trading automation for Binary Options and Forex. Connect any broker including MT5, IQ Option, and Expert Option for 24/7 automated execution.",
+      "Advanced trading automation for Binary Options and Forex. Connect MT5, IQ Option, Expert Option, and Olymp Trade for 24/7 automated execution. Binary default: EURUSD. MT5 defaults: BTCUSD, EURUSD, XAUUSD.",
     offers: pricingPlans.map((plan) => ({
       "@type": "Offer",
       name: plan.name,
@@ -102,7 +102,7 @@ export default async function Home() {
     },
     {
       question: "Which brokers does NOJAI support?",
-      answer: "NOJAI supports a wide range of brokers including IQ Option, Expert Option, and any MT5-compatible broker. We are constantly adding support for more platforms.",
+      answer: "NOJAI supports IQ Option, Expert Option, Olymp Trade, and any MT5-compatible broker. Binary Options default to EURUSD, while MT5 leverage trading defaults to BTCUSD, EURUSD, and XAUUSD.",
     },
     {
       question: "Can I copy trade on MT5 with NOJAI?",
@@ -114,7 +114,7 @@ export default async function Home() {
     },
     {
       question: "How do I connect my broker to NOJAI?",
-      answer: "Connecting is simple. Use our secure dashboard to link your IQ Option, Expert Option, or MT5 account. Setup takes less than 5 minutes.",
+      answer: "Connecting is simple. Use our secure dashboard to link your IQ Option, Expert Option, Olymp Trade, or MT5 account. Setup takes less than 5 minutes.",
     },
     {
       question: "Does NOJAI have an affiliate program for influencers?",

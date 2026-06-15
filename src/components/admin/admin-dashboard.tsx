@@ -123,18 +123,21 @@ interface AdminOverview {
     byBroker?: {
       iq?: BrokerTradeStats;
       eo?: BrokerTradeStats;
+      olymp?: BrokerTradeStats;
     };
   };
   profitByCurrency?: ProfitByCurrency[];
   profit?: {
     iq?: { byCurrency: ProfitByCurrency[] };
     eo?: { currency: string; totalProfit: number; wonCount: number; lostCount: number; winRate: number; isProfitable: boolean };
+    olymp?: { currency: string; totalProfit: number; wonCount: number; lostCount: number; winRate: number; isProfitable: boolean };
   };
   signals: { total: number; today: number; last7Days: SignalWindowSummary };
   connectedAccounts?: {
     live?: number;
     iq?: { byCurrency: ConnectedAccountsByCurrency[] };
     eo?: { currency: string; userCount: number; accountCount: number; totalBalance: number };
+    olymp?: { currency: string; userCount: number; accountCount: number; totalBalance: number };
   };
 }
 
@@ -498,7 +501,7 @@ export function AdminDashboard() {
           })()}
 
           {/* Broker performance cards */}
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {/* IQ Option */}
             {(() => {
               const iq = overview?.trades.byBroker?.iq;
@@ -576,6 +579,43 @@ export function AdminDashboard() {
                 </div>
               );
             })()}
+
+            {/* Olymp Trade */}
+            {(() => {
+              const olymp = overview?.trades.byBroker?.olymp;
+              const olympProfit = overview?.profit?.olymp;
+              const olympWinRate = olymp && olymp.wonCount + olymp.lostCount > 0 ? Math.round((olymp.wonCount / (olymp.wonCount + olymp.lostCount)) * 100) : 0;
+              return (
+                <div className="rounded-2xl border border-white/[0.06] bg-emerald-500/[0.04] p-4">
+                  <div className="flex items-center gap-2">
+                    <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp" width={16} height={16} className="h-4 w-4 rounded-sm object-contain" />
+                    <span className="text-xs font-semibold text-emerald-300">Olymp Trade</span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-y-3 text-[11px]">
+                    <div>
+                      <p className="text-muted-foreground">Win rate</p>
+                      <p className="mt-0.5 text-lg font-bold text-emerald-400">{olympWinRate}%</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Total trades</p>
+                      <p className="mt-0.5 text-lg font-bold text-foreground">{(olymp?.totalTrades ?? 0).toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Won / Lost</p>
+                      <p className="mt-0.5 font-semibold text-foreground">{olymp?.wonCount ?? 0}W · {olymp?.lostCount ?? 0}L</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Net profit</p>
+                      {olympProfit ? (
+                        <p className={`mt-0.5 font-semibold ${olympProfit.totalProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          {olympProfit.totalProfit >= 0 ? "+" : ""}{formatCurrency(olympProfit.totalProfit, "USD")}
+                        </p>
+                      ) : <p className="mt-0.5 font-semibold text-muted-foreground">—</p>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Signal delivery */}
@@ -598,7 +638,7 @@ export function AdminDashboard() {
           </div>
 
           {/* Connected accounts by broker */}
-          {(overview?.connectedAccounts?.iq || overview?.connectedAccounts?.eo) && (
+          {(overview?.connectedAccounts?.iq || overview?.connectedAccounts?.eo || overview?.connectedAccounts?.olymp) && (
             <div className="mt-4 rounded-2xl border border-white/[0.06] bg-black/10 p-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Connected accounts by broker</p>
               <div className="mt-3 space-y-2">
@@ -625,6 +665,19 @@ export function AdminDashboard() {
                       <span><span className="font-semibold text-foreground">{overview.connectedAccounts.eo.userCount}</span> users</span>
                       <span><span className="font-semibold text-foreground">{overview.connectedAccounts.eo.accountCount}</span> accts</span>
                       <span className="font-semibold text-foreground">{formatCurrency(overview.connectedAccounts.eo.totalBalance, "USD")}</span>
+                    </div>
+                  </div>
+                )}
+                {overview.connectedAccounts.olymp && (
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.05] bg-emerald-500/[0.04] px-3 py-2.5 text-xs">
+                    <div className="flex items-center gap-1.5 text-emerald-300 font-semibold">
+                      <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp" width={12} height={12} className="h-3 w-3 rounded-sm object-contain" />
+                      Olymp · USD
+                    </div>
+                    <div className="flex items-center gap-4 text-muted-foreground">
+                      <span><span className="font-semibold text-foreground">{overview.connectedAccounts.olymp.userCount}</span> users</span>
+                      <span><span className="font-semibold text-foreground">{overview.connectedAccounts.olymp.accountCount}</span> accts</span>
+                      <span className="font-semibold text-foreground">{formatCurrency(overview.connectedAccounts.olymp.totalBalance, "USD")}</span>
                     </div>
                   </div>
                 )}
