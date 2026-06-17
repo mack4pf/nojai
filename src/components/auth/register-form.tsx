@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Eye, EyeOff, ArrowLeft, ChevronRight, Check,
-  ExternalLink, Copy, Sparkles,
+  Sparkles,
 } from "lucide-react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,8 +13,6 @@ import { useForm } from "react-hook-form";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { z } from "zod";
-
-import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -24,13 +22,9 @@ import { API_BASE_URL, api } from "@/lib/api";
 
 // Types
 type Source = "telegram" | "youtube" | "google" | "tiktok" | "ai" | "other";
-type HasIQ = "yes" | "no";
+type PlatformInterest = "iq" | "expert_option" | "olymp_trade" | "mt5" | "copy_trading" | "signals";
 type Level = "beginner" | "intermediate" | "expert";
 type Usage = "full_auto" | "alongside" | "other";
-
-// Constants
-const IQ_LINK = "https://affiliate.iqoption.net/redir/?aff=785369&aff_model=revenue&afftrack=";
-const BONUS_CODE = "Niels100";
 
 // SVG logos
 function TelegramLogo({ size = 28 }: { size?: number }) {
@@ -96,6 +90,15 @@ const SOURCES: { value: Source; label: string; sub: string; Logo: React.FC<{ siz
   { value: "tiktok", label: "TikTok", sub: "Video or ad", Logo: TikTokLogo },
   { value: "ai", label: "ChatGPT / AI", sub: "AI recommendation", Logo: OpenAILogo },
   { value: "other", label: "Other", sub: "Word of mouth etc", Logo: OtherLogo },
+];
+
+const PLATFORM_OPTIONS: { value: PlatformInterest; label: string; desc: string }[] = [
+  { value: "olymp_trade", label: "Olymp Trade", desc: "Free tier and binary automation" },
+  { value: "iq", label: "IQ Option", desc: "Binary options automation" },
+  { value: "expert_option", label: "Expert Option", desc: "Expert Option bot access" },
+  { value: "mt5", label: "MT5 / Forex", desc: "MetaTrader 5 automation" },
+  { value: "copy_trading", label: "Copy Trading", desc: "Copy expert or admin trades" },
+  { value: "signals", label: "TradingView Signals", desc: "Webhook and signal automation" },
 ];
 
 const LEVELS: { value: Level; label: string; desc: string; emoji: string }[] = [
@@ -181,7 +184,7 @@ export function RegisterForm({ selectedPlan, referralCode }: RegisterFormProps) 
   const [registeredEmail, setRegisteredEmail] = useState("");
 
   const [source, setSource] = useState<Source | null>(null);
-  const [hasIQ, setHasIQ] = useState<HasIQ | null>(null);
+  const [interestedPlatforms, setInterestedPlatforms] = useState<PlatformInterest[]>([]);
   const [level, setLevel] = useState<Level | null>(null);
   const [usage, setUsage] = useState<Usage | null>(null);
 
@@ -233,7 +236,8 @@ export function RegisterForm({ selectedPlan, referralCode }: RegisterFormProps) 
     try {
       await api.post("/user/onboarding-survey", {
         referralSource: source,
-        hasIQAccount: hasIQ === "yes",
+        interestedPlatforms,
+        hasIQAccount: interestedPlatforms.includes("iq"),
         tradingLevel: level,
         botUsage: usage,
       });
@@ -257,10 +261,18 @@ export function RegisterForm({ selectedPlan, referralCode }: RegisterFormProps) 
   function canContinue() {
     if (surveyStep === 1) return true;
     if (surveyStep === 2) return source !== null;
-    if (surveyStep === 3) return hasIQ !== null;
+    if (surveyStep === 3) return interestedPlatforms.length > 0;
     if (surveyStep === 4) return level !== null;
     if (surveyStep === 5) return usage !== null;
     return false;
+  }
+
+  function togglePlatform(value: PlatformInterest) {
+    setInterestedPlatforms((current) =>
+      current.includes(value)
+        ? current.filter((item) => item !== value)
+        : [...current, value],
+    );
   }
 
   function handleContinue() {
@@ -444,63 +456,27 @@ export function RegisterForm({ selectedPlan, referralCode }: RegisterFormProps) 
         {surveyStep === 3 && (
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 shadow-glow">
             <p className="mb-1 text-xs font-medium uppercase tracking-wider text-primary">Question 2 of 4</p>
-            <h3 className="font-display text-xl font-semibold tracking-tight">Do you have an IQ Option account?</h3>
+            <h3 className="font-display text-xl font-semibold tracking-tight">Which platforms do you want to use?</h3>
             <p className="mb-4 mt-1 text-sm text-muted-foreground">
-              NOJAI connects to IQ Option to execute your trades automatically.
+              Pick the brokers and tools you are most interested in. You can choose more than one.
             </p>
-            <div className="mb-5 overflow-hidden rounded-xl border border-white/10">
-              <Image
-                src="/autobot-assets/iqoptionplusai.jpg"
-                alt="IQ Option + NOJAI Bot"
-                width={400}
-                height={160}
-                className="w-full object-cover"
-              />
-            </div>
-            <div className="flex flex-col gap-2.5">
-              <OptionTile selected={hasIQ === "yes"} onClick={() => setHasIQ("yes")}>
-                <span className="text-xl leading-none">✅</span>
-                <div>
-                  <p className="text-sm font-medium">Yes, I have one</p>
-                  <p className="text-xs text-muted-foreground">Ready to connect</p>
-                </div>
-              </OptionTile>
-              <OptionTile selected={hasIQ === "no"} onClick={() => setHasIQ("no")}>
-                <span className="text-xl leading-none">❌</span>
-                <div>
-                  <p className="text-sm font-medium">No, I need to create one</p>
-                  <p className="text-xs text-muted-foreground">We&apos;ll help you get started</p>
-                </div>
-              </OptionTile>
-            </div>
-            {hasIQ === "no" && (
-              <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-4">
-                <p className="mb-3 text-xs font-medium text-primary">Create your free IQ Option account</p>
-                <a
-                  href={IQ_LINK}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2.5 text-sm font-medium transition-colors hover:bg-white/[0.08]"
+            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {PLATFORM_OPTIONS.map((option) => (
+                <OptionTile
+                  key={option.value}
+                  selected={interestedPlatforms.includes(option.value)}
+                  onClick={() => togglePlatform(option.value)}
                 >
-                  <ExternalLink className="h-3.5 w-3.5 shrink-0 text-primary" />
-                  Sign up on IQ Option
-                </a>
-                <div className="mt-2.5 flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Bonus code</p>
-                    <p className="font-mono text-sm font-bold tracking-widest">{BONUS_CODE}</p>
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                    {option.label.split(" ").map((word) => word[0]).join("").slice(0, 2)}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => { navigator.clipboard.writeText(BONUS_CODE); toast.success("Bonus code copied!"); }}
-                    className="flex items-center gap-1.5 rounded-md border border-white/10 px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    <Copy className="h-3 w-3" />
-                    Copy
-                  </button>
-                </div>
-              </div>
-            )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{option.label}</p>
+                    <p className="text-xs text-muted-foreground">{option.desc}</p>
+                  </div>
+                </OptionTile>
+              ))}
+            </div>
           </div>
         )}
 

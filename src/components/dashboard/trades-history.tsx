@@ -109,9 +109,15 @@ function BrokerBadge({ broker }: { broker?: "iq" | "eo" | "olymp" | "mt5" }) {
   );
 }
 
-export function TradesHistory() {
+interface TradesHistoryProps {
+  initialBroker?: "all" | "iq" | "eo" | "olymp" | "mt5";
+  lockedBroker?: "iq" | "eo" | "olymp" | "mt5";
+  hideHeader?: boolean;
+}
+
+export function TradesHistory({ initialBroker = "all", lockedBroker, hideHeader = false }: TradesHistoryProps = {}) {
   const [page, setPage] = useState(1);
-  const [brokerFilter, setBrokerFilter] = useState<"all" | "iq" | "eo" | "olymp" | "mt5">("all");
+  const [brokerFilter, setBrokerFilter] = useState<"all" | "iq" | "eo" | "olymp" | "mt5">(lockedBroker ?? initialBroker);
   const limit = 20;
 
   const { data: profile } = useQuery({
@@ -121,6 +127,7 @@ export function TradesHistory() {
 
   const hasBinary = Boolean(profile?.subscription?.access?.binary);
   const hasForex = Boolean(profile?.subscription?.access?.forex);
+  const hasOlympAccess = hasBinary || Boolean(profile?.olympTradeFreeAccess);
 
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.trades({ page, limit, broker: brokerFilter }),
@@ -137,11 +144,14 @@ export function TradesHistory() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">Trades</h1>
-        <p className="mt-1 text-xs text-muted-foreground sm:text-sm">View your trading history and results.</p>
-      </div>
+      {!hideHeader && (
+        <div>
+          <h1 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">Trades</h1>
+          <p className="mt-1 text-xs text-muted-foreground sm:text-sm">View your trading history and results.</p>
+        </div>
+      )}
 
+      {!lockedBroker && (
       <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
         <span className="text-xs text-muted-foreground">Broker:</span>
         {(hasBinary && hasForex) && (
@@ -156,7 +166,7 @@ export function TradesHistory() {
           All
         </button>
         )}
-        {hasBinary && (
+        {hasOlympAccess && (
         <button
           onClick={() => { setBrokerFilter("iq"); setPage(1); }}
           className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors sm:gap-1.5 sm:px-3 ${
@@ -214,6 +224,7 @@ export function TradesHistory() {
         </button>
         )}
       </div>
+      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center rounded-2xl border border-white/[0.06] py-12">

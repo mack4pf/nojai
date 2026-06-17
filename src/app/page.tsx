@@ -11,7 +11,7 @@ export const revalidate = 0;
 export const metadata: Metadata = {
   title: "NOJAI — Automated Trading for Binary Options & Forex",
   description:
-    "Automated trading for Binary Options, Forex, and MT5. Connect IQ Option, Expert Option, Olymp Trade, or MT5. Binary default: EURUSD. MT5 defaults: BTCUSD, EURUSD, XAUUSD.",
+    "Automated trading for Binary Options, Forex, and MT5. Unlock the Olymp Trade free tier, or connect IQ Option, Expert Option, and MT5. Binary default: EURUSD. MT5 defaults: BTCUSD, EURUSD, XAUUSD.",
   alternates: { canonical: "https://nojai.io" },
   openGraph: {
     title: "NOJAI — Advanced Trading Automation & Copy Trading",
@@ -72,7 +72,7 @@ export default async function Home() {
     applicationCategory: "FinanceApplication",
     operatingSystem: "Web",
     description:
-      "Advanced trading automation for Binary Options and Forex. Connect MT5, IQ Option, Expert Option, and Olymp Trade for 24/7 automated execution. Binary default: EURUSD. MT5 defaults: BTCUSD, EURUSD, XAUUSD.",
+      "Advanced trading automation for Binary Options and Forex. Unlock Olymp Trade free tier access, or connect MT5, IQ Option, and Expert Option for 24/7 automated execution. Binary default: EURUSD. MT5 defaults: BTCUSD, EURUSD, XAUUSD.",
     offers: pricingPlans.map((plan) => ({
       "@type": "Offer",
       name: plan.name,

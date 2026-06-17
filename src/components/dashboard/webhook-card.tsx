@@ -26,12 +26,12 @@ interface WebhookToken {
   createdAt: string;
 }
 
-export function WebhookCard({ hideTitleHeader }: { hideTitleHeader?: boolean } = {}) {
+export function WebhookCard({ hideTitleHeader, olympFreeMode = false }: { hideTitleHeader?: boolean; olympFreeMode?: boolean } = {}) {
   const { isVip, isPro } = useFeatureAccess();
-  const hasAccess = isVip || isPro;
-  const maxWebhooks = isVip ? 5 : 1;
+  const hasAccess = isVip || isPro || olympFreeMode;
+  const maxWebhooks = isVip && !olympFreeMode ? 5 : 1;
   const queryClient = useQueryClient();
-  const [signalTarget, setSignalTarget] = useState<"iq" | "eo" | "olymp" | "all">("all");
+  const [signalTarget, setSignalTarget] = useState<"iq" | "eo" | "olymp" | "all">(olympFreeMode ? "olymp" : "all");
   const [webhookToDelete, setWebhookToDelete] = useState<WebhookToken | null>(null);
 
   const { data: webhooks = [], isLoading } = useQuery<WebhookToken[]>({
@@ -105,7 +105,9 @@ export function WebhookCard({ hideTitleHeader }: { hideTitleHeader?: boolean } =
             <h1 className="font-display text-2xl font-semibold tracking-tight">Webhook</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Receive TradingView signals via a personal webhook URL.
-              {isPro && !isVip && <span className="ml-1 text-muted-foreground/60">(1 webhook on PRO plan)</span>}
+              {olympFreeMode
+                ? <span className="ml-1 text-muted-foreground/60">(1 Olymp Trade webhook on the free tier)</span>
+                : isPro && !isVip && <span className="ml-1 text-muted-foreground/60">(1 webhook on PRO plan)</span>}
             </p>
           </div>
         )}
@@ -215,7 +217,9 @@ export function WebhookCard({ hideTitleHeader }: { hideTitleHeader?: boolean } =
             <h3 className="text-sm font-semibold text-white">Signal Target</h3>
             <p className="mt-0.5 text-xs text-muted-foreground">Choose which broker(s) receive this signal.</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {([
+              {(olympFreeMode ? [
+                { value: "olymp" as const, label: "Olymp Trade", icon: "/autobot-assets/olymptrade.jpeg", rounded: true },
+              ] : [
                 { value: "iq" as const, label: "IQ Option", icon: "/autobot-assets/iq-option-small.svg", rounded: false },
                 { value: "eo" as const, label: "ExpertOption", icon: "/autobot-assets/experoptionlogo.png", rounded: false },
                 { value: "olymp" as const, label: "Olymp Trade", icon: "/autobot-assets/olymptrade.jpeg", rounded: true },
@@ -246,7 +250,9 @@ export function WebhookCard({ hideTitleHeader }: { hideTitleHeader?: boolean } =
               ))}
             </div>
             <p className="mt-2 text-[11px] text-muted-foreground/60">
-              All sends one signal to every connected Binary Options broker: IQ Option, ExpertOption, and Olymp Trade.
+              {olympFreeMode
+                ? "Olymp Trade free tier webhooks send TradingView signals only to your approved Olymp Trade account."
+                : "All sends one signal to every connected Binary Options broker: IQ Option, ExpertOption, and Olymp Trade."}
             </p>
           </div>
 

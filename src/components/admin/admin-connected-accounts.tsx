@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, RefreshCw, Circle, Search, AlertCircle } from "lucide-react";
 import { api } from "@/lib/api";

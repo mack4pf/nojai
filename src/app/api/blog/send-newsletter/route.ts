@@ -207,15 +207,18 @@ export async function POST(req: NextRequest) {
     ).replace(/\/$/, "");
 
     const token = (session as { accessToken?: string }).accessToken ?? "";
-    const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
 
     const [postRes, usersRes] = await Promise.all([
       fetch(`${backendUrl}/admin/blog/${postId}`, {
-        headers: { "Content-Type": "application/json", ...authHeader },
+        headers,
         cache: "no-store",
       }),
       fetch(`${backendUrl}/admin/users`, {
-        headers: { "Content-Type": "application/json", ...authHeader },
+        headers,
         cache: "no-store",
       }),
     ]);

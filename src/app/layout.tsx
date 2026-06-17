@@ -19,7 +19,7 @@ const spaceGrotesk = Space_Grotesk({
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://nojai.io";
 const SITE_NAME = "NOJAI";
 const DEFAULT_DESCRIPTION =
-  "Advanced trading automation for Binary Options, Forex, and MT5. Connect IQ Option, Expert Option, Olymp Trade, and MT5. Binary default: EURUSD. MT5 defaults: BTCUSD, EURUSD, XAUUSD.";
+  "Advanced trading automation for Binary Options, Forex, and MT5. Unlock the Olymp Trade bot free tier, connect IQ Option, Expert Option, Olymp Trade, and MT5. Binary default: EURUSD. MT5 defaults: BTCUSD, EURUSD, XAUUSD.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -79,6 +79,9 @@ export const metadata: Metadata = {
     "best Expert Option bot",
     // Olymp Trade
     "Olymp Trade bot",
+    "Olymp Trade free trial",
+    "free Olymp Trade bot",
+    "Olymp Trade free tier",
     "Olymp Trade trading bot",
     "Olymp Trade automation",
     "Olymp Trade signals bot",

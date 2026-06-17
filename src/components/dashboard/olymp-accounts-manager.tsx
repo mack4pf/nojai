@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, EyeOff, Info, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { CheckCircle, ExternalLink, Eye, EyeOff, Info, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -21,9 +21,36 @@ interface OlympAccountsManagerProps {
 
 type AuthMethod = "token" | "password";
 
+interface OlympFreeAccessInfo {
+  approved: boolean;
+  approvedAt?: string | null;
+  settings: {
+    affiliateLink: string;
+    minDeposit: number;
+  };
+  submission?: {
+    _id: string;
+    olympEmail: string;
+    olympAccountId: string;
+    depositAmount?: number;
+    status: "pending" | "approved" | "declined";
+    adminNote?: string;
+    createdAt: string;
+    reviewedAt?: string;
+  } | null;
+}
+
 export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
   const queryClient = useQueryClient();
   const activePlan: PlanTier = profile?.subscription?.active ? profile.subscription.plan : (profile?.plan ?? "NONE");
+  const profileOlympApproved = Boolean(profile?.olympTradeFreeAccess);
+
+  const { data: olympFreeAccess } = useQuery<OlympFreeAccessInfo>({
+    queryKey: queryKeys.olympFreeAccess,
+    queryFn: async () => (await api.get("/user/olymp-free-access")).data as OlympFreeAccessInfo,
+  });
+
+  const hasOlympAccess = activePlan !== "NONE" || profileOlympApproved || Boolean(olympFreeAccess?.approved);
   const accountLimit = activePlan === "VIP" ? 3 : 1;
 
   const { data: accounts = [], isLoading } = useQuery<OlympAccount[]>({
@@ -32,7 +59,7 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
       const res = await api.get("/user/olymp-accounts");
       return (res.data.accounts ?? res.data ?? []) as OlympAccount[];
     },
-    enabled: activePlan !== "NONE",
+    enabled: hasOlympAccess,
   });
 
   const [showConnectForm, setShowConnectForm] = useState(false);
@@ -45,8 +72,29 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
   const [accountGroup, setAccountGroup] = useState<"real" | "demo">("real");
   const [accountToDisconnect, setAccountToDisconnect] = useState<OlympAccount | null>(null);
   const [draftAmounts, setDraftAmounts] = useState<Record<number, number>>({});
+  const [unlockEmail, setUnlockEmail] = useState(profile?.email ?? "");
+  const [unlockAccountId, setUnlockAccountId] = useState("");
+  const [unlockDepositAmount, setUnlockDepositAmount] = useState("");
 
-  const canAddMore = activePlan !== "NONE" && accounts.length < accountLimit;
+  const canAddMore = hasOlympAccess && accounts.length < accountLimit;
+
+  const submitUnlockMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        olympEmail: unlockEmail,
+        olympAccountId: unlockAccountId,
+        depositAmount: unlockDepositAmount ? Number(unlockDepositAmount) : undefined,
+      };
+      return (await api.post("/user/olymp-free-access/submit", payload)).data;
+    },
+    onSuccess: () => {
+      toast.success("Olymp Trade details submitted for admin approval");
+      setUnlockAccountId("");
+      setUnlockDepositAmount("");
+      queryClient.invalidateQueries({ queryKey: queryKeys.olympFreeAccess });
+    },
+    onError: (err: Error) => toast.error(err.message || "Failed to submit Olymp Trade details"),
+  });
 
   const connectMutation = useMutation({
     mutationFn: async () => {
@@ -70,6 +118,7 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
       setShowConnectForm(false);
       queryClient.invalidateQueries({ queryKey: queryKeys.olympAccounts });
       queryClient.invalidateQueries({ queryKey: queryKeys.profile });
+      queryClient.invalidateQueries({ queryKey: queryKeys.olympFreeAccess });
     },
     onError: (err: Error) => toast.error(err.message || "Failed to connect Olymp Trade account"),
   });
@@ -111,15 +160,23 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
     baseAmount < 1 ||
     (authMethod === "token" ? token.trim().length < 10 : !email.trim() || !password.trim());
 
+  const unlockSubmission = olympFreeAccess?.submission ?? null;
+  const unlockDisabled =
+    submitUnlockMutation.isPending ||
+    !unlockEmail.trim() ||
+    !unlockAccountId.trim();
+
   return (
     <div className="space-y-4">
       <div className="dashboard-solid-panel flex flex-col gap-2 rounded-2xl border border-emerald-500/25 bg-white/[0.02] p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-sm font-semibold">Olymp Trade</h2>
-          <p className="text-[11px] text-muted-foreground">{accounts.length}/{accountLimit} accounts connected</p>
+          <p className="text-[11px] text-muted-foreground">
+            {hasOlympAccess ? `${accounts.length}/${accountLimit} accounts connected` : "Free forever after admin approval"}
+          </p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant={accounts.length > 0 ? "success" : "secondary"}>{accounts.length > 0 ? "Active" : "No accounts"}</Badge>
+          <Badge variant={hasOlympAccess ? "success" : "secondary"}>{hasOlympAccess ? (accounts.length > 0 ? "Active" : "Approved") : "Unlock free"}</Badge>
           {canAddMore && (
             <Button size="sm" variant="outline" onClick={() => setShowConnectForm((value) => !value)}>
               {showConnectForm ? "Cancel" : "+ Connect"}
@@ -127,6 +184,61 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
           )}
         </div>
       </div>
+
+      {!hasOlympAccess && (
+        <div className="dashboard-solid-panel space-y-4 rounded-2xl border border-emerald-500/25 bg-white/[0.02] p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">Unlock Olymp Trade free tier</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Create your Olymp Trade account with the partner link, deposit at least {formatCurrency(olympFreeAccess?.settings?.minDeposit ?? 10, "USD")}, then submit your Olymp email and ID.
+              </p>
+            </div>
+            <Button asChild size="sm" className="gap-2">
+              <a href={olympFreeAccess?.settings?.affiliateLink || "https://olymptrade.com/"} target="_blank" rel="noreferrer">
+                Join Olymp <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          </div>
+
+          {unlockSubmission && (
+            <div className={`rounded-xl border p-3 text-xs ${
+              unlockSubmission.status === "declined"
+                ? "border-red-500/25 bg-red-500/[0.08] text-red-200"
+                : "border-amber-500/25 bg-amber-500/[0.08] text-amber-100"
+            }`}>
+              <p className="font-semibold capitalize">Request status: {unlockSubmission.status}</p>
+              {unlockSubmission.adminNote && <p className="mt-1">Admin note: {unlockSubmission.adminNote}</p>}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Olymp Trade Email</Label>
+              <Input type="email" value={unlockEmail} onChange={(event) => setUnlockEmail(event.target.value)} placeholder="email@olymptrade.com" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Olymp Trade ID</Label>
+              <Input value={unlockAccountId} onChange={(event) => setUnlockAccountId(event.target.value)} placeholder="Account ID" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Deposit Amount</Label>
+              <Input type="number" min={0} value={unlockDepositAmount} onChange={(event) => setUnlockDepositAmount(event.target.value)} placeholder={`${olympFreeAccess?.settings?.minDeposit ?? 10}`} />
+            </div>
+          </div>
+
+          <Button onClick={() => submitUnlockMutation.mutate()} disabled={unlockDisabled} className="w-full sm:w-auto">
+            {submitUnlockMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</> : "Submit for approval"}
+          </Button>
+        </div>
+      )}
+
+      {hasOlympAccess && activePlan === "NONE" && (
+        <div className="flex items-start gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.08] p-3 text-xs text-emerald-100">
+          <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>Your Olymp Trade free tier is active. You can connect one Olymp Trade account for free.</p>
+        </div>
+      )}
 
       {showConnectForm && (
         <div className="dashboard-solid-panel space-y-4 rounded-2xl border border-emerald-500/25 bg-white/[0.02] p-4">

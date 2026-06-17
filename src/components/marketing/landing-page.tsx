@@ -140,7 +140,10 @@ interface LandingPageProps {
 }
 
 export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
-  const plansToShow = pricingPlans?.length ? pricingPlans : publicPricingPlans;
+  const plansToShow: PricingPlan[] = pricingPlans?.length ? pricingPlans : publicPricingPlans.map((plan) => ({
+    ...plan,
+    features: [...plan.features],
+  }));
   const maxDiscountPercent = Math.max(
     ...plansToShow.map((plan) => {
       const compare = plan.compareAtPrice ?? plan.price;

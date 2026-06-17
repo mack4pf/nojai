@@ -126,6 +126,8 @@ export function normalizeUserProfile(value: unknown): UserProfile | null {
     },
     iqAccounts: normalizeArray<IQAccount>(record.iqAccounts),
     olympAccounts: normalizeArray(record.olympAccounts),
+    olympTradeFreeAccess: Boolean(record.olympTradeFreeAccess ?? false),
+    olympTradeFreeAccessApprovedAt: typeof record.olympTradeFreeAccessApprovedAt === "string" ? record.olympTradeFreeAccessApprovedAt : null,
     subscriptionId: typeof record.subscriptionId === "string" ? record.subscriptionId : undefined,
     subscriptionExpiresAt: expiresAt || undefined,
     subscriptionStartedAt: startedAt || undefined,

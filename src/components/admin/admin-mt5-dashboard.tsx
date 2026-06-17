@@ -1,7 +1,7 @@
 "use client";
 
 import type { ElementType } from "react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import Link from "next/link";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -103,19 +103,6 @@ interface Mt5Account {
   blockGlobalSignals?: boolean;
   defaultRiskUsd?: number;
   maxRiskUsd?: number;
-  apiDailyRequestLimit?: number;
-  apiMonthlyRequestLimit?: number;
-  apiUsageBlocked?: boolean;
-  apiUsage?: {
-    today: number;
-    month: number;
-    todayBlocked: number;
-    monthBlocked: number;
-    dailyLimit: number;
-    monthlyLimit: number;
-    blocked: boolean;
-    lastUsedAt?: string;
-  };
   lastStatusAt?: string;
   lastError?: string;
   createdAt?: string;
@@ -268,23 +255,6 @@ function signedCurrency(value?: unknown) {
   if (!hasNumber(value)) return "-";
   const amount = toNumber(value);
   return `${amount >= 0 ? "+" : "-"}$${fmt(Math.abs(amount))}`;
-}
-
-function usageLimitLabel(used?: number, limit?: number) {
-  const normalizedUsed = toNumber(used ?? 0);
-  const normalizedLimit = toNumber(limit ?? 0);
-  return normalizedLimit > 0 ? `${normalizedUsed.toLocaleString()} / ${normalizedLimit.toLocaleString()}` : `${normalizedUsed.toLocaleString()} / unlimited`;
-}
-
-function usageTone(used?: number, limit?: number, blocked?: boolean) {
-  if (blocked) return "text-danger";
-  const normalizedUsed = toNumber(used ?? 0);
-  const normalizedLimit = toNumber(limit ?? 0);
-  if (normalizedLimit <= 0) return "text-muted-foreground";
-  const ratio = normalizedUsed / normalizedLimit;
-  if (ratio >= 1) return "text-danger";
-  if (ratio >= 0.8) return "text-amber-300";
-  return "text-emerald-300";
 }
 
 function friendlyMt5Error(value?: string) {
@@ -451,9 +421,6 @@ function MiniHealthBar({ overview }: { overview?: OverviewData }) {
 
 function AccountDrawer({ accountId, onClose }: { accountId: string; onClose: () => void }) {
   const qc = useQueryClient();
-  const [dailyLimit, setDailyLimit] = useState("");
-  const [monthlyLimit, setMonthlyLimit] = useState("");
-  const [usageBlocked, setUsageBlocked] = useState(false);
 
   const { data, isLoading } = useQuery<AccountDetail>({
     queryKey: ["admin-mt5-account", accountId],
@@ -487,20 +454,6 @@ function AccountDrawer({ accountId, onClose }: { accountId: string; onClose: () 
     },
   });
 
-  const usageLimitMutation = useMutation({
-    mutationFn: () =>
-      api.patch(`/admin/mt5/accounts/${accountId}`, {
-        apiDailyRequestLimit: Math.max(0, Math.floor(toNumber(dailyLimit))),
-        apiMonthlyRequestLimit: Math.max(0, Math.floor(toNumber(monthlyLimit))),
-        apiUsageBlocked: usageBlocked,
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-mt5-account", accountId] });
-      qc.invalidateQueries({ queryKey: ["admin-mt5-accounts"] });
-      qc.invalidateQueries({ queryKey: ["admin-mt5-overview"] });
-    },
-  });
-
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(`/admin/mt5/accounts/${accountId}`),
     onSuccess: () => {
@@ -511,13 +464,6 @@ function AccountDrawer({ accountId, onClose }: { accountId: string; onClose: () 
   });
 
   const account = data?.account;
-
-  useEffect(() => {
-    if (!account) return;
-    setDailyLimit(String(account.apiDailyRequestLimit ?? account.apiUsage?.dailyLimit ?? 0));
-    setMonthlyLimit(String(account.apiMonthlyRequestLimit ?? account.apiUsage?.monthlyLimit ?? 0));
-    setUsageBlocked(Boolean(account.apiUsageBlocked ?? account.apiUsage?.blocked));
-  }, [account?._id, account?.apiDailyRequestLimit, account?.apiMonthlyRequestLimit, account?.apiUsageBlocked]);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -631,73 +577,6 @@ function AccountDrawer({ accountId, onClose }: { accountId: string; onClose: () 
                 })}
               </div>
             ) : null}
-
-            <ShellCard className="p-5">
-              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">MetaApi Usage</p>
-                  <p className="mt-2 text-sm text-muted-foreground">Counted as one usage token per MetaApi request for this account.</p>
-                </div>
-                <span className={cn(
-                  "inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-xs font-semibold",
-                  usageBlocked ? "border-danger/30 bg-danger/10 text-danger" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
-                )}>
-                  {usageBlocked ? "Blocked" : "Allowed"}
-                </span>
-              </div>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-border bg-muted/40 p-4">
-                  <p className="text-xs text-muted-foreground">Today</p>
-                  <p className={cn("mt-1 font-mono text-lg font-semibold", usageTone(account.apiUsage?.today, account.apiUsage?.dailyLimit, account.apiUsage?.blocked))}>
-                    {usageLimitLabel(account.apiUsage?.today, account.apiUsage?.dailyLimit)}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">{account.apiUsage?.todayBlocked ?? 0} blocked attempts</p>
-                </div>
-                <div className="rounded-2xl border border-border bg-muted/40 p-4">
-                  <p className="text-xs text-muted-foreground">This month</p>
-                  <p className={cn("mt-1 font-mono text-lg font-semibold", usageTone(account.apiUsage?.month, account.apiUsage?.monthlyLimit, account.apiUsage?.blocked))}>
-                    {usageLimitLabel(account.apiUsage?.month, account.apiUsage?.monthlyLimit)}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">{account.apiUsage?.monthBlocked ?? 0} blocked attempts</p>
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-                <label className="block">
-                  <span className="text-xs font-semibold text-muted-foreground">Daily limit</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={dailyLimit}
-                    onChange={(event) => setDailyLimit(event.target.value)}
-                    className="mt-1 h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-xs font-semibold text-muted-foreground">Monthly limit</span>
-                  <input
-                    type="number"
-                    min={0}
-                    value={monthlyLimit}
-                    onChange={(event) => setMonthlyLimit(event.target.value)}
-                    className="mt-1 h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  />
-                </label>
-                <Button className="gap-2" onClick={() => usageLimitMutation.mutate()} disabled={usageLimitMutation.isPending}>
-                  {usageLimitMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                  Save
-                </Button>
-              </div>
-
-              <div className="mt-4 flex items-center justify-between gap-4 rounded-2xl border border-border bg-background px-4 py-3">
-                <div>
-                  <p className="text-sm font-semibold">Hard block MetaApi calls</p>
-                  <p className="text-xs text-muted-foreground">Stops refresh, polling, trading, and history sync for this MT5 account.</p>
-                </div>
-                <Switch checked={usageBlocked} onCheckedChange={setUsageBlocked} />
-              </div>
-            </ShellCard>
 
             <ShellCard className="p-5">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-muted-foreground">Technical State</p>
@@ -917,7 +796,7 @@ function AccountsTab({ onSelect }: { onSelect: (id: string) => void }) {
           <table className="w-full min-w-[1100px] text-sm">
             <thead className="bg-muted/45 text-left">
               <tr>
-                {["User", "Login", "Broker", "Status", "Balance", "Automation", "API Usage", "Trades", "Added", ""].map((header) => (
+                {["User", "Login", "Broker", "Status", "Balance", "Automation", "Trades", "Added", ""].map((header) => (
                   <th key={header} className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
                     {header}
                   </th>
@@ -927,7 +806,7 @@ function AccountsTab({ onSelect }: { onSelect: (id: string) => void }) {
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <tr>
-                  <td colSpan={10} className="py-16 text-center">
+                  <td colSpan={9} className="py-16 text-center">
                     <Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" />
                   </td>
                 </tr>
@@ -970,14 +849,6 @@ function AccountsTab({ onSelect }: { onSelect: (id: string) => void }) {
                         {account.automationEnabled ? <Zap className="h-3.5 w-3.5" /> : <Pause className="h-3.5 w-3.5" />}
                         {account.automationEnabled ? "Active" : "Paused"}
                       </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <p className={cn("font-mono text-sm font-semibold", usageTone(account.apiUsage?.today, account.apiUsage?.dailyLimit, account.apiUsage?.blocked))}>
-                        {usageLimitLabel(account.apiUsage?.today, account.apiUsage?.dailyLimit)}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Month {usageLimitLabel(account.apiUsage?.month, account.apiUsage?.monthlyLimit)}
-                      </p>
                     </td>
                     <td className="px-5 py-4">
                       <p className="font-semibold">{account.trades.total}</p>

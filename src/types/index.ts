@@ -180,6 +180,8 @@ export interface UserProfile {
   iqAccounts?: IQAccount[];
   eoAccounts?: EOAccount[];
   olympAccounts?: OlympAccount[];
+  olympTradeFreeAccess?: boolean;
+  olympTradeFreeAccessApprovedAt?: string | null;
   subscriptionId?: string;
   subscriptionExpiresAt?: string;
   subscriptionStartedAt?: string;

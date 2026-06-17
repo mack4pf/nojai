@@ -1373,7 +1373,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
                 })}
               </div>
               <Button asChild variant="outline" size="sm" className="mt-3 w-full sm:w-auto">
-                <Link href="/dashboard/accounts?broker=olymp">Manage Olymp accounts <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Link>
+                <Link href="/dashboard/olymp-trade">Manage Olymp accounts <ArrowRight className="ml-1.5 h-3.5 w-3.5" /></Link>
               </Button>
             </div>
           ) : (
@@ -1384,7 +1384,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
               <h3 className="mt-4 font-display text-base font-bold sm:text-lg">Connect Olymp Trade</h3>
               <p className="mt-2 text-sm text-muted-foreground">Link your Olymp Trade account to start automated trading and see currency-aware balances here.</p>
               <Button asChild className="mt-5" style={{ background: "#059669" }}>
-                <Link href="/dashboard/accounts?broker=olymp">Connect Olymp Trade <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <Link href="/dashboard/olymp-trade">Connect Olymp Trade <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
             </div>
           )}
@@ -1417,7 +1417,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
               </div>
               {!hasOlymp && (
                 <Button asChild size="sm" variant="outline" className="shrink-0 text-xs h-7 px-2">
-                  <Link href="/dashboard/accounts?broker=olymp">Connect</Link>
+                  <Link href="/dashboard/olymp-trade">Connect</Link>
                 </Button>
               )}
             </div>

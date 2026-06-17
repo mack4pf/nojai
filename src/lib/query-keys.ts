@@ -14,6 +14,7 @@ export const queryKeys = {
   adminReviews: ["admin-reviews"] as const,
   eoAccounts: ["eo-accounts"] as const,
   olympAccounts: ["olymp-accounts"] as const,
+  olympFreeAccess: ["olymp-free-access"] as const,
   balanceHistory: (period: string) => ["balance-history", period] as const,
   onboardingSurvey: ["onboarding-survey"] as const,
 };

@@ -10,15 +10,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const access = profile?.subscription?.access ?? { binary: false, forex: false };
   const hasBinary = access.binary;
   const hasForex = access.forex;
+  const hasOlympFreeAccess = Boolean(profile?.olympTradeFreeAccess);
 
   const lockedItems = [
     { href: "/dashboard/subscription", label: "Choose a Plan", icon: "plans", badge: "Required", mobileBottom: true },
+    { href: "/dashboard/olymp-trade", label: "Olymp Trade", icon: "broker", badge: "Free", mobileBottom: true },
+    { href: "/dashboard/olymp-trade/history", label: "Olymp History", icon: "trades", mobileBottom: true },
     { href: "/dashboard/affiliate", label: "Affiliate", icon: "plans" },
   ];
 
   const allItems = [
     { href: "/dashboard", label: "Overview", icon: "overview", mobileBottom: true, show: true },
     { href: "/dashboard/accounts", label: "Broker", icon: "broker", mobileBottom: true, show: hasBinary },
+    { href: "/dashboard/olymp-trade", label: "Olymp Trade", icon: "broker", badge: "Free", mobileBottom: true, show: true },
+    { href: "/dashboard/olymp-trade/history", label: "Olymp History", icon: "trades", mobileBottom: true, show: true },
     { href: "/dashboard/mt5-autotrade", label: "MT5", icon: "mt5", badge: "New", mobileBottom: true, show: hasForex },
     { href: "/dashboard/trades", label: "Trades", icon: "trades", mobileBottom: true, show: true },
     { href: "/dashboard/review", label: "Review", icon: "review", mobileBottom: true, show: true },
@@ -39,7 +44,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <AppShell
       items={hasActiveSubscription ? activeItems : lockedItems}
       sessionName={profile?.name ?? session.user.name}
-      roleLabel={hasActiveSubscription ? plan : "NO PLAN"}
+      roleLabel={hasActiveSubscription ? plan : hasOlympFreeAccess ? "OLYMP FREE" : "NO PLAN"}
       showSupportChat
     >
       {children}
