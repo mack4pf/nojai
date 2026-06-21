@@ -51,7 +51,7 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
   });
 
   const hasOlympAccess = activePlan !== "NONE" || profileOlympApproved || Boolean(olympFreeAccess?.approved);
-  const accountLimit = activePlan === "VIP" ? 3 : 1;
+  const accountLimit = activePlan === "VIP" ? 2 : 1;
 
   const { data: accounts = [], isLoading } = useQuery<OlympAccount[]>({
     queryKey: queryKeys.olympAccounts,
