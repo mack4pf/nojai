@@ -35,6 +35,12 @@ interface AffiliatePayout {
   adminNote?: string;
 }
 
+interface OlympFreeAccessInfo {
+  settings?: {
+    bonusCode?: string;
+  };
+}
+
 interface BankItem {
   name: string;
   code: string;
@@ -145,6 +151,7 @@ export function AffiliateDashboard() {
   const [payoutMethod, setPayoutMethod] = useState<"bank" | "wallet">("wallet");
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedOlympBonus, setCopiedOlympBonus] = useState(false);
 
   // Payout Form State
   const [amount, setAmount] = useState("");
@@ -180,6 +187,11 @@ export function AffiliateDashboard() {
       const res = await api.get("/affiliate/payouts");
       return res.data;
     },
+  });
+
+  const { data: olympFreeAccess } = useQuery<OlympFreeAccessInfo>({
+    queryKey: ["olymp-free-access"],
+    queryFn: async () => (await api.get("/user/olymp-free-access")).data as OlympFreeAccessInfo,
   });
 
   const requestPayout = useMutation({
@@ -251,6 +263,14 @@ export function AffiliateDashboard() {
     setCopiedCode(true);
     toast.success("Referral code copied!");
     setTimeout(() => setCopiedCode(false), 2000);
+  };
+
+  const handleCopyOlympBonus = () => {
+    const bonusCode = olympFreeAccess?.settings?.bonusCode || "NOJAI";
+    navigator.clipboard.writeText(bonusCode);
+    setCopiedOlympBonus(true);
+    toast.success("Olymp bonus code copied!");
+    setTimeout(() => setCopiedOlympBonus(false), 2000);
   };
 
   const handlePayoutSubmit = (e: React.FormEvent) => {
@@ -326,6 +346,19 @@ export function AffiliateDashboard() {
             </code>
             <Button size="sm" variant="outline" onClick={handleCopyCode} disabled={!referralCode} className="shrink-0 gap-1.5 min-w-[90px]">
               {copiedCode ? <><CheckCircle2 className="h-3.5 w-3.5" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy Code</>}
+            </Button>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+            <Hash className="h-3 w-3" /> Olymp Trade Bonus Code
+          </label>
+          <div className="flex items-center gap-2 bg-black/40 rounded-lg p-1.5 border border-white/10 overflow-hidden">
+            <code className="flex-1 text-sm px-3 font-mono font-bold tracking-widest text-emerald-300 select-all">
+              {olympFreeAccess?.settings?.bonusCode || "NOJAI"}
+            </code>
+            <Button size="sm" variant="outline" onClick={handleCopyOlympBonus} className="shrink-0 gap-1.5 min-w-[90px]">
+              {copiedOlympBonus ? <><CheckCircle2 className="h-3.5 w-3.5" /> Copied</> : <><Copy className="h-3.5 w-3.5" /> Copy</>}
             </Button>
           </div>
         </div>

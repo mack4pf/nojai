@@ -14,6 +14,7 @@ import { formatDate } from "@/lib/utils";
 interface OlympFreeSettings {
   affiliateLink: string;
   minDeposit: number;
+  bonusCode: string;
   supportEmail: string;
 }
 
@@ -48,6 +49,7 @@ export function AdminOlympFree() {
   const [form, setForm] = useState<OlympFreeSettings>({
     affiliateLink: "",
     minDeposit: 10,
+    bonusCode: "NOJAI",
     supportEmail: "",
   });
 
@@ -129,7 +131,7 @@ export function AdminOlympFree() {
       </div>
 
       <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_180px_260px_auto] lg:items-end">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_160px_160px_240px_auto] lg:items-end">
           <div className="space-y-1.5">
             <Label className="text-xs">Olymp Trade Affiliate Link</Label>
             <Input value={form.affiliateLink} onChange={(event) => setForm((prev) => ({ ...prev, affiliateLink: event.target.value }))} />
@@ -137,6 +139,10 @@ export function AdminOlympFree() {
           <div className="space-y-1.5">
             <Label className="text-xs">Minimum Deposit</Label>
             <Input type="number" min={0} value={form.minDeposit} onChange={(event) => setForm((prev) => ({ ...prev, minDeposit: Number(event.target.value) }))} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Bonus Code</Label>
+            <Input value={form.bonusCode} onChange={(event) => setForm((prev) => ({ ...prev, bonusCode: event.target.value.toUpperCase() }))} />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Support Email</Label>

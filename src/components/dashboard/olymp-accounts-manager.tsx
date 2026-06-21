@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle, ExternalLink, Eye, EyeOff, Info, Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { CheckCircle, Copy, ExternalLink, Eye, EyeOff, Info, Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ interface OlympFreeAccessInfo {
   settings: {
     affiliateLink: string;
     minDeposit: number;
+    bonusCode: string;
   };
   submission?: {
     _id: string;
@@ -161,10 +162,16 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
     (authMethod === "token" ? token.trim().length < 10 : !email.trim() || !password.trim());
 
   const unlockSubmission = olympFreeAccess?.submission ?? null;
+  const olympBonusCode = olympFreeAccess?.settings?.bonusCode || "NOJAI";
   const unlockDisabled =
     submitUnlockMutation.isPending ||
     !unlockEmail.trim() ||
     !unlockAccountId.trim();
+
+  function copyBonusCode() {
+    navigator.clipboard.writeText(olympBonusCode);
+    toast.success("Olymp bonus code copied");
+  }
 
   return (
     <div className="space-y-4">
@@ -191,13 +198,23 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
             <div>
               <h3 className="text-sm font-semibold">Unlock Olymp Trade free tier</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                Create your Olymp Trade account with the partner link, deposit at least {formatCurrency(olympFreeAccess?.settings?.minDeposit ?? 10, "USD")}, then submit your Olymp email and ID.
+                Create your Olymp Trade account with the partner link, use bonus code {olympBonusCode}, deposit at least {formatCurrency(olympFreeAccess?.settings?.minDeposit ?? 10, "USD")}, then submit your Olymp email and ID.
               </p>
             </div>
             <Button asChild size="sm" className="gap-2">
               <a href={olympFreeAccess?.settings?.affiliateLink || "https://olymptrade.com/"} target="_blank" rel="noreferrer">
                 Join Olymp <ExternalLink className="h-4 w-4" />
               </a>
+            </Button>
+          </div>
+
+          <div className="flex flex-col gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.07] p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-300/70">Olymp bonus code</p>
+              <code className="mt-1 block font-mono text-lg font-bold tracking-widest text-foreground">{olympBonusCode}</code>
+            </div>
+            <Button type="button" variant="outline" size="sm" className="gap-2" onClick={copyBonusCode}>
+              <Copy className="h-4 w-4" /> Copy
             </Button>
           </div>
 

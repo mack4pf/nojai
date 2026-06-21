@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Loader2, RefreshCw, CheckCircle, XCircle, Banknote, Wallet,
-  Clock, CircleDollarSign, AlertTriangle, Copy,
+  Clock, CircleDollarSign, AlertTriangle, Copy, Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -32,6 +32,33 @@ interface AdminPayout {
   paidAt?: string;
 }
 
+interface AffiliateNetworkGroup {
+  referrer: {
+    _id: string;
+    fullName?: string;
+    email: string;
+    referralCode?: string;
+  };
+  totalJoined: number;
+  activeSubscribers: number;
+  olympFreeUsers: number;
+  referrals: Array<{
+    _id: string;
+    fullName?: string;
+    email: string;
+    joinedAt: string;
+    lastLogin?: string;
+    olympTradeFreeAccess?: boolean;
+    subscription?: {
+      plan?: string;
+      product?: string;
+      status?: string;
+      active?: boolean;
+      expiresAt?: string;
+    } | null;
+  }>;
+}
+
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
   pending:  { label: "Awaiting Approval", className: "bg-amber-500/15 text-amber-300" },
   approved: { label: "Processing",        className: "bg-blue-500/15 text-blue-300" },
@@ -47,6 +74,7 @@ export function AdminAffiliates() {
   const [confirmMarkPaidId, setConfirmMarkPaidId] = useState<string | null>(null);
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+  const [expandedNetworkId, setExpandedNetworkId] = useState<string | null>(null);
 
   const handleCopy = (text?: string, label?: string) => {
     if (!text) return;
@@ -60,6 +88,11 @@ export function AdminAffiliates() {
       const res = await api.get("/affiliate/admin/payouts");
       return res.data;
     },
+  });
+
+  const { data: network = [], isLoading: networkLoading, refetch: refetchNetwork } = useQuery<AffiliateNetworkGroup[]>({
+    queryKey: ["admin-affiliate-network"],
+    queryFn: async () => (await api.get("/affiliate/admin/network")).data as AffiliateNetworkGroup[],
   });
 
   const approvePayout = useMutation({
@@ -161,6 +194,103 @@ export function AdminAffiliates() {
             <RefreshCw className="h-4 w-4" /> Refresh
           </Button>
         </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+              <Users className="h-5 w-5 text-primary" /> Affiliate Network
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">See who joined NOJAI through each user's referral link.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => refetchNetwork()} className="gap-2">
+            <RefreshCw className="h-4 w-4" /> Refresh Network
+          </Button>
+        </div>
+
+        {networkLoading ? (
+          <div className="flex min-h-[120px] items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : network.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-white/10 p-6 text-center text-sm text-muted-foreground">
+            No affiliate referrals recorded yet.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {network.map((group) => {
+              const isOpen = expandedNetworkId === group.referrer._id;
+              return (
+                <div key={group.referrer._id} className="overflow-hidden rounded-xl border border-white/[0.08] bg-black/10">
+                  <button
+                    type="button"
+                    className="grid w-full gap-3 p-4 text-left transition-colors hover:bg-white/[0.03] sm:grid-cols-[1fr_auto_auto_auto]"
+                    onClick={() => setExpandedNetworkId(isOpen ? null : group.referrer._id)}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-foreground">{group.referrer.fullName || group.referrer.email}</p>
+                      <p className="truncate text-xs text-muted-foreground">{group.referrer.email}</p>
+                      <p className="mt-1 text-[11px] text-primary">{group.referrer.referralCode || "No code"}</p>
+                    </div>
+                    <div className="rounded-lg bg-white/[0.04] px-3 py-2 text-sm">
+                      <span className="block text-[10px] uppercase tracking-wider text-muted-foreground">Joined</span>
+                      <strong>{group.totalJoined}</strong>
+                    </div>
+                    <div className="rounded-lg bg-emerald-500/[0.08] px-3 py-2 text-sm text-emerald-300">
+                      <span className="block text-[10px] uppercase tracking-wider text-emerald-300/70">Active</span>
+                      <strong>{group.activeSubscribers}</strong>
+                    </div>
+                    <div className="rounded-lg bg-cyan-500/[0.08] px-3 py-2 text-sm text-cyan-300">
+                      <span className="block text-[10px] uppercase tracking-wider text-cyan-300/70">Olymp Free</span>
+                      <strong>{group.olympFreeUsers}</strong>
+                    </div>
+                  </button>
+
+                  {isOpen && (
+                    <div className="border-t border-white/[0.06] p-3">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="text-left text-xs text-muted-foreground">
+                              <th className="px-3 py-2 font-medium">User</th>
+                              <th className="px-3 py-2 font-medium">Plan</th>
+                              <th className="px-3 py-2 font-medium">Olymp</th>
+                              <th className="px-3 py-2 font-medium">Joined</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/[0.05]">
+                            {group.referrals.map((referral) => (
+                              <tr key={referral._id}>
+                                <td className="px-3 py-2">
+                                  <p className="font-medium text-foreground">{referral.fullName || referral.email}</p>
+                                  <p className="text-xs text-muted-foreground">{referral.email}</p>
+                                </td>
+                                <td className="px-3 py-2 text-xs">
+                                  {referral.subscription?.plan ? (
+                                    <span className={referral.subscription.active ? "text-emerald-300" : "text-muted-foreground"}>
+                                      {String(referral.subscription.plan).toUpperCase()} {referral.subscription.product ? `(${referral.subscription.product})` : ""}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground">No plan</span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2 text-xs">
+                                  {referral.olympTradeFreeAccess ? <span className="text-cyan-300">Approved</span> : <span className="text-muted-foreground">No</span>}
+                                </td>
+                                <td className="px-3 py-2 text-xs text-muted-foreground">{formatDate(referral.joinedAt)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Filter bar */}
