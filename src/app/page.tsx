@@ -50,7 +50,7 @@ const fallbackPlans: PricingPlan[] = [
     price: 75,
     currency: "",
     durationInDays: 30,
-    features: ["Everything in Pro", "Priority execution", "Unlimited broker accounts"],
+    features: ["Everything in Pro", "Priority execution", "2 MT5 accounts on VIP"],
   },
 ];
 

@@ -72,7 +72,7 @@ interface Mt5Strategy {
 
 function getAccountLimit(plan: PlanTier | undefined) {
   if (plan === "VIP") return 2;
-  if (plan === "PRO") return 1;
+  if (plan === "PRO" || plan === "STANDARD") return 1;
   return 0;
 }
 
@@ -309,7 +309,7 @@ export function Mt5AutoTradeManager() {
             </div>
             <h1 className="mt-4 font-display text-2xl font-semibold tracking-tight sm:text-3xl">MetaTrader execution, inside NojAI.</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Connect your MT5 accounts, verify sync status, and automate your trades from TradingView signals. VIP supports 2 MT5 accounts.
+              Connect your MT5 accounts, verify sync status, and automate your trades from TradingView signals. Standard and Pro support 1 MT5 account; VIP supports 2.
             </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-4">
@@ -465,7 +465,7 @@ export function Mt5AutoTradeManager() {
 
               {!canConnect ? (
                 <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.07] p-3 text-sm text-amber-100">
-                  {accountLimit === 0 ? "MT5 AutoTrade is available on Pro and VIP plans." : "Your MT5 account limit has been reached."}
+                  {accountLimit === 0 ? "MT5 AutoTrade requires an active Forex Leverage / MT5 subscription." : "Your MT5 account limit has been reached."}
                 </div>
               ) : null}
 
