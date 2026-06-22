@@ -176,6 +176,12 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2">Get started simple</span>
+              <span className="inline-flex h-10 items-center gap-2 rounded-full border border-emerald-500/25 bg-card px-3 shadow-sm transition-transform hover:scale-105">
+                <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white p-0.5">
+                  <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={28} height={28} className="h-full w-full rounded-full object-cover" />
+                </span>
+                <span className="text-xs font-bold text-foreground">Olymp Trade</span>
+              </span>
               <span className="inline-flex h-10 items-center gap-2 rounded-full border border-primary/30 bg-card px-3 shadow-sm transition-transform hover:scale-105">
                 <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full ring-1 ring-border">
                   <Image src="/mt5logo.png" alt="MetaTrader 5" width={28} height={28} className="h-full w-full object-cover" />
@@ -193,12 +199,6 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
                   <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={28} height={28} className="h-full w-full object-contain" />
                 </span>
                 <span className="text-xs font-bold text-foreground">ExpertOption</span>
-              </span>
-              <span className="inline-flex h-10 items-center gap-2 rounded-full border border-emerald-500/25 bg-card px-3 shadow-sm transition-transform hover:scale-105">
-                <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-white p-0.5">
-                  <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={28} height={28} className="h-full w-full rounded-full object-cover" />
-                </span>
-                <span className="text-xs font-bold text-foreground">Olymp Trade</span>
               </span>
               <span className="inline-flex h-10 items-center gap-2 rounded-full border border-[#2962ff]/25 bg-[#2962ff] px-3 shadow-sm transition-transform hover:scale-105">
                 <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full">
@@ -530,6 +530,12 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
               <Button asChild className="mt-8 bg-emerald-600 hover:bg-emerald-500" size="lg">
                 <Link href="/auth/register">
                   Connect Olymp Trade
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+              <Button asChild className="ml-3 mt-8" variant="outline" size="lg">
+                <Link href="/partners/olymp-trade">
+                  Partner page
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
