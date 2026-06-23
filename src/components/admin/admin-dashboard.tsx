@@ -8,6 +8,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   ArrowRight,
+  Bell,
   Bot,
   Eye,
   EyeOff,
@@ -169,6 +170,19 @@ type SignalTogglePayload = {
   copyProSignals?: boolean;
 };
 
+interface OlympSubmissionPreview {
+  _id: string;
+  olympEmail: string;
+  olympAccountId: string;
+  depositAmount?: number;
+  status: "pending" | "approved" | "declined";
+  createdAt: string;
+  userId?: {
+    email?: string;
+    fullName?: string;
+  };
+}
+
 function getSignalSummary(copyVipSignals: boolean, copyProSignals: boolean) {
   if (copyVipSignals && copyProSignals) return "VIP + PRO";
   if (copyVipSignals) return "VIP only";
@@ -202,6 +216,13 @@ export function AdminDashboard() {
   const { data: latestSignals } = useQuery<SignalsResponse>({
     queryKey: ["admin-signals-preview"],
     queryFn: async () => (await api.get("/admin/signals", { params: { page: 1, limit: 4 } })).data,
+    retry: 1,
+  });
+
+  const { data: olympPending } = useQuery<{ submissions: OlympSubmissionPreview[] }>({
+    queryKey: ["admin-olymp-pending-preview"],
+    queryFn: async () => (await api.get("/admin/olymp-free/submissions", { params: { status: "pending" } })).data,
+    refetchInterval: 15_000,
     retry: 1,
   });
 
@@ -299,6 +320,7 @@ export function AdminDashboard() {
   const copyProSignals = copyTradeStatus?.copyProSignals ?? false;
   const signalSummary = getSignalSummary(copyVipSignals, copyProSignals);
   const connectAmountMinimum = getTradeAmountMinimum(connectTradeCurrency);
+  const pendingOlympSubmissions = olympPending?.submissions ?? [];
 
   const platformCards = [
     {
@@ -366,6 +388,9 @@ export function AdminDashboard() {
               <Button asChild variant="outline">
                 <Link href="/admin/copy-trade">Manage accounts</Link>
               </Button>
+              <Button asChild variant="outline">
+                <Link href="/admin/olymp-free">Olymp approvals</Link>
+              </Button>
             </div>
           </div>
 
@@ -418,6 +443,50 @@ export function AdminDashboard() {
             <p className="mt-3 text-sm text-muted-foreground">{note}</p>
           </div>
         ))}
+      </section>
+
+      <section className="rounded-3xl border border-amber-500/20 bg-amber-500/[0.06] p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-amber-400/25 bg-amber-400/10">
+              <Bell className="h-5 w-5 text-amber-300" />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-200/80">Olymp Trade approvals</p>
+              <h2 className="mt-1 text-xl font-bold text-foreground">
+                {pendingOlympSubmissions.length} pending request{pendingOlympSubmissions.length === 1 ? "" : "s"}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                User submissions for Olymp Trade free access now appear here and on the Olymp Free page.
+              </p>
+            </div>
+          </div>
+          <Button asChild>
+            <Link href="/admin/olymp-free">
+              Review requests <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+
+        {pendingOlympSubmissions.length > 0 ? (
+          <div className="mt-5 grid gap-3 lg:grid-cols-3">
+            {pendingOlympSubmissions.slice(0, 3).map((submission) => (
+              <Link
+                key={submission._id}
+                href={`/admin/olymp-free?review=${submission._id}`}
+                className="rounded-2xl border border-white/10 bg-black/10 p-4 transition-colors hover:bg-white/[0.04]"
+              >
+                <p className="truncate text-sm font-semibold text-foreground">
+                  {submission.userId?.fullName || submission.userId?.email || submission.olympEmail}
+                </p>
+                <p className="mt-1 truncate text-xs text-muted-foreground">{submission.olympEmail}</p>
+                <p className="mt-2 text-xs text-amber-200">
+                  ID {submission.olympAccountId} · Deposit {submission.depositAmount ?? "-"}
+                </p>
+              </Link>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle, ExternalLink, Loader2, RefreshCw, Save, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle, ExternalLink, Loader2, RefreshCw, Save, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -58,12 +58,14 @@ export function AdminOlympFree() {
     queryFn: async () => (await api.get("/admin/olymp-free/settings")).data as OlympFreeSettings,
   });
 
-  const { data: submissions = [], isLoading: submissionsLoading, refetch } = useQuery<OlympSubmission[]>({
-    queryKey: ["admin-olymp-free-submissions"],
+  const { data: submissions = [], isLoading: submissionsLoading, error: submissionsError, refetch } = useQuery<OlympSubmission[]>({
+    queryKey: ["admin-olymp-free-submissions", filter],
     queryFn: async () => {
-      const res = await api.get("/admin/olymp-free/submissions");
+      const params = filter === "all" ? undefined : { status: filter };
+      const res = await api.get("/admin/olymp-free/submissions", { params });
       return (res.data.submissions ?? []) as OlympSubmission[];
     },
+    refetchInterval: 15_000,
   });
 
   useEffect(() => {
@@ -165,9 +167,19 @@ export function AdminOlympFree() {
       </div>
 
       <div className="space-y-3">
+        {submissionsError && (
+          <div className="flex items-start gap-3 rounded-2xl border border-red-500/25 bg-red-500/[0.08] p-4 text-sm text-red-100">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-semibold">Could not load Olymp Trade submissions.</p>
+              <p className="mt-1 text-xs text-red-100/80">{submissionsError instanceof Error ? submissionsError.message : "Please refresh or check backend admin access."}</p>
+            </div>
+          </div>
+        )}
+
         {filteredSubmissions.length === 0 && (
           <div className="flex min-h-[220px] items-center justify-center rounded-2xl border border-dashed border-white/10 text-sm text-muted-foreground">
-            No Olymp Trade submissions found.
+            {filter === "pending" ? "No pending Olymp Trade submissions found." : "No Olymp Trade submissions found."}
           </div>
         )}
 
