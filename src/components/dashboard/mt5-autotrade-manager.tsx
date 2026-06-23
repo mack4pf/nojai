@@ -45,12 +45,23 @@ interface Mt5Account {
   isTradable: boolean;
   automationEnabled: boolean;
   blockGlobalSignals: boolean;
+  riskMode?: "risk_amount" | "fixed_lot";
   defaultRiskUsd: number;
   maxRiskUsd: number;
+  defaultLot?: number;
+  maxLot?: number;
   webhookToken: string;
   lastStatusAt?: string;
   lastError?: string;
 }
+
+type Mt5SettingsDraft = {
+  riskMode: "risk_amount" | "fixed_lot";
+  defaultRiskUsd: number;
+  maxRiskUsd: number;
+  defaultLot: number;
+  maxLot: number;
+};
 
 interface Mt5BrokerSuggestion {
   id: string;
@@ -97,7 +108,7 @@ export function Mt5AutoTradeManager() {
   const [disconnectAccount, setDisconnectAccount] = useState<Mt5Account | null>(null);
   const [blockConfirmAccount, setBlockConfirmAccount] = useState<Mt5Account | null>(null);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [settingsDrafts, setSettingsDrafts] = useState<Record<string, { defaultRiskUsd: number; maxRiskUsd: number }>>({});
+  const [settingsDrafts, setSettingsDrafts] = useState<Record<string, Mt5SettingsDraft>>({});
 
   const brokerQuery = `${brokerName} ${serverName}`.trim();
 
@@ -212,7 +223,7 @@ export function Mt5AutoTradeManager() {
   });
 
   const saveSettingsMutation = useMutation({
-    mutationFn: async ({ accountId, values }: { accountId: string; values: { defaultRiskUsd: number; maxRiskUsd: number } }) => {
+    mutationFn: async ({ accountId, values }: { accountId: string; values: Mt5SettingsDraft }) => {
       await api.patch(`/mt5/accounts/${accountId}/settings`, values);
     },
     onSuccess: () => {
@@ -274,19 +285,28 @@ export function Mt5AutoTradeManager() {
 
   function getDraft(account: Mt5Account) {
     return settingsDrafts[account._id] ?? {
+      riskMode: account.riskMode === "fixed_lot" ? "fixed_lot" : "risk_amount",
       defaultRiskUsd: Number(account.defaultRiskUsd ?? 10),
       maxRiskUsd: Number(account.maxRiskUsd ?? 50),
+      defaultLot: Number(account.defaultLot ?? 0.01),
+      maxLot: Number(account.maxLot ?? 100),
     };
   }
 
-  function updateDraft(account: Mt5Account, values: Partial<{ defaultRiskUsd: number; maxRiskUsd: number }>) {
+  function updateDraft(account: Mt5Account, values: Partial<Mt5SettingsDraft>) {
     setSettingsDrafts((current) => ({
       ...current,
       [account._id]: { ...getDraft(account), ...values },
     }));
   }
 
-  function riskError(draft: { defaultRiskUsd: number; maxRiskUsd: number }): string | null {
+  function riskError(draft: Mt5SettingsDraft): string | null {
+    if (draft.riskMode === "fixed_lot") {
+      if (draft.defaultLot < 0.01) return "Lot size must be at least 0.01";
+      if (draft.maxLot < 0.01) return "Max lot must be at least 0.01";
+      if (draft.defaultLot > draft.maxLot) return "Lot size cannot exceed max lot";
+      return null;
+    }
     if (draft.defaultRiskUsd > draft.maxRiskUsd) return "Default risk cannot exceed max risk";
     if (draft.defaultRiskUsd < 0.01) return "Risk per trade must be at least $0.01";
     if (draft.maxRiskUsd < 0.01) return "Max risk must be at least $0.01";
@@ -599,30 +619,87 @@ export function Mt5AutoTradeManager() {
                 </div>
 
                 <div className="mt-4 rounded-2xl border border-white/[0.07] bg-white/[0.03] p-4">
+                  <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold">Trade size method</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                        Choose money risk or enter the exact lot size the bot should use.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 rounded-full border border-white/[0.08] bg-black/20 p-1 text-xs font-semibold">
+                      <button
+                        type="button"
+                        className={`rounded-full px-3 py-2 transition-colors ${draft.riskMode === "risk_amount" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                        onClick={() => updateDraft(account, { riskMode: "risk_amount" })}
+                      >
+                        Risk amount ($)
+                      </button>
+                      <button
+                        type="button"
+                        className={`rounded-full px-3 py-2 transition-colors ${draft.riskMode === "fixed_lot" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                        onClick={() => updateDraft(account, { riskMode: "fixed_lot" })}
+                      >
+                        Fixed lot size
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_auto_auto] xl:items-end">
-                    <div className="grid gap-1.5">
-                      <Label htmlFor={`default-risk-${account._id}`}>Position amount / risk ($)</Label>
-                      <Input
-                        id={`default-risk-${account._id}`}
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        value={draft.defaultRiskUsd}
-                        className={riskError(draft) ? "border-red-500 focus-visible:ring-red-500" : ""}
-                        onChange={(event) => updateDraft(account, { defaultRiskUsd: Number(event.target.value) })}
-                      />
-                    </div>
-                    <div className="grid gap-1.5">
-                      <Label htmlFor={`max-risk-${account._id}`}>Max position risk ($)</Label>
-                      <Input
-                        id={`max-risk-${account._id}`}
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        value={draft.maxRiskUsd}
-                        onChange={(event) => updateDraft(account, { maxRiskUsd: Number(event.target.value) })}
-                      />
-                    </div>
+                    {draft.riskMode === "fixed_lot" ? (
+                      <>
+                        <div className="grid gap-1.5">
+                          <Label htmlFor={`default-lot-${account._id}`}>Lot size per trade</Label>
+                          <Input
+                            id={`default-lot-${account._id}`}
+                            type="number"
+                            min="0.01"
+                            max="100"
+                            step="0.01"
+                            value={draft.defaultLot}
+                            className={riskError(draft) ? "border-red-500 focus-visible:ring-red-500" : ""}
+                            onChange={(event) => updateDraft(account, { defaultLot: Number(event.target.value) })}
+                          />
+                        </div>
+                        <div className="grid gap-1.5">
+                          <Label htmlFor={`max-lot-${account._id}`}>Max lot cap</Label>
+                          <Input
+                            id={`max-lot-${account._id}`}
+                            type="number"
+                            min="0.01"
+                            max="100"
+                            step="0.01"
+                            value={draft.maxLot}
+                            onChange={(event) => updateDraft(account, { maxLot: Number(event.target.value) })}
+                          />
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="grid gap-1.5">
+                          <Label htmlFor={`default-risk-${account._id}`}>Risk amount per trade ($)</Label>
+                          <Input
+                            id={`default-risk-${account._id}`}
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={draft.defaultRiskUsd}
+                            className={riskError(draft) ? "border-red-500 focus-visible:ring-red-500" : ""}
+                            onChange={(event) => updateDraft(account, { defaultRiskUsd: Number(event.target.value) })}
+                          />
+                        </div>
+                        <div className="grid gap-1.5">
+                          <Label htmlFor={`max-risk-${account._id}`}>Max risk cap ($)</Label>
+                          <Input
+                            id={`max-risk-${account._id}`}
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={draft.maxRiskUsd}
+                            onChange={(event) => updateDraft(account, { maxRiskUsd: Number(event.target.value) })}
+                          />
+                        </div>
+                      </>
+                    )}
                     <Button
                       type="button"
                       variant="secondary"
