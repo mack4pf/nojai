@@ -68,6 +68,8 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
   const [token, setToken] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationMessage, setVerificationMessage] = useState("");
   const [showSecret, setShowSecret] = useState(false);
   const [baseAmount, setBaseAmount] = useState(10);
   const [accountGroup, setAccountGroup] = useState<"real" | "demo">("real");
@@ -102,18 +104,22 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
       const body =
         authMethod === "token"
           ? { authMethod, token, baseAmount, accountGroup }
-          : { authMethod, email, password, baseAmount, accountGroup };
+          : { authMethod, email, password, verificationCode: verificationCode.trim() || undefined, baseAmount, accountGroup };
       return (await api.post("/user/olymp-account/connect", body)).data;
     },
     onSuccess: (data) => {
       if (data?.verificationRequired) {
-        toast.warning(data.message || "Olymp Trade needs captcha or 2FA verification before this account can connect.");
+        const message = data.message || "Olymp Trade needs an email or 2FA verification code before this account can connect.";
+        setVerificationMessage(message);
+        toast.warning(message);
         return;
       }
       toast.success("Olymp Trade account connected successfully");
       setToken("");
       setEmail("");
       setPassword("");
+      setVerificationCode("");
+      setVerificationMessage("");
       setBaseAmount(10);
       setAccountGroup("real");
       setShowConnectForm(false);
@@ -294,7 +300,10 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
                   <Input
                     type={showSecret ? "text" : "password"}
                     value={token}
-                    onChange={(event) => setToken(event.target.value)}
+                    onChange={(event) => {
+                      setToken(event.target.value);
+                      setVerificationMessage("");
+                    }}
                     placeholder="Paste Olymp access token"
                     className="pr-10"
                   />
@@ -307,7 +316,15 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
               <>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Email</Label>
-                  <Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="your@email.com" />
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(event) => {
+                      setEmail(event.target.value);
+                      setVerificationMessage("");
+                    }}
+                    placeholder="your@email.com"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Password</Label>
@@ -315,7 +332,10 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
                     <Input
                       type={showSecret ? "text" : "password"}
                       value={password}
-                      onChange={(event) => setPassword(event.target.value)}
+                      onChange={(event) => {
+                        setPassword(event.target.value);
+                        setVerificationMessage("");
+                      }}
                       placeholder="Olymp password"
                       className="pr-10"
                     />
@@ -323,6 +343,15 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
                       {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label className="text-xs">Email / 2FA Code</Label>
+                  <Input
+                    value={verificationCode}
+                    onChange={(event) => setVerificationCode(event.target.value)}
+                    placeholder="Optional code from Olymp Trade"
+                  />
+                  {verificationMessage && <p className="text-xs text-amber-200">{verificationMessage}</p>}
                 </div>
               </>
             )}

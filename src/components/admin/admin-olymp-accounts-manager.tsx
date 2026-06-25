@@ -44,6 +44,8 @@ export function AdminOlympAccountsManager() {
   const [token, setToken] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationMessage, setVerificationMessage] = useState("");
   const [showSecret, setShowSecret] = useState(false);
   const [baseAmount, setBaseAmount] = useState(1);
   const [accountGroup, setAccountGroup] = useState<"real" | "demo">("real");
@@ -64,18 +66,22 @@ export function AdminOlympAccountsManager() {
       const payload =
         authMethod === "token"
           ? { authMethod, token, baseAmount, accountGroup }
-          : { authMethod, email, password, baseAmount, accountGroup };
+          : { authMethod, email, password, verificationCode: verificationCode.trim() || undefined, baseAmount, accountGroup };
       return (await api.post("/admin/olymp-accounts/connect", payload)).data;
     },
     onSuccess: (res) => {
       if (res?.verificationRequired) {
-        toast.warning(res.message ?? "Olymp Trade needs captcha or 2FA verification. Use token login after completing it in the browser.");
+        const message = res.message ?? "Olymp Trade needs an email or 2FA verification code before this account can connect.";
+        setVerificationMessage(message);
+        toast.warning(message);
         return;
       }
       toast.success(`${res?.account?.name ?? "Olymp Trade account"} connected`);
       setToken("");
       setEmail("");
       setPassword("");
+      setVerificationCode("");
+      setVerificationMessage("");
       setBaseAmount(1);
       setAccountGroup("real");
       setShowConnectForm(false);
@@ -202,7 +208,16 @@ export function AdminOlympAccountsManager() {
               <div className="space-y-1.5 sm:col-span-2">
                 <Label>Access Token</Label>
                 <div className="relative">
-                  <Input type={showSecret ? "text" : "password"} value={token} onChange={(e) => setToken(e.target.value)} placeholder="Paste Olymp access token" className="pr-10" />
+                  <Input
+                    type={showSecret ? "text" : "password"}
+                    value={token}
+                    onChange={(e) => {
+                      setToken(e.target.value);
+                      setVerificationMessage("");
+                    }}
+                    placeholder="Paste Olymp access token"
+                    className="pr-10"
+                  />
                   <button type="button" onClick={() => setShowSecret((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white">
                     {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -212,16 +227,38 @@ export function AdminOlympAccountsManager() {
               <>
                 <div className="space-y-1.5">
                   <Label>Email</Label>
-                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@olymptrade.com" />
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setVerificationMessage("");
+                    }}
+                    placeholder="admin@olymptrade.com"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label>Password</Label>
                   <div className="relative">
-                    <Input type={showSecret ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Olymp password" className="pr-10" />
+                    <Input
+                      type={showSecret ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        setVerificationMessage("");
+                      }}
+                      placeholder="Olymp password"
+                      className="pr-10"
+                    />
                     <button type="button" onClick={() => setShowSecret((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white">
                       {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
+                </div>
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label>Email / 2FA Code</Label>
+                  <Input value={verificationCode} onChange={(e) => setVerificationCode(e.target.value)} placeholder="Optional code from Olymp Trade" />
+                  {verificationMessage && <p className="text-xs text-amber-200">{verificationMessage}</p>}
                 </div>
               </>
             )}
