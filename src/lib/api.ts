@@ -221,8 +221,53 @@ export async function getCourses() {
 
 export async function getCourse(id: string) {
   if (!id || id === "undefined") return null;
-  const response = await publicGet<unknown>(`/courses/${id}`);
+  const response = await publicGet<unknown>(`/courses/${encodeURIComponent(id)}`);
   return normalizeRecord<Course>(response);
+}
+
+function slugifyCourseValue(value: unknown) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48)
+    .replace(/-+$/g, "");
+}
+
+function shareUrlPath(value: unknown) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  try {
+    return new URL(raw).pathname.replace(/^\/+/, "");
+  } catch {
+    return raw.replace(/^\/+/, "");
+  }
+}
+
+export async function getCourseByPublicIdentifier(identifier: string) {
+  const normalized = String(identifier ?? "").trim();
+  if (!normalized || normalized === "undefined") return null;
+
+  const direct = await getCourse(normalized).catch(() => null);
+  if (direct) return direct;
+
+  const courses = await getCourses().catch(() => []);
+  const match = courses.find((course) => {
+    const publicPath = shareUrlPath(course.shareUrl);
+    return (
+      course.slug === normalized
+      || course._id === normalized
+      || slugifyCourseValue(course.title) === normalized
+      || publicPath === `courses/${normalized}`
+      || publicPath.endsWith(`/courses/${normalized}`)
+    );
+  });
+
+  if (!match) return null;
+  return getCourse(match._id).catch(() => match);
 }
 
 export async function getUserCourses(accessToken: string) {

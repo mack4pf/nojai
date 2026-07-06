@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FileIcon, ImagePlus, Loader2, Trash2, X } from "lucide-react";
+import { CheckCircle2, Copy, FileIcon, ImagePlus, Loader2, Trash2, X, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -82,14 +82,17 @@ export function AdminCoursesManager() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Course | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [approvalFilter, setApprovalFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadingAsset, setUploadingAsset] = useState(false);
   const assetInputRef = useRef<HTMLInputElement>(null);
 
   const { data: courses = [], isLoading } = useQuery<Course[]>({
-    queryKey: ["admin-courses"],
+    queryKey: ["admin-courses", approvalFilter],
     queryFn: async () => {
-      const res = await api.get("/admin/courses");
+      const res = await api.get("/admin/courses", {
+        params: approvalFilter === "all" ? undefined : { approvalStatus: approvalFilter },
+      });
       return Array.isArray(res.data) ? (res.data as Course[]) : [];
     },
   });
@@ -125,6 +128,20 @@ export function AdminCoursesManager() {
     mutationFn: (id: string) => api.delete(`/admin/courses/${id}`),
     onSuccess: () => {
       toast.success("Course deleted");
+      queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const approvalMutation = useMutation({
+    mutationFn: ({ id, approvalStatus }: { id: string; approvalStatus: "approved" | "rejected" | "pending" }) => (
+      api.patch(`/admin/courses/${id}/approval`, {
+        approvalStatus,
+        ...(approvalStatus === "rejected" ? { rejectionReason: "Course was rejected by admin." } : {}),
+      })
+    ),
+    onSuccess: (_res, variables) => {
+      toast.success(variables.approvalStatus === "approved" ? "Course approved" : variables.approvalStatus === "rejected" ? "Course rejected" : "Course returned to pending");
       queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -192,6 +209,19 @@ export function AdminCoursesManager() {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  function copyShareLink(course: Course) {
+    const url = course.shareUrl || `${window.location.origin}/courses/${course.slug || course._id}`;
+    navigator.clipboard.writeText(url)
+      .then(() => toast.success("Course link copied"))
+      .catch(() => toast.error("Could not copy link"));
+  }
+
+  function approvalVariant(status?: Course["approvalStatus"]) {
+    if (status === "approved") return "success" as const;
+    if (status === "rejected") return "warning" as const;
+    return "outline" as const;
   }
 
   return (
@@ -342,7 +372,21 @@ export function AdminCoursesManager() {
 
       {/* ── Course list ── */}
       <Card>
-        <CardHeader><CardTitle>Courses ({courses.length})</CardTitle></CardHeader>
+        <CardHeader>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle>Courses ({courses.length})</CardTitle>
+            <select
+              value={approvalFilter}
+              onChange={(e) => setApprovalFilter(e.target.value as typeof approvalFilter)}
+              className="h-10 rounded-full border border-input bg-background px-3 text-sm"
+            >
+              <option value="all">All</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+        </CardHeader>
         <CardContent className="space-y-3">
           {isLoading ? (
             <div className="flex h-32 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
@@ -360,6 +404,9 @@ export function AdminCoursesManager() {
                     <p className="font-semibold leading-snug">{course.title}</p>
                     {course.description && <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{course.description}</p>}
                     <div className="mt-2 flex flex-wrap gap-2">
+                      <Badge variant={approvalVariant(course.approvalStatus)}>
+                        {course.approvalStatus ?? "approved"}
+                      </Badge>
                       <Badge variant={course.accessType === "paid" ? "default" : "secondary"}>
                         {course.accessType === "paid" ? `Paid · ${course.price} ${course.currency ?? "USD"}` : "Free"}
                       </Badge>
@@ -370,10 +417,29 @@ export function AdminCoursesManager() {
                         <Badge variant="outline">{(course.assets ?? []).length} asset{(course.assets ?? []).length !== 1 ? "s" : ""}</Badge>
                       )}
                     </div>
+                    {(course.slug || course.shareUrl) && (
+                      <p className="mt-2 truncate text-xs text-muted-foreground">/{course.slug || course._id}</p>
+                    )}
                   </div>
                 </div>
-                <div className="mt-3 flex gap-2">
+                {course.rejectionReason && (
+                  <p className="mt-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.05] p-3 text-xs text-amber-200">{course.rejectionReason}</p>
+                )}
+                <div className="mt-3 flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={() => startEdit(course)}>Edit</Button>
+                  <Button variant="outline" size="sm" onClick={() => copyShareLink(course)}>
+                    <Copy className="h-3.5 w-3.5" />
+                  </Button>
+                  {course.approvalStatus !== "approved" && (
+                    <Button size="sm" onClick={() => { if (course._id) approvalMutation.mutate({ id: course._id, approvalStatus: "approved" }); }} disabled={approvalMutation.isPending}>
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  {course.approvalStatus !== "rejected" && (
+                    <Button variant="outline" size="sm" onClick={() => { if (course._id) approvalMutation.mutate({ id: course._id, approvalStatus: "rejected" }); }} disabled={approvalMutation.isPending}>
+                      <XCircle className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   <Button variant="danger" size="sm" onClick={() => { if (course._id) deleteMutation.mutate(course._id); }} disabled={deleteMutation.isPending}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>

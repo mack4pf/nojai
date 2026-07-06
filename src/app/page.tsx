@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 import { LandingPage } from "@/components/marketing/landing-page";
-import { getPricingPlans, getPublicReviews } from "@/lib/api";
+import { getCourses, getPricingPlans, getPublicReviews } from "@/lib/api";
 import { faqItems } from "@/lib/marketing";
-import type { PricingPlan, Review } from "@/types";
+import type { Course, PricingPlan, Review } from "@/types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -58,10 +58,13 @@ const fallbackReviews: Review[] = [
 
 ];
 
+const fallbackCourses: Course[] = [];
+
 export default async function Home() {
-  const [pricingPlans, reviews] = await Promise.all([
+  const [pricingPlans, reviews, courses] = await Promise.all([
     getPricingPlans().catch(() => fallbackPlans),
     getPublicReviews().catch(() => fallbackReviews),
+    getCourses().catch(() => fallbackCourses),
   ]);
 
   const jsonLd = {
@@ -237,7 +240,7 @@ export default async function Home() {
         </nav>
       </div>
 
-      <LandingPage pricingPlans={pricingPlans} reviews={reviews} />
+      <LandingPage pricingPlans={pricingPlans} reviews={reviews} courses={courses} />
     </>
   );
 }

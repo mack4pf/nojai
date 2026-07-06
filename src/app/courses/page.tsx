@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 
-import Link from "next/link";
-
 import { MarketingShell } from "@/components/layout/marketing-shell";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CourseDirectory } from "@/components/marketing/course-directory";
 import { getCourses } from "@/lib/api";
 
 export const metadata: Metadata = {
@@ -27,22 +25,10 @@ export default async function CoursesPage() {
       <section className="mx-auto max-w-6xl px-6 py-16 lg:px-8">
         <Badge>Courses</Badge>
         <h1 className="mt-4 font-display text-5xl font-semibold tracking-tight">Educational content inside the same product experience</h1>
-        <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {courses.map((course) => (
-            <Card key={course._id}>
-              <CardHeader>
-                <CardTitle>{course.title}</CardTitle>
-                <p className="text-sm text-muted-foreground">{course.level ?? "All levels"}</p>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm leading-7 text-muted-foreground">{course.description}</p>
-                <Link href={`/courses/${course.slug}`} className="mt-4 inline-flex text-sm font-semibold text-primary">
-                  Open course
-                </Link>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <p className="mt-4 max-w-2xl text-muted-foreground">
+          Search all public NOJAI courses and open any course link directly, even before creating an account.
+        </p>
+        <CourseDirectory courses={courses} />
       </section>
     </MarketingShell>
   );
