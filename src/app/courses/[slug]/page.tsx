@@ -3,50 +3,45 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
-import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
-
 import { MarketingShell } from "@/components/layout/marketing-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { authOptions } from "@/lib/auth";
-import { getCourse } from "@/lib/api";
+import { CourseShareButton } from "@/components/marketing/course-share-button";
+import { getCourseByPublicIdentifier } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 
 interface CourseDetailPageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
 export async function generateMetadata({ params }: CourseDetailPageProps): Promise<Metadata> {
-  const course = await getCourse(params.slug).catch(() => null);
+  const { slug } = await params;
+  const course = await getCourseByPublicIdentifier(slug).catch(() => null);
   if (!course) return { title: "Course not found" };
+  const coursePath = `/courses/${course.slug || slug}`;
   return {
     title: course.title,
     description: course.description ?? `Learn from the NOJAI course: ${course.title}.`,
-    alternates: { canonical: `/courses/${params.slug}` },
+    alternates: { canonical: coursePath },
     openGraph: {
       title: course.title,
       description: course.description ?? `Learn from the NOJAI course: ${course.title}.`,
-      url: `/courses/${params.slug}`,
+      url: coursePath,
       ...(course.coverImage ? { images: [{ url: course.coverImage, width: 1280, height: 720, alt: course.title }] } : {}),
     },
   };
 }
 
 export default async function CourseDetailPage({ params }: CourseDetailPageProps) {
-  // If logged in, send straight to dashboard course page
-  const session = await getServerSession(authOptions);
-  if (session) {
-    redirect(`/dashboard/courses/${params.slug}`);
-  }
-
-  const course = await getCourse(params.slug).catch(() => null);
+  const { slug } = await params;
+  const course = await getCourseByPublicIdentifier(slug).catch(() => null);
   if (!course) notFound();
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://nojai.io";
-  const courseUrl = `${siteUrl}/courses/${params.slug}`;
+  const coursePath = `/courses/${course.slug || slug}`;
+  const courseUrl = `${siteUrl}${coursePath}`;
   const courseJsonLd = {
     "@context": "https://schema.org",
     "@type": "Course",
@@ -118,14 +113,21 @@ export default async function CourseDetailPage({ params }: CourseDetailPageProps
         )}
 
         <div className="mt-10 flex flex-wrap gap-4">
-          <Link href={`/auth/register?callbackUrl=/dashboard/courses/${params.slug}`}>
+          <Link href={`/auth/register?callbackUrl=/dashboard/courses/${course.slug || course._id}`}>
             <Button size="lg">
               {course.accessType === "paid" ? "Purchase & Enroll" : "Sign up to access"}
             </Button>
           </Link>
-          <Link href="/auth/login">
-            <Button size="lg" variant="outline">Sign in</Button>
+          <Link href={`/dashboard/courses/${course.slug || course._id}`}>
+            <Button size="lg" variant="outline">Open in dashboard</Button>
           </Link>
+          <Link href="/auth/login">
+            <Button size="lg" variant="ghost">Sign in</Button>
+          </Link>
+        </div>
+
+        <div className="mt-5">
+          <CourseShareButton url={coursePath} />
         </div>
       </section>
     </MarketingShell>

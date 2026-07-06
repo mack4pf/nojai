@@ -69,6 +69,7 @@ export interface Course {
   _id: string;
   title: string;
   slug?: string;
+  shareUrl?: string;
   description?: string;
   coverImage?: string;
   level?: string;
@@ -80,6 +81,11 @@ export interface Course {
   currency?: "NGN" | "USD";
   assets?: CourseAsset[];
   published?: boolean;
+  approvalStatus?: "draft" | "pending" | "approved" | "rejected";
+  submittedAt?: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
   hasAccess?: boolean;
   videos?: CourseVideo[];
   createdAt?: string;

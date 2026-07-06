@@ -4,6 +4,17 @@ import { getBlogPosts, getCourses } from "@/lib/api";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://nojai.io";
 
+function coursePath(course: { _id: string; slug?: string; shareUrl?: string }) {
+  if (course.shareUrl) {
+    try {
+      return new URL(course.shareUrl).pathname;
+    } catch {
+      return course.shareUrl.startsWith("/") ? course.shareUrl : `/courses/${course.shareUrl}`;
+    }
+  }
+  return `/courses/${course.slug || course._id}`;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
@@ -36,7 +47,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Dynamic courses
   const courses = await getCourses().catch(() => []);
   const courseRoutes: MetadataRoute.Sitemap = courses.map((course) => ({
-    url: `${SITE_URL}/courses/${course.slug}`,
+    url: `${SITE_URL}${coursePath(course)}`,
     lastModified: now,
     changeFrequency: "monthly" as const,
     priority: 0.7,

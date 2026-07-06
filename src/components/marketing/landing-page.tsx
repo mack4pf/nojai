@@ -20,10 +20,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { VideoResources } from "@/components/marketing/video-resources";
+import { CourseCarousel } from "@/components/marketing/course-carousel";
 import { AffiliateLocalePromo } from "@/components/marketing/affiliate-locale-promo";
 import { academyLink, faqItems, featureList, publicPricingPlans } from "@/lib/marketing";
 import { formatCurrency, formatDate, normalizeCurrencyCode } from "@/lib/utils";
-import type { PricingPlan, Review } from "@/types";
+import type { Course, PricingPlan, Review } from "@/types";
 
 const brokerData: Array<{
   name: string;
@@ -137,9 +138,10 @@ const MT5_DEFAULT_ASSETS = ["BTCUSD", "EURUSD", "XAUUSD"];
 interface LandingPageProps {
   pricingPlans?: PricingPlan[];
   reviews: Review[];
+  courses?: Course[];
 }
 
-export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
+export function LandingPage({ pricingPlans, reviews, courses = [] }: LandingPageProps) {
   const plansToShow: PricingPlan[] = pricingPlans?.length ? pricingPlans : publicPricingPlans.map((plan) => ({
     ...plan,
     features: [...plan.features],
@@ -736,6 +738,8 @@ export function LandingPage({ pricingPlans, reviews }: LandingPageProps) {
         title="Watch the free course and free script walkthrough"
         description="Watch the free course and the free script setup here on the page."
       />
+
+      <CourseCarousel courses={courses} />
 
       <section className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
         <div className="max-w-2xl">
