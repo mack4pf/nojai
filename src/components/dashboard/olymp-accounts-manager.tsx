@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -70,6 +71,7 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
   const [password, setPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationMessage, setVerificationMessage] = useState("");
+  const [needsVerificationCode, setNeedsVerificationCode] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
   const [baseAmount, setBaseAmount] = useState(10);
   const [accountGroup, setAccountGroup] = useState<"real" | "demo">("real");
@@ -109,7 +111,15 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
     },
     onSuccess: (data) => {
       if (data?.verificationRequired) {
-        const message = data.message || "Olymp Trade needs an email or 2FA verification code before this account can connect.";
+        const canEnterCode = ["email_code", "2fa", "device_verification"].includes(String(data.verificationType ?? ""));
+        const baseMessage = canEnterCode
+          ? data.message || "Olymp Trade requested a verification code. Check Olymp Trade for the code, then enter it here."
+          : data.message || "Olymp Trade rejected this login without a readable message.";
+        const detail = [data.verificationType ? `Type: ${data.verificationType}` : null, data.providerStatus ? `Status: ${data.providerStatus}` : null]
+          .filter(Boolean)
+          .join(" · ");
+        const message = detail ? `${baseMessage} (${detail})` : baseMessage;
+        setNeedsVerificationCode(canEnterCode);
         setVerificationMessage(message);
         toast.warning(message);
         return;
@@ -120,6 +130,7 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
       setPassword("");
       setVerificationCode("");
       setVerificationMessage("");
+      setNeedsVerificationCode(false);
       setBaseAmount(10);
       setAccountGroup("real");
       setShowConnectForm(false);
@@ -160,6 +171,17 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
       queryClient.invalidateQueries({ queryKey: queryKeys.olympAccounts });
     },
     onError: (err: Error) => toast.error(err.message || "Failed to update base amount"),
+  });
+
+  const takeSignalsMutation = useMutation({
+    mutationFn: async ({ accountId, takeSignalsEnabled }: { accountId: number; takeSignalsEnabled: boolean }) => {
+      await api.patch(`/user/olymp-account/${accountId}/take-signals`, { takeSignalsEnabled });
+    },
+    onSuccess: (_data, variables) => {
+      toast.success(variables.takeSignalsEnabled ? "Olymp signals turned on" : "Olymp signals turned off");
+      queryClient.invalidateQueries({ queryKey: queryKeys.olympAccounts });
+    },
+    onError: (err: Error) => toast.error(err.message || "Failed to update Olymp signal setting"),
   });
 
   const connectDisabled =
@@ -288,7 +310,7 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
           {authMethod === "password" && (
             <div className="flex gap-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.08] p-3 text-xs text-amber-200">
               <Info className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>Olymp may ask for captcha or 2FA. If that happens, this form will tell you to use token login for now.</p>
+              <p>This will try a normal Olymp Trade email and password login first.</p>
             </div>
           )}
 
@@ -303,6 +325,7 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
                     onChange={(event) => {
                       setToken(event.target.value);
                       setVerificationMessage("");
+                      setNeedsVerificationCode(false);
                     }}
                     placeholder="Paste Olymp access token"
                     className="pr-10"
@@ -322,6 +345,8 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
                     onChange={(event) => {
                       setEmail(event.target.value);
                       setVerificationMessage("");
+                      setNeedsVerificationCode(false);
+                      setVerificationCode("");
                     }}
                     placeholder="your@email.com"
                   />
@@ -335,6 +360,8 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
                       onChange={(event) => {
                         setPassword(event.target.value);
                         setVerificationMessage("");
+                        setNeedsVerificationCode(false);
+                        setVerificationCode("");
                       }}
                       placeholder="Olymp password"
                       className="pr-10"
@@ -344,15 +371,17 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
                     </button>
                   </div>
                 </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label className="text-xs">Email / 2FA Code</Label>
-                  <Input
-                    value={verificationCode}
-                    onChange={(event) => setVerificationCode(event.target.value)}
-                    placeholder="Optional code from Olymp Trade"
-                  />
-                  {verificationMessage && <p className="text-xs text-amber-200">{verificationMessage}</p>}
-                </div>
+                {needsVerificationCode && (
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label className="text-xs">Verification Code</Label>
+                    <Input
+                      value={verificationCode}
+                      onChange={(event) => setVerificationCode(event.target.value)}
+                      placeholder="Enter the code from Olymp Trade"
+                    />
+                    {verificationMessage && <p className="text-xs text-amber-200">{verificationMessage}</p>}
+                  </div>
+                )}
               </>
             )}
 
@@ -445,6 +474,21 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
                     Save Amount
                   </Button>
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <Label htmlFor={`olymp-signals-${account.accountId}`} className="text-xs font-semibold">Take Signals</Label>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {account.takeSignalsEnabled ?? true ? "This account will place trades when Olymp signals arrive." : "This account will skip Olymp signals until you turn this back on."}
+                  </p>
+                </div>
+                <Switch
+                  id={`olymp-signals-${account.accountId}`}
+                  checked={account.takeSignalsEnabled ?? true}
+                  onCheckedChange={(checked) => takeSignalsMutation.mutate({ accountId: account.accountId, takeSignalsEnabled: checked })}
+                  disabled={takeSignalsMutation.isPending}
+                />
               </div>
 
               <div className="flex flex-wrap gap-2 border-t border-white/5 pt-3">

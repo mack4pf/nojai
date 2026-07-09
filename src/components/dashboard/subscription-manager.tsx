@@ -122,9 +122,9 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
   const currentPlanTier = profile?.subscription?.active ? profile?.subscription?.plan : "NONE";
   const currentProduct = (profile?.subscription as any)?.product ?? null;
 
-  async function initializePayment(plan: Exclude<PlanTier, "NONE">, provider: "paystack" | "crypto") {
+  async function initializePayment(plan: Exclude<PlanTier, "NONE">, provider: "flutterwave" | "crypto") {
     try {
-      const endpoint = provider === "paystack" ? "/payment/initialize/paystack" : "/payment/initialize/crypto";
+      const endpoint = provider === "flutterwave" ? "/payment/initialize/flutterwave" : "/payment/initialize/crypto";
       const product = plan === "VIP" ? undefined : productByPlan[plan] ?? "binary";
       const response = await api.post(endpoint, { plan: plan.toLowerCase(), ...(product ? { product } : {}) });
       const url = response.data?.authorization_url ?? response.data?.checkout_url ?? response.data?.authorizationUrl ?? response.data?.paymentUrl ?? response.data?.url;
@@ -341,7 +341,7 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                   </p>
                 ) : currentPlanTier === "VIP" ? null : (
                   <div className="mt-6 flex flex-col gap-2">
-                    <Button size="sm" onClick={() => initializePayment(tier, "paystack")}>Pay with Paystack</Button>
+                    <Button size="sm" onClick={() => initializePayment(tier, "flutterwave")}>Pay with Flutterwave</Button>
                     <Button size="sm" variant="outline" onClick={() => initializePayment(tier, "crypto")}>Pay with Crypto</Button>
                     <p className="text-[11px] text-muted-foreground/60">
                       Payment confirmation will be emailed after verification.

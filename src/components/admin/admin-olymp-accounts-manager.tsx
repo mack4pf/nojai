@@ -46,6 +46,7 @@ export function AdminOlympAccountsManager() {
   const [password, setPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationMessage, setVerificationMessage] = useState("");
+  const [needsVerificationCode, setNeedsVerificationCode] = useState(false);
   const [showSecret, setShowSecret] = useState(false);
   const [baseAmount, setBaseAmount] = useState(1);
   const [accountGroup, setAccountGroup] = useState<"real" | "demo">("real");
@@ -71,7 +72,15 @@ export function AdminOlympAccountsManager() {
     },
     onSuccess: (res) => {
       if (res?.verificationRequired) {
-        const message = res.message ?? "Olymp Trade needs an email or 2FA verification code before this account can connect.";
+        const canEnterCode = ["email_code", "2fa", "device_verification"].includes(String(res.verificationType ?? ""));
+        const baseMessage = canEnterCode
+          ? res.message ?? "Olymp Trade requested a verification code. Check Olymp Trade for the code, then enter it here."
+          : res.message ?? "Olymp Trade rejected this login without a readable message.";
+        const detail = [res.verificationType ? `Type: ${res.verificationType}` : null, res.providerStatus ? `Status: ${res.providerStatus}` : null]
+          .filter(Boolean)
+          .join(" · ");
+        const message = detail ? `${baseMessage} (${detail})` : baseMessage;
+        setNeedsVerificationCode(canEnterCode);
         setVerificationMessage(message);
         toast.warning(message);
         return;
@@ -82,6 +91,7 @@ export function AdminOlympAccountsManager() {
       setPassword("");
       setVerificationCode("");
       setVerificationMessage("");
+      setNeedsVerificationCode(false);
       setBaseAmount(1);
       setAccountGroup("real");
       setShowConnectForm(false);
@@ -199,7 +209,7 @@ export function AdminOlympAccountsManager() {
           {authMethod === "password" && (
             <div className="flex gap-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.08] p-3 text-xs text-amber-200">
               <Info className="mt-0.5 h-4 w-4 shrink-0" />
-              <p>Olymp may request captcha or 2FA. If that happens, login in the browser and connect with token.</p>
+              <p>This will try a normal Olymp Trade email and password login first.</p>
             </div>
           )}
 
@@ -214,6 +224,7 @@ export function AdminOlympAccountsManager() {
                     onChange={(e) => {
                       setToken(e.target.value);
                       setVerificationMessage("");
+                      setNeedsVerificationCode(false);
                     }}
                     placeholder="Paste Olymp access token"
                     className="pr-10"
@@ -233,6 +244,8 @@ export function AdminOlympAccountsManager() {
                     onChange={(e) => {
                       setEmail(e.target.value);
                       setVerificationMessage("");
+                      setNeedsVerificationCode(false);
+                      setVerificationCode("");
                     }}
                     placeholder="admin@olymptrade.com"
                   />
@@ -246,6 +259,8 @@ export function AdminOlympAccountsManager() {
                       onChange={(e) => {
                         setPassword(e.target.value);
                         setVerificationMessage("");
+                        setNeedsVerificationCode(false);
+                        setVerificationCode("");
                       }}
                       placeholder="Olymp password"
                       className="pr-10"
@@ -255,11 +270,13 @@ export function AdminOlympAccountsManager() {
                     </button>
                   </div>
                 </div>
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>Email / 2FA Code</Label>
-                  <Input value={verificationCode} onChange={(e) => setVerificationCode(e.target.value)} placeholder="Optional code from Olymp Trade" />
-                  {verificationMessage && <p className="text-xs text-amber-200">{verificationMessage}</p>}
-                </div>
+                {needsVerificationCode && (
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label>Verification Code</Label>
+                    <Input value={verificationCode} onChange={(e) => setVerificationCode(e.target.value)} placeholder="Enter the code from Olymp Trade" />
+                    {verificationMessage && <p className="text-xs text-amber-200">{verificationMessage}</p>}
+                  </div>
+                )}
               </>
             )}
 

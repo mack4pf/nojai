@@ -38,6 +38,7 @@ const PLAN_COLORS: Record<string, string> = {
 };
 
 const METHOD_LABELS: Record<string, string> = {
+  flutterwave: "Flutterwave",
   paystack: "Paystack",
   nowpayments: "Crypto",
   manual: "Manual / Code",

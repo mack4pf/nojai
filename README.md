@@ -13,7 +13,7 @@ NOJAI is a Next.js 14 frontend for a trading SaaS platform with public marketing
 - React Hook Form + Zod
 - Recharts
 - Socket.io client
-- Paystack and NOWPayments initialization flow
+- Flutterwave and NOWPayments initialization flow
 
 ## Environment
 
@@ -64,7 +64,7 @@ The frontend is wired for these backend routes:
 - `GET /api/user/trades`
 - `GET /api/user/iq-account`
 - `PUT /api/user/iq-account`
-- `POST /api/payment/initialize/paystack`
+- `POST /api/payment/initialize/flutterwave`
 - `POST /api/payment/initialize/crypto`
 - `GET /api/admin/dashboard/stats`
 - `GET /api/admin/users`

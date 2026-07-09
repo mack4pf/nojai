@@ -27,7 +27,7 @@ interface Payment {
   status: "active" | "free" | "pending" | "expired" | "cancelled";
   amount: number;
   currency: "NGN" | "USD";
-  paymentMethod: "paystack" | "nowpayments" | "manual";
+  paymentMethod: "flutterwave" | "paystack" | "nowpayments" | "manual";
   paymentReference?: string;
   startDate: string;
   endDate: string | null;
@@ -70,6 +70,7 @@ const TYPE_COLORS: Record<Payment["type"], string> = {
 };
 
 const METHOD_LABELS: Record<Payment["paymentMethod"], string> = {
+  flutterwave: "Flutterwave",
   paystack: "Paystack",
   nowpayments: "Crypto",
   manual: "Manual",
@@ -253,7 +254,7 @@ export function AdminPaymentsManager() {
 
                     {/* Method */}
                     <td className="px-5 py-4 text-xs text-muted-foreground">
-                      {METHOD_LABELS[payment.paymentMethod]}
+                      {METHOD_LABELS[payment.paymentMethod] ?? payment.paymentMethod}
                     </td>
 
                     {/* Status */}

@@ -614,7 +614,7 @@ export function AdminAnalytics() {
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">NGN Revenue</p>
               <p className="mt-2 font-display text-3xl font-bold text-foreground">₦{(summary?.revenue.ngnTotal ?? 0).toLocaleString()}</p>
-              <p className="mt-1 text-xs text-muted-foreground">Paystack payments</p>
+              <p className="mt-1 text-xs text-muted-foreground">Flutterwave payments</p>
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
               <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">USD Revenue</p>

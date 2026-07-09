@@ -145,11 +145,11 @@ export default function DashboardCourseDetailPage({ params }: Props) {
     }
   }
 
-  async function startPayment(provider: "paystack" | "crypto") {
+  async function startPayment(provider: "flutterwave" | "crypto") {
     if (!courseId) return;
     setPaying(true);
     try {
-      const endpoint = provider === "paystack" ? "/payment/initialize/course/paystack" : "/payment/initialize/course/crypto";
+      const endpoint = provider === "flutterwave" ? "/payment/initialize/course/flutterwave" : "/payment/initialize/course/crypto";
       const res = await api.post(endpoint, { courseId });
       const url = (res.data as Record<string, string>)?.authorization_url ?? (res.data as Record<string, string>)?.checkout_url;
       if (!url) throw new Error("Payment URL missing");
@@ -237,8 +237,8 @@ export default function DashboardCourseDetailPage({ params }: Props) {
             ) : (
               <div className="space-y-3">
                 <div className="flex flex-wrap gap-3">
-                  <Button onClick={() => startPayment("paystack")} disabled={paying}>
-                    {paying ? "Redirecting..." : "Pay with Paystack"}
+                  <Button onClick={() => startPayment("flutterwave")} disabled={paying}>
+                    {paying ? "Redirecting..." : "Pay with Flutterwave"}
                   </Button>
                   <Button variant="outline" onClick={() => startPayment("crypto")} disabled={paying}>
                     Pay with Crypto

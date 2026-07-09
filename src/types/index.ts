@@ -110,6 +110,7 @@ export interface OlympAccount {
   name: string;
   baseAmount: number;
   accountGroup: "real" | "demo";
+  takeSignalsEnabled?: boolean;
   balance?: number;
   currency?: string;
   lastConnected?: string;
@@ -218,7 +219,7 @@ export interface Payment {
   status: "active" | "pending" | "expired" | "cancelled" | "free";
   amount: number;
   currency: "NGN" | "USD";
-  paymentMethod: "paystack" | "nowpayments" | "manual";
+  paymentMethod: "flutterwave" | "paystack" | "nowpayments" | "manual";
   paymentReference?: string;
   startDate: string;
   endDate: string | null;
