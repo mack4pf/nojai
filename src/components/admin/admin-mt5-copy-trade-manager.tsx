@@ -112,7 +112,7 @@ export function AdminMt5CopyTradeManager() {
   const { data: accounts = [], isLoading } = useQuery<Mt5AdminAccount[]>({
     queryKey: ["admin-mt5-own-accounts"],
     queryFn: async () => {
-      const res = await api.get("/mt5/accounts");
+      const res = await api.get("/mt5/accounts", { params: { refresh: true } });
       return (res.data?.accounts ?? []) as Mt5AdminAccount[];
     },
     refetchInterval: 30_000,

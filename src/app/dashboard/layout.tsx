@@ -25,6 +25,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     { href: "/dashboard/olymp-trade", label: "Olymp Trade", icon: "broker", badge: "Free", mobileBottom: true, show: true },
     { href: "/dashboard/olymp-trade/history", label: "Olymp History", icon: "trades", mobileBottom: true, show: true },
     { href: "/dashboard/mt5-autotrade", label: "MT5", icon: "mt5", badge: "New", mobileBottom: true, show: hasForex },
+    { href: "/dashboard/iux", label: "IUX Broker", icon: "broker", badge: "Partner", mobileBottom: true, show: true },
     { href: "/dashboard/trades", label: "Trades", icon: "trades", mobileBottom: true, show: true },
     { href: "/dashboard/review", label: "Review", icon: "review", mobileBottom: true, show: true },
     { href: "/dashboard/subscription", label: "Plans", icon: "plans", mobileBottom: true, show: true },

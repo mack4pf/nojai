@@ -208,7 +208,7 @@ export function DashboardOverview({ welcome, selectedPlan, status }: DashboardOv
   const { data: mt5Accounts = [] } = useQuery({
     queryKey: queryKeys.mt5Accounts,
     queryFn: async () => {
-      const res = await api.get("/mt5/accounts");
+      const res = await api.get("/mt5/accounts", { params: { refresh: true } });
       return (res.data?.accounts ?? []) as Mt5Account[];
     },
     enabled: hasSubscription,

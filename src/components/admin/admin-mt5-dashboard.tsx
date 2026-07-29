@@ -107,6 +107,16 @@ interface Mt5Account {
   lastError?: string;
   createdAt?: string;
   assignedBotId?: string | null;
+  subscription?: {
+    active: boolean;
+    expired: boolean;
+    reason?: string;
+    plan?: string;
+    product?: string;
+    status?: string;
+    expiresAt?: string;
+    daysRemaining?: number;
+  };
   trades: { total: number; open: number };
   user: { _id: string; fullName: string; email: string } | null;
 }
@@ -267,6 +277,23 @@ function friendlyMt5Error(value?: string) {
 
 function accountIdentifier(account: Partial<Mt5Account>) {
   return String(account._id ?? account.id ?? account.accountId ?? account.metaApiAccountId ?? account.login ?? "");
+}
+
+function subscriptionLabel(subscription?: Mt5Account["subscription"]) {
+  if (!subscription) return { title: "Unknown", note: "No subscription data", tone: "warning" as const };
+  if (subscription.active) {
+    const days = subscription.daysRemaining;
+    return {
+      title: "Active",
+      note: `${subscription.plan?.toUpperCase() || "MT5"}${typeof days === "number" ? ` · ${days} day${days === 1 ? "" : "s"} left` : ""}`,
+      tone: "success" as const,
+    };
+  }
+  return {
+    title: subscription.expired ? "Expired" : "No MT5 access",
+    note: subscription.reason || "Automation blocked",
+    tone: "danger" as const,
+  };
 }
 
 function normalizeAccountsResponse(value: unknown): AccountsResponse {
@@ -505,7 +532,7 @@ function AccountDrawer({ accountId, onClose }: { accountId: string; onClose: () 
                     variant={account.automationEnabled ? "danger" : "default"}
                     className="gap-2"
                     onClick={() => toggleMutation.mutate(!account.automationEnabled)}
-                    disabled={toggleMutation.isPending}
+                    disabled={toggleMutation.isPending || (!account.automationEnabled && account.subscription?.active === false)}
                   >
                     {account.automationEnabled ? <Pause className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
                     {account.automationEnabled ? "Pause automation" : "Enable automation"}
@@ -513,11 +540,26 @@ function AccountDrawer({ accountId, onClose }: { accountId: string; onClose: () 
                 </div>
               </div>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-2xl border border-border bg-muted/40 p-4">
                   <p className="text-xs text-muted-foreground">Owner</p>
                   <p className="mt-1 truncate font-semibold">{data.user?.fullName ?? "Unknown user"}</p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">{data.user?.email ?? "-"}</p>
+                </div>
+                <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                  <p className="text-xs text-muted-foreground">Subscription</p>
+                  {(() => {
+                    const subscription = subscriptionLabel(account.subscription);
+                    return (
+                      <>
+                        <p className={cn("mt-1 font-semibold", subscription.tone === "success" ? "text-emerald-300" : "text-danger")}>{subscription.title}</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">{subscription.note}</p>
+                        {account.subscription?.expiresAt ? (
+                          <p className="mt-1 text-[11px] text-muted-foreground">Expires {fmtDate(account.subscription.expiresAt)}</p>
+                        ) : null}
+                      </>
+                    );
+                  })()}
                 </div>
                 <div className="rounded-2xl border border-border bg-muted/40 p-4">
                   <p className="text-xs text-muted-foreground">Balance / Equity</p>
@@ -796,7 +838,7 @@ function AccountsTab({ onSelect }: { onSelect: (id: string) => void }) {
           <table className="w-full min-w-[1100px] text-sm">
             <thead className="bg-muted/45 text-left">
               <tr>
-                {["User", "Login", "Broker", "Status", "Balance", "Automation", "Trades", "Added", ""].map((header) => (
+                {["User", "Login", "Broker", "Status", "Balance", "Subscription", "Automation", "Trades", "Added", ""].map((header) => (
                   <th key={header} className="px-5 py-4 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
                     {header}
                   </th>
@@ -806,7 +848,7 @@ function AccountsTab({ onSelect }: { onSelect: (id: string) => void }) {
             <tbody className="divide-y divide-border">
               {isLoading ? (
                 <tr>
-                  <td colSpan={9} className="py-16 text-center">
+                  <td colSpan={10} className="py-16 text-center">
                     <Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" />
                   </td>
                 </tr>
@@ -838,6 +880,24 @@ function AccountsTab({ onSelect }: { onSelect: (id: string) => void }) {
                     <td className="px-5 py-4">
                       <p className="font-mono font-semibold">{currency(account.balance)}</p>
                       <p className="mt-1 text-xs text-muted-foreground">Equity {currency(account.equity)}</p>
+                    </td>
+                    <td className="px-5 py-4">
+                      {(() => {
+                        const subscription = subscriptionLabel(account.subscription);
+                        return (
+                          <div>
+                            <span className={cn(
+                              "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold",
+                              subscription.tone === "success"
+                                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+                                : "border-danger/20 bg-danger/10 text-danger",
+                            )}>
+                              {subscription.title}
+                            </span>
+                            <p className="mt-1 max-w-[170px] truncate text-xs text-muted-foreground">{subscription.note}</p>
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-5 py-4">
                       <span className={cn(

@@ -234,12 +234,13 @@ export interface AccessCode {
   expiresAt: string;
   active?: boolean;
   usedAt?: string;
-  usedBy?: { _id: string; email: string } | string;
+  usedBy?: Array<{ _id: string; email: string } | string> | { _id: string; email: string } | string;
   createdBy?: { _id: string; email: string } | string;
   botId?: { _id: string; name: string; slug: string } | string;
   isGlobal?: boolean;
   maxUses?: number;
   usedCount?: number;
+  redemptions?: Array<{ userId?: { _id: string; email: string; fullName?: string } | string; redeemedAt: string }>;
 }
 
 export interface BalanceSnapshot {

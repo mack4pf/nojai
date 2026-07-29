@@ -21,7 +21,8 @@ type Plan = "standard" | "pro" | "vip";
 const PLAN_LABELS: Record<Plan, string> = { standard: "Standard", pro: "Pro", vip: "VIP" };
 
 function getStatus(code: AccessCode): { label: string; variant: "default" | "secondary" | "warning" | "success" } {
-  if (code.usedBy) return { label: "Used", variant: "secondary" };
+  const usedCount = Array.isArray(code.usedBy) ? code.usedBy.length : code.usedBy ? 1 : code.usedCount ?? code.redemptions?.length ?? 0;
+  if (!code.isGlobal && usedCount > 0) return { label: "Used", variant: "secondary" };
   if (code.active === false) return { label: "Inactive", variant: "warning" };
   if (new Date(code.expiresAt) < new Date()) return { label: "Expired", variant: "warning" };
   return { label: "Active", variant: "success" };
@@ -49,7 +50,8 @@ function CodeRow({ code }: { code: AccessCode }) {
     });
   }
 
-  const usedByEmail = typeof code.usedBy === "object" && code.usedBy !== null ? (code.usedBy as { email: string }).email : null;
+  const singleUseUser = Array.isArray(code.usedBy) ? code.usedBy[0] : code.usedBy;
+  const usedByEmail = typeof singleUseUser === "object" && singleUseUser !== null ? (singleUseUser as { email: string }).email : null;
   const createdByEmail = typeof code.createdBy === "object" && code.createdBy !== null ? (code.createdBy as { email: string }).email : null;
 
   return (
@@ -68,8 +70,8 @@ function CodeRow({ code }: { code: AccessCode }) {
         
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <span>Plan: <span className="text-foreground font-medium">{String(code.plan).toUpperCase()}</span></span>
-          {code.durationDays ? <span>Duration: {code.durationDays}d</span> : null}
-          <span>Expires: {formatDate(code.expiresAt)}</span>
+          {code.durationDays ? <span>Access duration: {code.durationDays}d</span> : null}
+          <span>Redeem by: {formatDate(code.expiresAt)}</span>
           {code.isGlobal ? (
             <span className="text-primary font-medium">Redemptions: {code.usedCount ?? 0} / {code.maxUses || "∞"}</span>
           ) : usedByEmail ? (
@@ -270,8 +272,8 @@ export function AdminAccessCodes() {
               </div>
               <div className="text-xs text-muted-foreground space-y-0.5">
                 <p>Plan: <span className="text-foreground">{String(lastGenerated.plan).toUpperCase()}</span></p>
-                {lastGenerated.durationDays ? <p>Duration: {lastGenerated.durationDays} days</p> : null}
-                <p>Expires: {formatDate(lastGenerated.expiresAt)}</p>
+                {lastGenerated.durationDays ? <p>Access duration: {lastGenerated.durationDays} days</p> : null}
+                <p>Redeem by: {formatDate(lastGenerated.expiresAt)}</p>
                 {lastGenerated.isGlobal && <p>Max Uses: {lastGenerated.maxUses || "Unlimited"}</p>}
               </div>
             </div>

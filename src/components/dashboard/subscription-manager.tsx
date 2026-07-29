@@ -396,7 +396,7 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
               <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] p-3 space-y-1">
                 <p className="text-sm font-semibold text-emerald-300">{verified.plan.toUpperCase()} Plan</p>
                 <p className="text-xs text-muted-foreground">{verified.durationDays} days of access</p>
-                <p className="text-xs text-muted-foreground">Code expires: {formatDate(verified.expiresAt)}</p>
+                <p className="text-xs text-muted-foreground">Redeem by: {formatDate(verified.expiresAt)}</p>
               </div>
 
               {/* Product selector — non-VIP codes require a choice */}

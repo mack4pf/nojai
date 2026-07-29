@@ -399,6 +399,55 @@ export function LandingPage({ pricingPlans, reviews, courses = [] }: LandingPage
           </div>
         </div>
 
+        {/* IUX Broker hero card */}
+        <div className="animate-nojai-slide-up mt-6 overflow-hidden rounded-[2rem] border-2 border-teal-500/25 bg-teal-500/[0.03]">
+          <div className="grid items-center gap-0 lg:grid-cols-[1fr_1fr]">
+            <div className="border-b border-teal-500/20 p-8 lg:border-b-0 lg:border-r lg:p-12">
+              <div className="flex items-center gap-3">
+                <span className="animate-nojai-live-dot inline-block h-3 w-3 rounded-full bg-teal-500" />
+                <span className="text-sm font-bold uppercase tracking-[0.3em] text-teal-500">Partner broker</span>
+              </div>
+              <div className="mt-6 flex items-center gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-700 text-lg font-black text-white">
+                  IUX
+                </span>
+                <span className="text-2xl font-black tracking-tight">IUX Broker</span>
+              </div>
+              <p className="mt-5 text-xl font-semibold text-foreground">
+                Official NOJAI partner broker integration.
+              </p>
+              <p className="mt-3 text-base leading-7 text-muted-foreground">
+                IUX access can be enabled free or paid by admin. When paid, the default IUX plan is $10/month and can be changed anytime from the admin panel.
+              </p>
+              <Button asChild className="mt-8 bg-teal-700 hover:bg-teal-600" size="lg">
+                <Link href="/dashboard/iux">
+                  Connect IUX
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+            <div className="p-8 lg:p-12">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-teal-500">What admin controls</p>
+              <ul className="mt-6 space-y-5">
+                {[
+                  ["Paid or free access", "Admin can make IUX available to everyone or require paid access."],
+                  ["Editable price", "The default paid IUX plan starts at $10/month and can be changed."],
+                  ["Account monitoring", "Admin can review connected IUX accounts, balances, status, and errors."],
+                  ["API-first connection", "Users connect with IUX API credentials for secure broker communication."],
+                ].map(([title, desc]) => (
+                  <li key={title} className="flex items-start gap-4">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-teal-500" />
+                    <div>
+                      <p className="font-semibold text-foreground">{title}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground">{desc}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* IQ Option hero card */}
         <div className="broker-live-card animate-nojai-slide-up mt-6 overflow-hidden rounded-[2rem] border-2">
           <div className="grid items-center gap-0 lg:grid-cols-[1fr_1fr]">

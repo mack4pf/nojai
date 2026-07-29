@@ -59,7 +59,7 @@ export function Mt5WebhookSection() {
   const { data: accounts = [], isLoading } = useQuery<Mt5Account[]>({
     queryKey: queryKeys.mt5Accounts,
     queryFn: async () => {
-      const response = await api.get("/mt5/accounts");
+      const response = await api.get("/mt5/accounts", { params: { refresh: true } });
       return (response.data?.accounts ?? []) as Mt5Account[];
     },
   });

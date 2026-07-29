@@ -120,7 +120,7 @@ export function Mt5AutoTradeManager() {
   const { data: accounts = [], isLoading } = useQuery({
     queryKey: queryKeys.mt5Accounts,
     queryFn: async () => {
-      const response = await api.get("/mt5/accounts");
+      const response = await api.get("/mt5/accounts", { params: { refresh: true } });
       return (response.data?.accounts ?? []) as Mt5Account[];
     },
     refetchInterval: 30_000,
