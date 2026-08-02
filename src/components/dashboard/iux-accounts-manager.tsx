@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, CheckCircle2, PlugZap, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ExternalLink, PlugZap, RefreshCw, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -34,9 +34,25 @@ type IuxAccount = {
   lastError?: string;
 };
 
+type IuxJoinStatus = {
+  affiliateLink: string;
+  hasAccess: boolean;
+  accessStatus?: string;
+  submission: {
+    _id: string;
+    iuxEmail: string;
+    iuxAccountId: string;
+    status: "pending" | "approved" | "declined";
+    adminNote?: string;
+    reviewedAt?: string;
+    createdAt: string;
+  } | null;
+};
+
 const iuxKeys = {
   settings: ["iux", "settings"] as const,
   accounts: ["iux", "accounts"] as const,
+  join: ["iux", "join"] as const,
 };
 
 function money(value: number, currency = "USD") {
@@ -70,10 +86,26 @@ function accessLabel(settings?: IuxSettings) {
 export function IuxAccountsManager() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState({ accountName: "", apiKey: "", apiSecret: "", environment: "live" as "live" | "sandbox" });
+  const [joinForm, setJoinForm] = useState({ iuxEmail: "", iuxAccountId: "" });
 
   const settingsQuery = useQuery({
     queryKey: iuxKeys.settings,
     queryFn: async () => (await api.get<IuxSettings>("/iux/settings")).data,
+  });
+
+  const joinQuery = useQuery({
+    queryKey: iuxKeys.join,
+    queryFn: async () => (await api.get<IuxJoinStatus>("/iux/join")).data,
+  });
+
+  const joinSubmitMutation = useMutation({
+    mutationFn: async () => api.post("/iux/join/submit", joinForm),
+    onSuccess: () => {
+      toast.success("Submitted for admin approval");
+      setJoinForm({ iuxEmail: "", iuxAccountId: "" });
+      queryClient.invalidateQueries({ queryKey: iuxKeys.join });
+    },
+    onError: (error) => toast.error(error.message),
   });
 
   const accountsQuery = useQuery({
@@ -174,6 +206,81 @@ export function IuxAccountsManager() {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {!settingsQuery.isLoading && !settings?.hasAccess ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Don&apos;t have an IUX account?</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Join IUX with this link, then submit your account details below for admin approval.
+            </p>
+            <a
+              href={joinQuery.data?.affiliateLink ?? "#"}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="inline-flex items-center gap-2 rounded-2xl border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/20"
+            >
+              Join IUX with this URL
+              <ExternalLink className="h-4 w-4" />
+            </a>
+
+            {joinQuery.data?.submission?.status === "pending" ? (
+              <div className="rounded-2xl border border-border bg-background p-4 text-sm">
+                <p className="font-semibold">Submission pending review</p>
+                <p className="mt-1 text-muted-foreground">
+                  IUX ID {joinQuery.data.submission.iuxAccountId} — submitted {formatDate(joinQuery.data.submission.createdAt)}.
+                </p>
+              </div>
+            ) : joinQuery.data?.submission?.status === "declined" ? (
+              <div className="space-y-3">
+                <div className="rounded-2xl border border-warning/30 bg-warning/10 p-4 text-sm">
+                  <p className="font-semibold">Previous submission declined</p>
+                  {joinQuery.data.submission.adminNote ? (
+                    <p className="mt-1 text-muted-foreground">Reason: {joinQuery.data.submission.adminNote}</p>
+                  ) : null}
+                </div>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Input
+                    placeholder="Email used on your IUX account"
+                    value={joinForm.iuxEmail}
+                    onChange={(event) => setJoinForm((current) => ({ ...current, iuxEmail: event.target.value }))}
+                  />
+                  <Input
+                    placeholder="IUX account ID"
+                    value={joinForm.iuxAccountId}
+                    onChange={(event) => setJoinForm((current) => ({ ...current, iuxAccountId: event.target.value }))}
+                  />
+                </div>
+                <Button onClick={() => joinSubmitMutation.mutate()} disabled={joinSubmitMutation.isPending}>
+                  {joinSubmitMutation.isPending ? "Submitting..." : "Resubmit for approval"}
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2">
+                <Input
+                  placeholder="Email used on your IUX account"
+                  value={joinForm.iuxEmail}
+                  onChange={(event) => setJoinForm((current) => ({ ...current, iuxEmail: event.target.value }))}
+                />
+                <Input
+                  placeholder="IUX account ID"
+                  value={joinForm.iuxAccountId}
+                  onChange={(event) => setJoinForm((current) => ({ ...current, iuxAccountId: event.target.value }))}
+                />
+                <Button
+                  className="md:col-span-2"
+                  onClick={() => joinSubmitMutation.mutate()}
+                  disabled={joinSubmitMutation.isPending || !joinForm.iuxEmail || !joinForm.iuxAccountId}
+                >
+                  {joinSubmitMutation.isPending ? "Submitting..." : "Submit for admin approval"}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       ) : null}
 
       <Card>

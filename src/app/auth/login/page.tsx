@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 
@@ -23,7 +25,9 @@ export default async function LoginPage() {
               Access live balances, trade history, subscription controls, content management, and admin operations from one interface.
             </p>
           </div>
-          <LoginForm />
+          <Suspense>
+            <LoginForm />
+          </Suspense>
         </div>
       </section>
     </MarketingShell>

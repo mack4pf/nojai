@@ -174,6 +174,26 @@ export function AdminSupportInbox() {
     refetchIntervalInBackground: false,
   });
 
+  // The backend sorts conversations by most-recent-activity, so a background
+  // refetch can silently jump a conversation to the top while an admin is
+  // mid-click — landing the reply on the wrong person. Keep already-seen
+  // conversations pinned to their position; only genuinely new ones get
+  // inserted (at the top), so the row under the cursor never shifts.
+  const [orderedIds, setOrderedIds] = useState<string[]>([]);
+  useEffect(() => {
+    setOrderedIds((prevOrder) => {
+      const currentIds = new Set(conversations.map((c) => c._id));
+      const kept = prevOrder.filter((id) => currentIds.has(id));
+      const known = new Set(kept);
+      const fresh = conversations.map((c) => c._id).filter((id) => !known.has(id));
+      return [...fresh, ...kept];
+    });
+  }, [conversations]);
+
+  const stableConversations = orderedIds
+    .map((id) => conversations.find((c) => c._id === id))
+    .filter((c): c is Conversation => Boolean(c));
+
   const { data: messages = [], isLoading: loadingMessages } = useQuery<SupportMessage[]>({
     queryKey: ["admin-support-messages", selectedUserId],
     queryFn: async () => {
@@ -227,12 +247,12 @@ export function AdminSupportInbox() {
   });
 
   const filteredConvos = search.trim()
-    ? conversations.filter(
+    ? stableConversations.filter(
         (c) =>
           c.user?.email.toLowerCase().includes(search.toLowerCase()) ||
           c.user?.fullName?.toLowerCase().includes(search.toLowerCase()),
       )
-    : conversations;
+    : stableConversations;
 
   const selectedConvo = conversations.find((c) => c._id === selectedUserId);
   const totalUnread = conversations.reduce((sum, c) => sum + c.unreadCount, 0);
@@ -405,7 +425,16 @@ export function AdminSupportInbox() {
             )}
 
             {/* Reply box */}
-            <div className="flex items-end gap-3 border-t border-white/[0.06] p-4">
+            <div className="border-t border-white/[0.06] px-4 pt-2">
+              <p className="text-[11px] text-muted-foreground">
+                Replying to{" "}
+                <span className="font-semibold text-foreground">
+                  {selectedConvo?.user?.fullName ?? selectedConvo?.user?.email ?? "this user"}
+                </span>
+                {selectedConvo?.user?.fullName ? ` (${selectedConvo.user.email})` : ""}
+              </p>
+            </div>
+            <div className="flex items-end gap-3 p-4 pt-2">
               <input
                 ref={fileInputRef}
                 type="file"

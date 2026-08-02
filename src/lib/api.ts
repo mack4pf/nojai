@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getSession } from "next-auth/react";
+import { getSession, signOut } from "next-auth/react";
 
 import type {
   BlogPost,
@@ -156,9 +156,33 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+let isHandlingExpiredSession = false;
+
+/**
+ * The backend JWT (30d, minted once at login) can go stale while the NextAuth
+ * session cookie is still considered "logged in" (it keeps rolling forward on
+ * activity). That mismatch previously surfaced as a raw "Not authorized, token
+ * failed" toast on whatever action the user happened to be doing. Treat any
+ * 401 from the backend as a dead session: sign out and bounce to login.
+ */
+function handleExpiredSession() {
+  if (isHandlingExpiredSession || typeof window === "undefined") return;
+  if (window.location.pathname.startsWith("/auth/login")) return;
+
+  isHandlingExpiredSession = true;
+  void signOut({ redirect: false }).finally(() => {
+    window.location.href = "/auth/login?session=expired";
+  });
+}
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error?.response?.status === 401) {
+      handleExpiredSession();
+      return Promise.reject(new Error("Your session has expired. Please log in again."));
+    }
+
     const message =
       error.response?.data?.message ?? error.message ?? "Request failed";
 

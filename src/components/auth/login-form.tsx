@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,6 +26,7 @@ type LoginValues = z.infer<typeof schema>;
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const form = useForm<LoginValues>({
@@ -35,6 +36,12 @@ export function LoginForm() {
       password: "",
     },
   });
+
+  useEffect(() => {
+    if (searchParams?.get("session") === "expired") {
+      toast.error("Your session expired. Please log in again.");
+    }
+  }, [searchParams]);
 
   async function onSubmit(values: LoginValues) {
     setIsSubmitting(true);

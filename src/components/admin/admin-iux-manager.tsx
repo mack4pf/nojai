@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, DollarSign, KeyRound, RefreshCw, ShieldCheck, WalletCards } from "lucide-react";
+import { CheckCircle, CheckCircle2, DollarSign, ExternalLink, KeyRound, RefreshCw, ShieldCheck, WalletCards, XCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api";
 
@@ -56,10 +57,35 @@ type IuxAccessUser = {
   };
 };
 
+type IuxJoinSettings = {
+  affiliateLink: string;
+  supportEmail: string;
+  accessDays: number;
+};
+
+type IuxJoinSubmission = {
+  _id: string;
+  iuxEmail: string;
+  iuxAccountId: string;
+  status: "pending" | "approved" | "declined";
+  adminNote?: string;
+  reviewedAt?: string;
+  createdAt: string;
+  userId?: { _id: string; email: string; fullName?: string };
+};
+
+const joinStatusClass: Record<IuxJoinSubmission["status"], string> = {
+  pending: "bg-amber-500/15 text-amber-300",
+  approved: "bg-emerald-500/15 text-emerald-300",
+  declined: "bg-red-500/15 text-red-300",
+};
+
 const iuxKeys = {
   settings: ["admin", "iux", "settings"] as const,
   accounts: ["admin", "iux", "accounts"] as const,
   access: (search: string) => ["admin", "iux", "access", search] as const,
+  joinSettings: ["admin", "iux", "join-settings"] as const,
+  joinSubmissions: (status: string) => ["admin", "iux", "join-submissions", status] as const,
 };
 
 function money(value: number, currency = "USD") {
@@ -107,6 +133,10 @@ export function AdminIuxManager() {
   const [settingsForm, setSettingsForm] = useState<IuxSettings>({ enabled: true, paid: true, monthlyPriceUsd: 10 });
   const [grantForm, setGrantForm] = useState({ email: "", days: 30, amountUsd: 10, note: "" });
   const [search, setSearch] = useState("");
+  const [joinForm, setJoinForm] = useState<IuxJoinSettings>({ affiliateLink: "", supportEmail: "", accessDays: 30 });
+  const [joinFilter, setJoinFilter] = useState<"all" | IuxJoinSubmission["status"]>("all");
+  const [declineId, setDeclineId] = useState<string | null>(null);
+  const [declineReason, setDeclineReason] = useState("");
 
   const settingsQuery = useQuery({
     queryKey: iuxKeys.settings,
@@ -123,12 +153,31 @@ export function AdminIuxManager() {
     queryFn: async () => (await api.get<{ users: IuxAccessUser[] }>("/admin/iux/access", { params: { search } })).data.users,
   });
 
+  const joinSettingsQuery = useQuery({
+    queryKey: iuxKeys.joinSettings,
+    queryFn: async () => (await api.get<IuxJoinSettings>("/admin/iux/free-settings")).data,
+  });
+
+  const joinSubmissionsQuery = useQuery({
+    queryKey: iuxKeys.joinSubmissions(joinFilter),
+    queryFn: async () => {
+      const params = joinFilter === "all" ? undefined : { status: joinFilter };
+      const res = await api.get<{ submissions: IuxJoinSubmission[] }>("/admin/iux/submissions", { params });
+      return res.data.submissions ?? [];
+    },
+    refetchInterval: 15_000,
+  });
+
   useEffect(() => {
     if (settingsQuery.data) {
       setSettingsForm(settingsQuery.data);
       setGrantForm((form) => ({ ...form, amountUsd: settingsQuery.data.monthlyPriceUsd || 10 }));
     }
   }, [settingsQuery.data]);
+
+  useEffect(() => {
+    if (joinSettingsQuery.data) setJoinForm(joinSettingsQuery.data);
+  }, [joinSettingsQuery.data]);
 
   const saveSettings = useMutation({
     mutationFn: async () => (await api.put<IuxSettings>("/admin/iux/settings", settingsForm)).data,
@@ -157,6 +206,40 @@ export function AdminIuxManager() {
     },
     onError: (error) => toast.error(error.message),
   });
+
+  const saveJoinSettings = useMutation({
+    mutationFn: async () => (await api.put<IuxJoinSettings>("/admin/iux/free-settings", joinForm)).data,
+    onSuccess: (data) => {
+      toast.success("IUX join settings saved");
+      queryClient.setQueryData(iuxKeys.joinSettings, data);
+    },
+    onError: (error: Error) => toast.error(error.message || "Failed to save IUX join settings"),
+  });
+
+  const approveJoin = useMutation({
+    mutationFn: async (id: string) => (await api.post(`/admin/iux/submissions/${id}/approve`)).data,
+    onSuccess: () => {
+      toast.success("IUX access approved");
+      queryClient.invalidateQueries({ queryKey: ["admin", "iux", "join-submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "iux", "access"] });
+    },
+    onError: (error: Error) => toast.error(error.message || "Failed to approve request"),
+  });
+
+  const declineJoin = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) =>
+      (await api.post(`/admin/iux/submissions/${id}/decline`, { reason })).data,
+    onSuccess: () => {
+      toast.success("IUX join request declined");
+      setDeclineId(null);
+      setDeclineReason("");
+      queryClient.invalidateQueries({ queryKey: ["admin", "iux", "join-submissions"] });
+    },
+    onError: (error: Error) => toast.error(error.message || "Failed to decline request"),
+  });
+
+  const joinSubmissions = joinSubmissionsQuery.data ?? [];
+  const joinPendingCount = joinSubmissions.filter((item) => item.status === "pending").length;
 
   const accounts = accountsQuery.data ?? [];
   const totals = useMemo(() => {
@@ -330,6 +413,116 @@ export function AdminIuxManager() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Join via affiliate link</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-3 sm:grid-cols-[1fr_140px_1fr_auto] sm:items-end">
+            <div className="space-y-1.5">
+              <Label className="text-xs">IUX Affiliate Link</Label>
+              <Input value={joinForm.affiliateLink} onChange={(event) => setJoinForm((form) => ({ ...form, affiliateLink: event.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Free Access Days</Label>
+              <Input
+                type="number"
+                min={1}
+                value={joinForm.accessDays}
+                onChange={(event) => setJoinForm((form) => ({ ...form, accessDays: Number(event.target.value) }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Support Email</Label>
+              <Input type="email" value={joinForm.supportEmail} onChange={(event) => setJoinForm((form) => ({ ...form, supportEmail: event.target.value }))} />
+            </div>
+            <Button onClick={() => saveJoinSettings.mutate()} disabled={saveJoinSettings.isPending}>
+              {saveJoinSettings.isPending ? "Saving..." : "Save"}
+            </Button>
+          </div>
+          {joinForm.affiliateLink ? (
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <a href={joinForm.affiliateLink} target="_blank" rel="noreferrer">
+                Open current affiliate link <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          ) : null}
+
+          <div className="flex gap-2 overflow-x-auto border-t border-border pt-4">
+            {(["all", "pending", "approved", "declined"] as const).map((item) => (
+              <Button key={item} size="sm" variant={joinFilter === item ? "default" : "outline"} onClick={() => setJoinFilter(item)}>
+                {item}
+                {item === "pending" && joinPendingCount > 0 && (
+                  <span className="ml-1.5 rounded-full bg-white/20 px-1.5 text-[10px]">{joinPendingCount}</span>
+                )}
+              </Button>
+            ))}
+          </div>
+
+          <div className="space-y-3">
+            {joinSubmissions.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                {joinFilter === "pending" ? "No pending IUX join requests." : "No IUX join requests found."}
+              </p>
+            ) : null}
+
+            {joinSubmissions.map((submission) => {
+              const userName = submission.userId?.fullName || submission.userId?.email || "Unknown user";
+              const isDeclining = declineId === submission._id;
+              return (
+                <div key={submission._id} className="rounded-2xl border border-border bg-background p-4">
+                  <div className="grid gap-3 lg:grid-cols-[1.2fr_1fr_auto] lg:items-center">
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-foreground">{userName}</p>
+                      <p className="truncate text-xs text-muted-foreground">{submission.userId?.email || "No email"}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">Submitted {formatDate(submission.createdAt)}</p>
+                    </div>
+                    <div className="text-sm">
+                      <p className="text-xs text-muted-foreground">IUX Email / ID</p>
+                      <p className="truncate font-medium">{submission.iuxEmail} / {submission.iuxAccountId}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                      <span className={`rounded-lg px-2.5 py-1 text-xs font-semibold capitalize ${joinStatusClass[submission.status]}`}>
+                        {submission.status}
+                      </span>
+                      {submission.status === "pending" && (
+                        <>
+                          <Button size="sm" onClick={() => approveJoin.mutate(submission._id)} disabled={approveJoin.isPending} className="gap-1.5">
+                            <CheckCircle className="h-4 w-4" /> Approve
+                          </Button>
+                          <Button size="sm" variant="danger" onClick={() => setDeclineId(submission._id)} className="gap-1.5">
+                            <XCircle className="h-4 w-4" /> Decline
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {submission.adminNote ? (
+                    <p className="mt-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 text-xs text-muted-foreground">
+                      Admin note: {submission.adminNote}
+                    </p>
+                  ) : null}
+
+                  {isDeclining ? (
+                    <div className="mt-4 grid gap-3 border-t border-white/5 pt-4 sm:grid-cols-[1fr_auto]">
+                      <Input value={declineReason} onChange={(event) => setDeclineReason(event.target.value)} placeholder="Reason for declining this request" />
+                      <Button
+                        variant="danger"
+                        disabled={declineJoin.isPending || declineReason.trim().length < 3}
+                        onClick={() => declineJoin.mutate({ id: submission._id, reason: declineReason })}
+                      >
+                        Confirm Decline
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

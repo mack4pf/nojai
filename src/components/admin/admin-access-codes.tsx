@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, RefreshCw, Users, Link as LinkIcon, ClipboardCheck } from "lucide-react";
+import { Check, Copy, RefreshCw, Trash2, Users, Link as LinkIcon, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,7 @@ function getStatus(code: AccessCode): { label: string; variant: "default" | "sec
 }
 
 function CodeRow({ code }: { code: AccessCode }) {
+  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [showRedemptions, setShowRedemptions] = useState(false);
   const status = getStatus(code);
@@ -42,12 +43,28 @@ function CodeRow({ code }: { code: AccessCode }) {
     enabled: showRedemptions,
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      await api.delete(`/admin/codes/${code._id}`);
+    },
+    onSuccess: () => {
+      toast.success(`Access code ${code.code} deleted`);
+      queryClient.invalidateQueries({ queryKey: ["admin-access-codes"] });
+    },
+    onError: (error: Error) => toast.error(error.message ?? "Failed to delete access code"),
+  });
+
   function copy() {
     void navigator.clipboard.writeText(code.code).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast.success("Code copied to clipboard");
     });
+  }
+
+  function remove() {
+    if (!window.confirm(`Delete access code ${code.code}? This cannot be undone.`)) return;
+    deleteMutation.mutate();
   }
 
   const singleUseUser = Array.isArray(code.usedBy) ? code.usedBy[0] : code.usedBy;
@@ -65,7 +82,18 @@ function CodeRow({ code }: { code: AccessCode }) {
             </button>
             {code.isGlobal && <Badge variant="default" className="bg-primary/20 text-primary border-primary/30">Marketing</Badge>}
           </div>
-          <Badge variant={status.variant}>{status.label}</Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant={status.variant}>{status.label}</Badge>
+            <button
+              type="button"
+              aria-label="Delete access code"
+              onClick={remove}
+              disabled={deleteMutation.isPending}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-red-400 transition-colors disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
         
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
