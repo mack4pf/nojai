@@ -27,6 +27,7 @@ import {
   Network,
   MessageSquare,
   Terminal,
+  AlertOctagon,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -72,6 +73,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   message: MessageSquare,
   terminal: Terminal,
   mt5: MetaTrader5Icon,
+  alert: AlertOctagon,
 };
 
 function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick?: () => void }) {

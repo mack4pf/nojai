@@ -44,6 +44,7 @@ interface IQAccountResponse {
   currency: string;
   lastConnected: string;
   connected?: boolean;
+  realTradingEnabled?: boolean;
 }
 
 const BOT_STEPS = [
@@ -199,6 +200,19 @@ export function AccountsManager() {
     },
   });
 
+  const realTradingMutation = useMutation({
+    mutationFn: async ({ email, enabled }: { email: string; enabled: boolean }) => {
+      await api.patch("/user/iq-account/real-trading", { email, enabled });
+    },
+    onSuccess: (_data, variables) => {
+      toast.success(variables.enabled ? "Real-money trading enabled" : "Real-money trading disabled");
+      queryClient.invalidateQueries({ queryKey: queryKeys.accounts });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "Failed to update real-trading setting");
+    },
+  });
+
   const hasAccounts = accounts.length > 0;
   const activePlan = profile?.subscription?.active ? profile.subscription.plan : profile?.plan ?? "NONE";
   const accountLimit = activePlan === "VIP" ? 3 : 1;
@@ -342,6 +356,27 @@ export function AccountsManager() {
                     <p className="mt-1 text-sm font-medium">{account.martingaleEnabled ? "On" : "Off"}</p>
                   </div>
                 </div>
+
+                {/* Real-money trading consent — REAL accounts only, defaults off for new connections */}
+                {account.accountType === "REAL" && (
+                  <div className={`mt-3 flex items-center justify-between gap-3 rounded-xl border p-3 ${account.realTradingEnabled ? "border-emerald-500/30 bg-emerald-500/[0.06]" : "border-warning/40 bg-warning/[0.06]"}`}>
+                    <div>
+                      <p className="text-xs font-semibold">
+                        {account.realTradingEnabled ? "Real-money auto-trading is ON" : "Real-money auto-trading is OFF"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {account.realTradingEnabled
+                          ? "Signals will place real trades on this account."
+                          : "This account is REAL — enable this to let signals place real trades."}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={Boolean(account.realTradingEnabled)}
+                      onCheckedChange={(enabled) => realTradingMutation.mutate({ email: account.email, enabled })}
+                      disabled={realTradingMutation.isPending}
+                    />
+                  </div>
+                )}
 
                 {/* Last connected */}
                 {account.lastConnected && (

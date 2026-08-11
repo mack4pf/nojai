@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/session";
 
 const items = [
   { href: "/admin", label: "Overview", icon: "overview", mobileBottom: true },
+  { href: "/admin/kill-switch", label: "Kill Switch", icon: "alert" },
   { href: "/admin/analytics", label: "Analytics", icon: "trending", mobileBottom: true },
   { href: "/admin/users", label: "Users", icon: "copy", mobileBottom: true },
   { href: "/admin/trades", label: "Trades", icon: "trades", mobileBottom: true },

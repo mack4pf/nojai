@@ -1,3 +1,4 @@
+import { AdminBinarySignalSettings } from "@/components/admin/admin-binary-signal-settings";
 import { AdminSignalLog } from "@/components/admin/admin-signal-log";
 
 export const metadata = { title: "Signals — Admin" };
@@ -11,6 +12,7 @@ export default function AdminSignalsPage() {
           Every signal received — asset, direction (buy or sell), execution result (win or loss), and martingale step used.
         </p>
       </div>
+      <AdminBinarySignalSettings />
       <AdminSignalLog />
     </div>
   );

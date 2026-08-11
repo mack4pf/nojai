@@ -184,6 +184,17 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
     onError: (err: Error) => toast.error(err.message || "Failed to update Olymp signal setting"),
   });
 
+  const realTradingMutation = useMutation({
+    mutationFn: async ({ accountId, enabled }: { accountId: number; enabled: boolean }) => {
+      await api.patch(`/user/olymp-account/${accountId}/real-trading`, { enabled });
+    },
+    onSuccess: (_data, variables) => {
+      toast.success(variables.enabled ? "Real-money trading enabled" : "Real-money trading disabled");
+      queryClient.invalidateQueries({ queryKey: queryKeys.olympAccounts });
+    },
+    onError: (err: Error) => toast.error(err.message || "Failed to update real-trading setting"),
+  });
+
   const connectDisabled =
     connectMutation.isPending ||
     baseAmount < 1 ||
@@ -453,6 +464,26 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
                   <p className="mt-1 text-xs font-semibold">{account.lastConnected ? formatDate(account.lastConnected) : "-"}</p>
                 </div>
               </div>
+
+              {account.accountGroup === "real" && (
+                <div className={`flex items-center justify-between gap-3 rounded-xl border p-3 ${account.realTradingEnabled ? "border-emerald-500/30 bg-emerald-500/[0.06]" : "border-warning/40 bg-warning/[0.06]"}`}>
+                  <div>
+                    <p className="text-xs font-semibold">
+                      {account.realTradingEnabled ? "Real-money auto-trading is ON" : "Real-money auto-trading is OFF"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {account.realTradingEnabled
+                        ? "Signals will place real trades on this account."
+                        : "This account is REAL — enable this to let signals place real trades."}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={Boolean(account.realTradingEnabled)}
+                    onCheckedChange={(enabled) => realTradingMutation.mutate({ accountId: account.accountId, enabled })}
+                    disabled={realTradingMutation.isPending}
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-1 gap-3 border-t border-white/5 pt-3 sm:grid-cols-[1fr_auto]">
                 <div className="space-y-1.5">

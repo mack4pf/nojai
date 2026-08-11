@@ -111,6 +111,7 @@ export interface OlympAccount {
   baseAmount: number;
   accountGroup: "real" | "demo";
   takeSignalsEnabled?: boolean;
+  realTradingEnabled?: boolean;
   balance?: number;
   currency?: string;
   lastConnected?: string;
@@ -125,6 +126,7 @@ export interface EOAccount {
   isMain: boolean;
   copyTradingEnabled: boolean;
   copyFromAccountId: number | null;
+  realTradingEnabled?: boolean;
   balance?: number;
   currency?: string;
   lastConnected?: string;

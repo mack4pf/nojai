@@ -116,6 +116,18 @@ export function EOAccountsManager({ profile }: EOAccountsManagerProps) {
     onError: (err: Error) => toast.error(err.message || "Failed to switch mode"),
   });
 
+  // Real-money trading consent mutation
+  const realTradingMutation = useMutation({
+    mutationFn: async ({ accountId, enabled }: { accountId: number; enabled: boolean }) => {
+      await api.patch(`/user/eo-account/${accountId}/real-trading`, { enabled });
+    },
+    onSuccess: (_data, variables) => {
+      toast.success(variables.enabled ? "Real-money trading enabled" : "Real-money trading disabled");
+      queryClient.invalidateQueries({ queryKey: queryKeys.eoAccounts });
+    },
+    onError: (err: Error) => toast.error(err.message || "Failed to update real-trading setting"),
+  });
+
   // Update base amount mutation
   const baseAmountMutation = useMutation({
     mutationFn: async ({ accountId, baseAmount }: { accountId: number; baseAmount: number }) => {
@@ -354,6 +366,26 @@ export function EOAccountsManager({ profile }: EOAccountsManagerProps) {
                   <p className="mt-1 text-sm font-semibold">{formatCurrency(account.baseAmount, account.currency ?? "USD")}</p>
                 </div>
               </div>
+
+              {!account.isDemo && (
+                <div className={`mt-3 flex items-center justify-between gap-3 rounded-xl border p-3 ${account.realTradingEnabled ? "border-emerald-500/30 bg-emerald-500/[0.06]" : "border-warning/40 bg-warning/[0.06]"}`}>
+                  <div>
+                    <p className="text-xs font-semibold">
+                      {account.realTradingEnabled ? "Real-money auto-trading is ON" : "Real-money auto-trading is OFF"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {account.realTradingEnabled
+                        ? "Signals will place real trades on this account."
+                        : "This account is REAL — enable this to let signals place real trades."}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={Boolean(account.realTradingEnabled)}
+                    onCheckedChange={(enabled) => realTradingMutation.mutate({ accountId: account.accountId, enabled })}
+                    disabled={realTradingMutation.isPending}
+                  />
+                </div>
+              )}
 
               {/* Controls */}
               <div className="border-t border-white/5 pt-3">
