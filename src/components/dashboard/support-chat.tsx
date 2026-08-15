@@ -25,6 +25,8 @@ interface SupportMessage {
   read: boolean;
   attachments: Attachment[];
   createdAt: string;
+  deleted?: boolean;
+  editedAt?: string;
 }
 
 type MessageType = "general" | "bug" | "issue";
@@ -151,7 +153,7 @@ export function SupportChat() {
       queryClient.invalidateQueries({ queryKey: ["support-history"] });
       toast.success("Message sent. A confirmation has been sent to your email.");
     },
-    onError: () => toast.error("Failed to send message. Please try again."),
+    onError: (error: Error) => toast.error(error.message || "Failed to send message. Please try again."),
   });
 
   useEffect(() => {
@@ -257,19 +259,28 @@ export function SupportChat() {
                   <div key={msg._id} className={`flex ${msg.isFromAdmin ? "justify-start" : "justify-end"}`}>
                     <div
                       className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
-                        msg.isFromAdmin
+                        msg.deleted
+                          ? "border border-dashed border-white/10 bg-transparent italic text-muted-foreground"
+                          : msg.isFromAdmin
                           ? "rounded-tl-sm bg-white/[0.08] text-foreground"
                           : "rounded-tr-sm bg-primary text-primary-foreground"
                       }`}
                     >
-                      {msg.message && !/^\[(image|video|\d+ attachments?)\]$/.test(msg.message) && (
-                        <p className="leading-relaxed">{msg.message}</p>
+                      {msg.deleted ? (
+                        <p className="leading-relaxed">This message was deleted.</p>
+                      ) : (
+                        <>
+                          {msg.message && !/^\[(image|video|\d+ attachments?)\]$/.test(msg.message) && (
+                            <p className="leading-relaxed">{msg.message}</p>
+                          )}
+                          {msg.attachments?.map((att, i) => (
+                            <MessageAttachment key={i} att={att} />
+                          ))}
+                        </>
                       )}
-                      {msg.attachments?.map((att, i) => (
-                        <MessageAttachment key={i} att={att} />
-                      ))}
                       <div className={`mt-1 flex items-center gap-1 text-[10px] ${msg.isFromAdmin ? "text-muted-foreground" : "text-primary-foreground/60"}`}>
                         <span>{msg.isFromAdmin ? "Support team" : "You"} · {formatDate(msg.createdAt, "HH:mm")}</span>
+                        {!msg.deleted && msg.editedAt && <span className="italic">· edited</span>}
                         {!msg.isFromAdmin && msg.read && (
                           <span className="ml-0.5 font-medium">· Read</span>
                         )}

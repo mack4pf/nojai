@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Download, Loader2, MessageCircle, Paperclip, RefreshCw, Send, X } from "lucide-react";
+import { AlertCircle, Check, Download, Loader2, MessageCircle, Paperclip, Pencil, RefreshCw, Send, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,11 @@ interface Conversation {
   user?: { _id: string; email: string; fullName?: string };
 }
 
+// A stable reference for react-query's "no data yet" default — a fresh `[]`
+// literal on every render was the root cause of the ordering effect below
+// looping forever (its dependency array saw a "new" array every render).
+const EMPTY_CONVERSATIONS: Conversation[] = [];
+
 interface SupportMessage {
   _id: string;
   message: string;
@@ -36,6 +41,8 @@ interface SupportMessage {
   read: boolean;
   attachments: Attachment[];
   createdAt: string;
+  deleted?: boolean;
+  editedAt?: string;
 }
 
 function AttachmentPreview({ att, onRemove }: { att: File; onRemove: () => void }) {
@@ -161,10 +168,12 @@ export function AdminSupportInbox() {
   const [search, setSearch] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [viewingAtt, setViewingAtt] = useState<Attachment | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { data: conversations = [], isLoading: loadingConvos, refetch, isFetching } = useQuery<Conversation[]>({
+  const { data: conversations = EMPTY_CONVERSATIONS, isLoading: loadingConvos, refetch, isFetching } = useQuery<Conversation[]>({
     queryKey: ["admin-support-conversations"],
     queryFn: async () => {
       const res = await api.get("/support/conversations");
@@ -179,20 +188,19 @@ export function AdminSupportInbox() {
   // mid-click — landing the reply on the wrong person. Keep already-seen
   // conversations pinned to their position; only genuinely new ones get
   // inserted (at the top), so the row under the cursor never shifts.
-  const [orderedIds, setOrderedIds] = useState<string[]>([]);
-  useEffect(() => {
-    setOrderedIds((prevOrder) => {
-      const currentIds = new Set(conversations.map((c) => c._id));
-      const kept = prevOrder.filter((id) => currentIds.has(id));
-      const known = new Set(kept);
-      const fresh = conversations.map((c) => c._id).filter((id) => !known.has(id));
-      return [...fresh, ...kept];
-    });
+  // A ref (not state) tracks the order so recomputing it can never trigger
+  // another render, which is what caused the infinite update loop before.
+  const orderRef = useRef<string[]>([]);
+  const stableConversations = useMemo(() => {
+    const currentIds = new Set(conversations.map((c) => c._id));
+    const kept = orderRef.current.filter((id) => currentIds.has(id));
+    const known = new Set(kept);
+    const fresh = conversations.map((c) => c._id).filter((id) => !known.has(id));
+    orderRef.current = [...fresh, ...kept];
+    return orderRef.current
+      .map((id) => conversations.find((c) => c._id === id))
+      .filter((c): c is Conversation => Boolean(c));
   }, [conversations]);
-
-  const stableConversations = orderedIds
-    .map((id) => conversations.find((c) => c._id === id))
-    .filter((c): c is Conversation => Boolean(c));
 
   const { data: messages = [], isLoading: loadingMessages } = useQuery<SupportMessage[]>({
     queryKey: ["admin-support-messages", selectedUserId],
@@ -243,8 +251,69 @@ export function AdminSupportInbox() {
       queryClient.invalidateQueries({ queryKey: ["admin-support-messages", selectedUserId] });
       queryClient.invalidateQueries({ queryKey: ["admin-support-conversations"] });
     },
-    onError: () => toast.error("Failed to send reply."),
+    onError: (error: Error) => toast.error(error.message || "Failed to send reply."),
   });
+
+  const deleteMessageMutation = useMutation({
+    mutationFn: async (messageId: string) => api.delete(`/support/message/${messageId}`),
+    onSuccess: () => {
+      toast.success("Message deleted");
+      queryClient.invalidateQueries({ queryKey: ["admin-support-messages", selectedUserId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-support-conversations"] });
+    },
+    onError: (error: Error) => toast.error(error.message || "Failed to delete message"),
+  });
+
+  const deleteConversationMutation = useMutation({
+    mutationFn: async (userId: string) => api.delete(`/support/conversation/${userId}`),
+    onSuccess: () => {
+      toast.success("Conversation deleted");
+      setSelectedUserId(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-support-conversations"] });
+    },
+    onError: (error: Error) => toast.error(error.message || "Failed to delete conversation"),
+  });
+
+  function deleteConversation() {
+    if (!selectedUserId) return;
+    const name = selectedConvo?.user?.fullName ?? selectedConvo?.user?.email ?? "this user";
+    if (!window.confirm(`Delete the entire conversation with ${name}? This permanently removes every message and cannot be undone.`)) return;
+    deleteConversationMutation.mutate(selectedUserId);
+  }
+
+  const editMessageMutation = useMutation({
+    mutationFn: async ({ messageId, message }: { messageId: string; message: string }) =>
+      api.patch(`/support/message/${messageId}`, { message }),
+    onSuccess: () => {
+      toast.success("Message updated");
+      setEditingMessageId(null);
+      setEditText("");
+      queryClient.invalidateQueries({ queryKey: ["admin-support-messages", selectedUserId] });
+      queryClient.invalidateQueries({ queryKey: ["admin-support-conversations"] });
+    },
+    onError: (error: Error) => toast.error(error.message || "Failed to update message"),
+  });
+
+  function startEdit(msg: SupportMessage) {
+    setEditingMessageId(msg._id);
+    setEditText(msg.message);
+  }
+
+  function cancelEdit() {
+    setEditingMessageId(null);
+    setEditText("");
+  }
+
+  function saveEdit(messageId: string) {
+    const text = editText.trim();
+    if (!text) return;
+    editMessageMutation.mutate({ messageId, message: text });
+  }
+
+  function deleteMessage(messageId: string) {
+    if (!window.confirm("Delete this message? This cannot be undone.")) return;
+    deleteMessageMutation.mutate(messageId);
+  }
 
   const filteredConvos = search.trim()
     ? stableConversations.filter(
@@ -356,13 +425,25 @@ export function AdminSupportInbox() {
         ) : (
           <>
             {/* Header */}
-            <div className="border-b border-white/[0.06] px-5 py-4">
-              <p className="font-semibold text-foreground">
-                {selectedConvo?.user?.fullName ?? selectedConvo?.user?.email ?? "User"}
-              </p>
-              {selectedConvo?.user?.fullName ? (
-                <p className="text-xs text-muted-foreground">{selectedConvo.user.email}</p>
-              ) : null}
+            <div className="flex items-start justify-between gap-3 border-b border-white/[0.06] px-5 py-4">
+              <div>
+                <p className="font-semibold text-foreground">
+                  {selectedConvo?.user?.fullName ?? selectedConvo?.user?.email ?? "User"}
+                </p>
+                {selectedConvo?.user?.fullName ? (
+                  <p className="text-xs text-muted-foreground">{selectedConvo.user.email}</p>
+                ) : null}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={deleteConversation}
+                disabled={deleteConversationMutation.isPending}
+                className="h-8 gap-1.5 text-xs text-red-400 hover:bg-red-500/10 hover:text-red-300"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete conversation
+              </Button>
             </div>
 
             {/* Messages */}
@@ -377,21 +458,81 @@ export function AdminSupportInbox() {
                   <p className="text-sm text-muted-foreground">No messages in this conversation.</p>
                 </div>
               ) : (
-                messages.map((msg) => (
-                  <div key={msg._id} className={`flex ${msg.isFromAdmin ? "justify-end" : "justify-start"}`}>
+                messages.map((msg) => {
+                  const isEditing = editingMessageId === msg._id;
+                  return (
+                  <div key={msg._id} className={`group flex items-end gap-1.5 ${msg.isFromAdmin ? "justify-end" : "justify-start"}`}>
+                    {!msg.deleted && (
+                      <div className={`flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 ${msg.isFromAdmin ? "order-first" : "order-last"}`}>
+                        {msg.isFromAdmin && !isEditing && (
+                          <button
+                            type="button"
+                            aria-label="Edit message"
+                            onClick={() => startEdit(msg)}
+                            className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          aria-label="Delete message"
+                          onClick={() => deleteMessage(msg._id)}
+                          className="flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-red-400"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
                     <div
                       className={`max-w-[70%] rounded-2xl px-4 py-3 text-sm ${
-                        msg.isFromAdmin
+                        msg.deleted
+                          ? "border border-dashed border-white/10 bg-transparent italic text-muted-foreground"
+                          : msg.isFromAdmin
                           ? "rounded-tr-sm bg-primary text-primary-foreground"
                           : "rounded-tl-sm bg-white/[0.08] text-foreground"
                       }`}
                     >
-                      {msg.message && !/^\[(image|video|\d+ attachments?)\]$/.test(msg.message) && (
-                        <p className="leading-relaxed">{msg.message}</p>
+                      {msg.deleted ? (
+                        <p className="leading-relaxed">This message was deleted.</p>
+                      ) : isEditing ? (
+                        <div className="space-y-2">
+                          <Textarea
+                            value={editText}
+                            onChange={(e) => setEditText(e.target.value)}
+                            rows={2}
+                            className="resize-none border-white/20 bg-black/20 text-sm text-foreground"
+                          />
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={cancelEdit}
+                              className="flex h-6 w-6 items-center justify-center rounded-md text-primary-foreground/70 hover:text-primary-foreground"
+                              aria-label="Cancel edit"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => saveEdit(msg._id)}
+                              disabled={editMessageMutation.isPending || !editText.trim()}
+                              className="flex h-6 w-6 items-center justify-center rounded-md text-primary-foreground/70 hover:text-primary-foreground disabled:opacity-50"
+                              aria-label="Save edit"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          {msg.message && !/^\[(image|video|\d+ attachments?)\]$/.test(msg.message) && (
+                            <p className="leading-relaxed">{msg.message}</p>
+                          )}
+                          {msg.attachments?.map((att, i) => (
+                            <MessageAttachment key={i} att={att} onOpen={setViewingAtt} />
+                          ))}
+                        </>
                       )}
-                      {msg.attachments?.map((att, i) => (
-                        <MessageAttachment key={i} att={att} onOpen={setViewingAtt} />
-                      ))}
                       <div
                         className={`mt-1 flex items-center gap-1 text-[10px] ${
                           msg.isFromAdmin ? "text-primary-foreground/60" : "text-muted-foreground"
@@ -400,13 +541,15 @@ export function AdminSupportInbox() {
                         <span>
                           {msg.isFromAdmin ? "You (admin)" : "User"} · {formatDate(msg.createdAt, "MMM d · HH:mm")}
                         </span>
+                        {!msg.deleted && msg.editedAt && <span className="italic">· edited</span>}
                         {msg.isFromAdmin && msg.read && (
                           <span className="ml-0.5 font-medium">· Seen</span>
                         )}
                       </div>
                     </div>
                   </div>
-                ))
+                  );
+                })
               )}
               <div ref={messagesEndRef} />
             </div>
