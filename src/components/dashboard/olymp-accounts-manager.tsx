@@ -62,6 +62,11 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
       return (res.data.accounts ?? res.data ?? []) as OlympAccount[];
     },
     enabled: hasOlympAccess,
+    // Connection status can change server-side at any time (drops,
+    // reconnects) — without polling this only ever reflected whatever was
+    // true at page load, so a mid-session disconnect kept showing
+    // "connected" until the user manually refreshed.
+    refetchInterval: 30_000,
   });
 
   const [showConnectForm, setShowConnectForm] = useState(false);
