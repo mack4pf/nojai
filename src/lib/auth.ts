@@ -17,15 +17,35 @@ function normalizePlan(value?: string | null): SessionPlan {
   return "NONE";
 }
 
+const useSecureCookies = process.env.NODE_ENV === "production";
+// Root domain the session cookie should be shared across (e.g. nojai.io and
+// olymp.nojai.io both need to see the same login) — unset in dev so
+// localhost keeps NextAuth's normal host-only cookie behavior.
+const cookieDomain = process.env.AUTH_COOKIE_DOMAIN || (useSecureCookies ? ".nojai.io" : undefined);
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
-  useSecureCookies: process.env.NODE_ENV === "production",
+  useSecureCookies,
   session: {
     strategy: "jwt",
   },
   pages: {
     signIn: "/auth/login",
   },
+  cookies: cookieDomain
+    ? {
+        sessionToken: {
+          name: useSecureCookies ? "__Secure-next-auth.session-token" : "next-auth.session-token",
+          options: {
+            httpOnly: true,
+            sameSite: "lax",
+            path: "/",
+            secure: useSecureCookies,
+            domain: cookieDomain,
+          },
+        },
+      }
+    : undefined,
   providers: [
     CredentialsProvider({
       id: "credentials",

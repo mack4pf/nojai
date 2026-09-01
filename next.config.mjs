@@ -21,6 +21,10 @@ function getBackendUrl(apiUrl) {
 const apiUrl = getApiUrl();
 const backendUrl = getBackendUrl(apiUrl);
 const isDevelopment = process.env.NODE_ENV === "development";
+// The dedicated Olymp Trade experience lives at src/app/olymp-site/** and is
+// served from this same deployment via host-based rewrite below, rather than
+// a separate app — configurable so a local hosts-file entry can test it.
+const OLYMP_SUBDOMAIN_HOST = process.env.OLYMP_SUBDOMAIN_HOST || "olymp.nojai.io";
 
 const nextConfig = {
   distDir: isDevelopment ? ".next-dev" : ".next",
@@ -42,16 +46,28 @@ const nextConfig = {
     ],
   },
   async rewrites() {
-    return [
-      {
-        source: "/backend/:path*",
-        destination: `${apiUrl}/:path*`,
-      },
-      {
-        source: "/socket.io/:path*",
-        destination: `${backendUrl}/socket.io/:path*`,
-      },
-    ];
+    return {
+      beforeFiles: [
+        // API/socket proxying must resolve on every host, including the
+        // Olymp subdomain below — checked first so the host-based catch-all
+        // never swallows these.
+        {
+          source: "/backend/:path*",
+          destination: `${apiUrl}/:path*`,
+        },
+        {
+          source: "/socket.io/:path*",
+          destination: `${backendUrl}/socket.io/:path*`,
+        },
+        // olymp.nojai.io serves a dedicated single-broker landing page +
+        // dashboard from src/app/olymp-site/** instead of the normal site.
+        {
+          source: "/:path*",
+          has: [{ type: "host", value: OLYMP_SUBDOMAIN_HOST }],
+          destination: "/olymp-site/:path*",
+        },
+      ],
+    };
   },
 
   async headers() {
