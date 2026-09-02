@@ -24,9 +24,9 @@ export function OlympSiteHeader() {
     <header className="sticky top-0 z-40 px-4 pt-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="glass-panel relative overflow-hidden rounded-[30px] px-4 py-3 sm:px-5">
-          <div className="pointer-events-none absolute inset-x-20 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent" />
-          <div className="pointer-events-none absolute -left-16 top-0 h-24 w-32 rounded-full bg-emerald-500/20 blur-3xl" />
-          <div className="pointer-events-none absolute right-0 top-2 h-20 w-28 rounded-full bg-primary/20 blur-3xl" />
+          <div className="pointer-events-none absolute inset-x-20 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/70 to-transparent" />
+          <div className="pointer-events-none absolute -left-16 top-0 h-24 w-32 rounded-full bg-blue-500/20 blur-3xl" />
+          <div className="pointer-events-none absolute right-0 top-2 h-20 w-28 rounded-full bg-emerald-400/15 blur-3xl" />
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2.5">
               <BrandLogo size="md" priority />
@@ -39,7 +39,7 @@ export function OlympSiteHeader() {
                   height={20}
                   className="h-5 w-5 rounded-md object-contain"
                 />
-                <span className="font-display text-sm font-semibold text-emerald-300">Olymp Trade</span>
+                <span className="font-display text-sm font-semibold text-blue-300">Olymp Trade</span>
               </span>
             </div>
 

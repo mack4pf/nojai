@@ -18,7 +18,7 @@ export function OlympSiteFooter() {
               height={18}
               className="h-[18px] w-[18px] rounded-md object-contain"
             />
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-300">Olymp Trade</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">Olymp Trade</span>
           </div>
           <p className="mt-2 max-w-md">
             Free automated trading on Olymp Trade, run by NOJAI. Trading involves risk — only trade with money you can afford to lose.

@@ -17,6 +17,7 @@ import {
 
 import { OlympSiteHeader } from "@/components/marketing/olymp-site-header";
 import { OlympSiteFooter } from "@/components/marketing/olymp-site-footer";
+import { OlympPerformanceChart } from "@/components/marketing/olymp-performance-chart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -146,10 +147,10 @@ export default async function OlympSitePage() {
       <main className="flex-1">
         {/* ── Hero ── */}
         <section className="relative overflow-hidden">
-          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent" />
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-400/70 to-transparent" />
           <div className="mx-auto grid max-w-7xl gap-10 px-6 py-14 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:px-8 lg:py-20">
             <div>
-              <Badge className="bg-emerald-500/15 text-emerald-300">Free tier · No subscription</Badge>
+              <Badge className="bg-blue-500/15 text-blue-300">Free tier · No subscription</Badge>
               <h1 className="mt-5 max-w-3xl font-display text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
                 Automated Olymp Trade, free — run by NOJAI.
               </h1>
@@ -181,49 +182,47 @@ export default async function OlympSitePage() {
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-[2rem] border border-emerald-500/20 bg-emerald-500/[0.04]">
-              <div className="grid gap-0 sm:grid-cols-[0.95fr_1.05fr]">
-                <div className="relative min-h-[220px] sm:min-h-[420px]">
-                  <Image
-                    src="/autobot-assets/olymptrade.jpeg"
-                    alt="Olymp Trade"
-                    fill
-                    className="object-cover"
-                    priority
-                  />
-                </div>
-                <div className="flex flex-col justify-between gap-6 p-6 sm:p-8">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.28em] text-emerald-300">Partner link</p>
-                    <Link
-                      href={settings.affiliateLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-3 block break-all text-lg font-semibold text-foreground underline decoration-emerald-400/50 underline-offset-4"
-                    >
-                      {settings.affiliateLink}
-                    </Link>
-                  </div>
+            <div className="overflow-hidden rounded-[2rem] border border-blue-500/20 bg-blue-500/[0.04]">
+              <div className="relative h-40 w-full sm:h-48">
+                <Image
+                  src="/autobot-assets/olymptrade.jpeg"
+                  alt="Olymp Trade"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f16] via-[#0a0f16]/10 to-transparent" />
+              </div>
+              <div className="flex flex-col gap-4 p-6 sm:p-8">
+                <Button asChild size="lg" className="h-auto w-full flex-col gap-1 rounded-2xl bg-emerald-600 py-4 text-white hover:bg-emerald-500">
+                  <Link href={settings.affiliateLink} target="_blank" rel="noreferrer">
+                    <span className="flex items-center gap-2 text-base font-bold">
+                      Join Olymp Trade today
+                      <ExternalLink className="h-4 w-4" />
+                    </span>
+                    <span className="text-xs font-normal text-white/80">Use the NOJAI partner link — takes under a minute</span>
+                  </Link>
+                </Button>
 
-                  <div className="rounded-2xl border border-emerald-500/25 bg-black/20 p-5">
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300">
-                        <Gift className="h-5 w-5" />
-                      </span>
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Bonus code</p>
-                        <p className="mt-1 font-display text-3xl font-black text-emerald-300">{settings.bonusCode}</p>
-                      </div>
+                <div className="rounded-2xl border border-blue-500/25 bg-black/20 p-5">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/15 text-blue-300">
+                      <Gift className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Bonus code</p>
+                      <p className="mt-1 font-display text-3xl font-black text-blue-300">{settings.bonusCode}</p>
                     </div>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-muted-foreground">
-                    Minimum deposit to qualify: <span className="font-semibold text-foreground">${settings.minDeposit}</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        </section>
+
+        {/* ── Live performance ── */}
+        <section className="mx-auto max-w-7xl px-6 pb-16 lg:px-8">
+          <OlympPerformanceChart />
         </section>
 
         {/* ── How it works ── */}
@@ -237,13 +236,13 @@ export default async function OlympSitePage() {
             {steps.map((step, index) => {
               const Icon = step.icon;
               return (
-                <Card key={step.title} className="h-full rounded-[1.25rem] border-emerald-500/15 bg-white/[0.03]">
+                <Card key={step.title} className="h-full rounded-[1.25rem] border-blue-500/15 bg-white/[0.03]">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-500/15 text-blue-300">
                         <Icon className="h-5 w-5" />
                       </span>
-                      <span className="font-display text-2xl font-bold text-emerald-500/30">0{index + 1}</span>
+                      <span className="font-display text-2xl font-bold text-blue-500/30">0{index + 1}</span>
                     </div>
                     <h3 className="mt-5 text-lg font-semibold">{step.title}</h3>
                     <p className="mt-2 text-sm leading-6 text-muted-foreground">{step.copy}</p>
@@ -299,10 +298,10 @@ export default async function OlympSitePage() {
 
         {/* ── Final CTA ── */}
         <section className="mx-auto max-w-7xl px-6 pb-20 lg:px-8">
-          <div className="rounded-[1.5rem] border border-emerald-500/20 bg-emerald-500/[0.05] p-6 sm:p-8">
+          <div className="rounded-[1.5rem] border border-blue-500/20 bg-blue-500/[0.05] p-6 sm:p-8">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <p className="text-sm font-semibold text-emerald-300">Ready when you are</p>
+                <p className="text-sm font-semibold text-blue-300">Ready when you are</p>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                   Register on Olymp Trade, deposit, then create a free NOJAI account to submit your details for approval.
                 </p>
