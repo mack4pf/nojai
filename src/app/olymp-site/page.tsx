@@ -12,6 +12,7 @@ import {
   Lock,
   ShieldCheck,
   Sparkles,
+  Star,
   Wallet,
 } from "lucide-react";
 
@@ -20,14 +21,15 @@ import { OlympSiteFooter } from "@/components/marketing/olymp-site-footer";
 import { OlympPerformanceChart } from "@/components/marketing/olymp-performance-chart";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { publicGet } from "@/lib/api";
+import { getPublicReviews, publicGet } from "@/lib/api";
+import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -138,7 +140,11 @@ const faqs = [
 ];
 
 export default async function OlympSitePage() {
-  const settings = await publicGet<OlympFreeSettings>("/olymp-free-settings").catch(() => FALLBACK_SETTINGS);
+  const [settings, reviews] = await Promise.all([
+    publicGet<OlympFreeSettings>("/olymp-free-settings").catch(() => FALLBACK_SETTINGS),
+    getPublicReviews().catch(() => []),
+  ]);
+  const topReviews = reviews.slice(0, 3);
 
   return (
     <div className="relative flex min-h-screen flex-col">
@@ -152,12 +158,12 @@ export default async function OlympSitePage() {
             <div>
               <Badge className="bg-blue-500/15 text-blue-300">Free tier · No subscription</Badge>
               <h1 className="mt-5 max-w-3xl font-display text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
-                Automated Olymp Trade, free — run by NOJAI.
+                Automated Olymp Trade bot, free — no monthly fee or additional cost.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
-                Register on Olymp Trade through the NOJAI partner link, deposit, and submit your details for
-                a quick review. Once approved, NOJAI trades your Olymp Trade account automatically — 24/7,
-                no subscription required.
+                Join through our partner link, make a minimum deposit, get approved, connect your account, and
+                see the results for yourself. No monthly subscriptions — only your trading capital goes into
+                your own Olymp Trade account. NOJAI trades for you, completely free.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
@@ -224,6 +230,39 @@ export default async function OlympSitePage() {
         <section className="mx-auto max-w-7xl px-6 pb-16 lg:px-8">
           <OlympPerformanceChart />
         </section>
+
+        {/* ── Reviews ── */}
+        {topReviews.length > 0 ? (
+          <section className="mx-auto max-w-7xl px-6 pb-16 lg:px-8">
+            <div className="max-w-2xl">
+              <Badge variant="outline">Reviews</Badge>
+              <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight sm:text-4xl">What NOJAI traders are saying</h2>
+            </div>
+            <div className="mt-8 grid gap-5 lg:grid-cols-3">
+              {topReviews.map((review) => (
+                <Card key={review._id} className="rounded-[1.25rem] border-white/10 bg-white/[0.03]">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base">{review.userName ?? "Verified user"}</CardTitle>
+                      <div className="flex items-center gap-0.5">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-3.5 w-3.5 ${i < review.rating ? "fill-yellow-400 text-yellow-400" : "fill-muted text-muted-foreground/30"}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <CardDescription>{formatDate(review.createdAt)}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm leading-6 text-muted-foreground">{review.comment}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         {/* ── How it works ── */}
         <section id="how-it-works" className="mx-auto max-w-7xl px-6 pb-6 pt-4 lg:px-8">
