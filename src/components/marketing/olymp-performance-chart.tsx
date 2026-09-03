@@ -6,32 +6,31 @@ import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Too
 
 import { api } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
-import { formatCurrency } from "@/lib/utils";
 
-interface OlympDailyPerformance {
-  date: string;
+interface OlympWeeklyPerformance {
+  weekStart: string;
+  weekEnd: string;
   label: string;
   trades: number;
   wins: number;
   losses: number;
   winRate: number;
-  netProfitUsd: number;
 }
 
 interface OlympPerformanceSnapshot {
   asOf: string;
-  periodDays: number;
+  periodWeeks: number;
   overallWinRate: number;
   totalTrades: number;
   totalWins: number;
   totalLosses: number;
-  netProfitUsd: number;
-  days: OlympDailyPerformance[];
+  weeks: OlympWeeklyPerformance[];
 }
 
 const GREEN = "#22c55e";
 const RED = "#ef4444";
-const LINE_BLUE = "#60a5fa";
+const NEUTRAL = "#60a5fa";
+const WIN_RATE_THRESHOLD = 50;
 
 function useRelativeTime(iso?: string) {
   const [, forceTick] = useState(0);
@@ -46,23 +45,27 @@ function useRelativeTime(iso?: string) {
   return `${Math.round(seconds / 60)}m ago`;
 }
 
+function dotColor(week: OlympWeeklyPerformance) {
+  if (week.trades === 0) return NEUTRAL;
+  return week.winRate >= WIN_RATE_THRESHOLD ? GREEN : RED;
+}
+
 function ColoredDot(props: any) {
   const { cx, cy, payload, index } = props;
   if (typeof cx !== "number" || typeof cy !== "number") return <g key={index} />;
-  const color = payload.netProfitUsd >= 0 ? GREEN : RED;
-  return <circle key={index} cx={cx} cy={cy} r={5} fill={color} stroke="#0a0f16" strokeWidth={2} />;
+  return <circle key={index} cx={cx} cy={cy} r={5} fill={dotColor(payload)} stroke="#0a0f16" strokeWidth={2} />;
 }
 
 function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
-  const day: OlympDailyPerformance = payload[0].payload;
+  const week: OlympWeeklyPerformance = payload[0].payload;
   return (
     <div className="rounded-xl border border-white/10 bg-[#0a0f16]/95 px-4 py-3 text-xs shadow-xl">
-      <p className="font-semibold text-foreground">{day.label}</p>
-      <p className={`mt-1 font-display text-lg font-bold ${day.netProfitUsd >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-        {formatCurrency(day.netProfitUsd, "USD")}
+      <p className="font-semibold text-foreground">Week of {week.label}</p>
+      <p className={`mt-1 font-display text-lg font-bold ${week.trades === 0 ? "text-muted-foreground" : week.winRate >= WIN_RATE_THRESHOLD ? "text-emerald-400" : "text-red-400"}`}>
+        {week.trades > 0 ? `${week.winRate}% win rate` : "No trades"}
       </p>
-      <p className="mt-1 text-muted-foreground">{day.wins}W · {day.losses}L{day.trades > 0 ? ` · ${day.winRate}% win rate` : ""}</p>
+      {week.trades > 0 ? <p className="mt-1 text-muted-foreground">{week.wins}W · {week.losses}L · {week.trades} trades</p> : null}
     </div>
   );
 }
@@ -75,9 +78,8 @@ export function OlympPerformanceChart() {
   });
 
   const relativeTime = useRelativeTime(data?.asOf);
-  const chartData = data?.days ?? [];
+  const chartData = data?.weeks ?? [];
   const hasActivity = (data?.totalTrades ?? 0) > 0;
-  const netProfit = data?.netProfitUsd ?? 0;
 
   return (
     <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-6 sm:p-8">
@@ -90,51 +92,53 @@ export function OlympPerformanceChart() {
             </span>
             <span className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Live platform performance</span>
           </div>
-          <h2 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">Real Olymp Trade results, last 7 days</h2>
+          <h2 className="mt-2 font-display text-2xl font-semibold sm:text-3xl">Real Olymp Trade win rate, last 7 weeks</h2>
         </div>
         {relativeTime ? <span className="text-xs text-muted-foreground">Updated {relativeTime}</span> : null}
       </div>
 
       <div className="mt-6 flex flex-col items-start gap-2 rounded-2xl border border-blue-500/20 bg-blue-500/[0.05] p-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Win rate — last 7 days</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Win rate — last 7 weeks</p>
           <p className="mt-1 font-display text-5xl font-black text-blue-300 sm:text-6xl">{data ? `${data.overallWinRate}%` : "—"}</p>
         </div>
         <p className="text-xs text-muted-foreground">
-          Based on {data ? data.totalTrades.toLocaleString() : "—"} real closed trades this week
+          Based on {data ? data.totalTrades.toLocaleString() : "—"} real closed trades
         </p>
       </div>
 
       <div className="mt-6">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Weekly profit / loss</p>
-          {data ? (
-            <span className={`font-display text-sm font-bold ${netProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-              {netProfit >= 0 ? "+" : ""}{formatCurrency(netProfit, "USD")} net
-            </span>
-          ) : null}
-        </div>
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">Win rate by week</p>
         {hasActivity ? (
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
               <XAxis dataKey="label" stroke="rgba(255,255,255,0.4)" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="rgba(255,255,255,0.4)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => formatCurrency(v, "USD")} width={70} />
-              <ReferenceLine y={0} stroke="rgba(255,255,255,0.2)" />
+              <YAxis
+                stroke="rgba(255,255,255,0.4)"
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                domain={[0, 100]}
+                tickFormatter={(v) => `${v}%`}
+                width={40}
+              />
+              <ReferenceLine y={50} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4" />
               <Tooltip content={<CustomTooltip />} />
               <Line
                 type="monotone"
-                dataKey="netProfitUsd"
-                stroke={LINE_BLUE}
+                dataKey="winRate"
+                stroke={NEUTRAL}
                 strokeWidth={2.5}
                 dot={(props: any) => <ColoredDot {...props} />}
                 activeDot={{ r: 7 }}
+                connectNulls
               />
             </LineChart>
           </ResponsiveContainer>
         ) : (
           <div className="flex h-[240px] items-center justify-center rounded-2xl border border-dashed border-white/10 text-sm text-muted-foreground">
-            No closed trades in the last 7 days yet
+            No closed trades in the last 7 weeks yet
           </div>
         )}
       </div>
