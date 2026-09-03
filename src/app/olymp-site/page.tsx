@@ -158,12 +158,11 @@ export default async function OlympSitePage() {
             <div>
               <Badge className="bg-blue-500/15 text-blue-300">Free tier · No subscription</Badge>
               <h1 className="mt-5 max-w-3xl font-display text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
-                Automated Olymp Trade bot, free — no monthly fee or additional cost.
+                Automated Olymp Trade bot — no monthly fee.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
-                Join through our partner link, make a minimum deposit, get approved, connect your account, and
-                see the results for yourself. No monthly subscriptions — only your trading capital goes into
-                your own Olymp Trade account. NOJAI trades for you, completely free.
+                Join through our partner link, make the minimum deposit, get approved. No monthly subscription.
+                Deposit goes to your own Olymp Trade account, not to NOJAI.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
