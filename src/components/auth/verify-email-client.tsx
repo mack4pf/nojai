@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Loader2, Mail, RefreshCw } from "lucide-react";
+import { CheckCircle2, Loader2, Mail } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import { Button } from "@/components/ui/button";
@@ -90,8 +90,7 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
     await verifyEmail(resendEmail, verificationCode);
   }
 
-  async function handleResend(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleResend() {
     if (!resendEmail.trim()) return;
     setResendLoading(true);
     setResendError("");
@@ -152,56 +151,54 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
     );
   }
 
+  // When we already know the address (the normal path — it comes through in
+  // the URL after registering) there's no reason to make them type it again.
+  const knowsEmail = Boolean(email);
+
   return (
-    <div className="w-full max-w-md space-y-5">
-      <div className="space-y-3 rounded-2xl border border-amber-500/20 bg-amber-500/[0.05] p-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10">
-          <Mail className="h-6 w-6 text-amber-400" />
-        </div>
-        <div>
-          <h2 className="font-display text-lg font-semibold">Verify with your email code</h2>
+    <div className="w-full max-w-md space-y-4">
+      <form onSubmit={handleVerify} className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-8">
+        <div className="text-center">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-primary/30 bg-primary/10">
+            <Mail className="h-7 w-7 text-primary" />
+          </div>
+          <h2 className="font-display text-xl font-semibold tracking-tight">Enter your code</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Enter the 6-digit code from your verification email. If you clicked the link in the email, we try to verify automatically.
-          </p>
-          <p className="mt-2 text-xs text-amber-400/80">
-            Don&apos;t see the email? Check your <strong>spam or junk folder</strong> — verification emails sometimes land there.
+            {knowsEmail ? (
+              <>
+                We sent a 6-digit code to <span className="font-medium text-foreground">{resendEmail}</span>
+              </>
+            ) : (
+              "Enter your email and the 6-digit code we sent you."
+            )}
           </p>
         </div>
-      </div>
 
-      {resendCooldown > 0 && (
-        <div className="flex items-start gap-2 rounded-xl border border-sky-500/20 bg-sky-500/[0.07] px-4 py-3">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-400" />
-          <p className="text-xs text-sky-300">
-            New code sent to <strong>{resendEmail}</strong>. Check your inbox and spam folder.
-          </p>
-        </div>
-      )}
+        <div className="mt-6 space-y-3">
+          {!knowsEmail && (
+            <div className="space-y-1.5">
+              <Label htmlFor="verify-email">Email address</Label>
+              <Input
+                id="verify-email"
+                type="email"
+                value={resendEmail}
+                onChange={(e) => {
+                  setResendEmail(e.target.value);
+                  setVerifyError("");
+                  setResendError("");
+                }}
+                placeholder="your@email.com"
+                disabled={verifyLoading || resendLoading}
+              />
+            </div>
+          )}
 
-      <form onSubmit={handleVerify} className="space-y-3 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
-        <p className="text-sm font-medium">Enter verification code</p>
-        <div className="space-y-1.5">
-          <Label htmlFor="verify-email">Email address</Label>
-          <Input
-            id="verify-email"
-            type="email"
-            value={resendEmail}
-            onChange={(e) => {
-              setResendEmail(e.target.value);
-              setVerifyError("");
-              setResendError("");
-            }}
-            placeholder="your@email.com"
-            disabled={verifyLoading || resendLoading}
-          />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="verification-code">6-digit code</Label>
           <Input
             id="verification-code"
             inputMode="numeric"
             autoComplete="one-time-code"
             maxLength={6}
+            autoFocus
             value={verificationCode}
             onChange={(e) => {
               setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6));
@@ -209,41 +206,49 @@ export function VerifyEmailClient({ token, email }: VerifyEmailClientProps) {
             }}
             placeholder="123456"
             disabled={verifyLoading || resendLoading}
+            className="h-14 text-center font-display text-2xl tracking-[0.4em]"
           />
-        </div>
-        {verifyError && <p className="text-xs text-red-400">{verifyError}</p>}
-        <Button type="submit" size="sm" disabled={verifyLoading || !resendEmail.trim() || verificationCode.length !== 6} className="w-full gap-2">
-          {verifyLoading ? (
-            <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Verifying...
-            </>
-          ) : (
-            <>
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Verify email
-            </>
-          )}
-        </Button>
-      </form>
 
-      <form onSubmit={handleResend} className="space-y-3 rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
-        <p className="text-sm font-medium">Need a new code?</p>
-        <p className="text-xs text-muted-foreground">We will send a fresh 6-digit code to the email above.</p>
-        {resendError && <p className="text-xs text-red-400">{resendError}</p>}
-        <Button type="submit" size="sm" variant="outline" disabled={resendLoading || resendCooldown > 0 || !resendEmail.trim()} className="gap-2">
-          {resendLoading ? (
-            <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Sending...
-            </>
+          {verifyError && <p className="text-center text-xs text-red-400">{verifyError}</p>}
+
+          <Button
+            type="submit"
+            disabled={verifyLoading || !resendEmail.trim() || verificationCode.length !== 6}
+            className="w-full gap-2"
+          >
+            {verifyLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Verifying…
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-4 w-4" />
+                Verify email
+              </>
+            )}
+          </Button>
+        </div>
+
+        <div className="mt-5 border-t border-white/[0.06] pt-4 text-center">
+          {resendCooldown > 0 ? (
+            <p className="text-xs text-emerald-400">New code sent — check your inbox and spam folder.</p>
           ) : (
-            <>
-              <RefreshCw className="h-3.5 w-3.5" />
-              {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend code"}
-            </>
+            <p className="text-xs text-muted-foreground">
+              Didn&apos;t get it? Check your spam folder, or{" "}
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resendLoading || !resendEmail.trim()}
+                className="font-medium text-primary underline underline-offset-4 disabled:opacity-50"
+              >
+                {resendLoading ? "sending…" : "send a new code"}
+              </button>
+              .
+            </p>
           )}
-        </Button>
+          {resendError && <p className="mt-2 text-xs text-red-400">{resendError}</p>}
+        </div>
       </form>
 
       <div className="text-center">

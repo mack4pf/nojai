@@ -8,6 +8,8 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { api } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 
@@ -21,10 +23,31 @@ interface OlympPartnerAccountSummary {
 interface OlympPartnerStatus {
   linked: boolean;
   olympUserId?: number;
+  email?: string;
+  suggestedEmail?: string;
   createdAt?: string;
   accounts?: OlympPartnerAccountSummary[];
   accountsError?: string;
 }
+
+/** Olymp's main markets — the value is the ISO 3166-1 alpha-2 code they expect. */
+const COUNTRIES = [
+  { code: "NG", label: "Nigeria" },
+  { code: "GH", label: "Ghana" },
+  { code: "KE", label: "Kenya" },
+  { code: "ZA", label: "South Africa" },
+  { code: "CM", label: "Cameroon" },
+  { code: "TZ", label: "Tanzania" },
+  { code: "UG", label: "Uganda" },
+  { code: "IN", label: "India" },
+  { code: "PK", label: "Pakistan" },
+  { code: "ID", label: "Indonesia" },
+  { code: "BD", label: "Bangladesh" },
+  { code: "EG", label: "Egypt" },
+  { code: "BR", label: "Brazil" },
+  { code: "MX", label: "Mexico" },
+  { code: "TR", label: "Turkey" },
+];
 
 /** Olymp SSO links are one-time and expire in 5 minutes, so they're fetched at click time, never cached. */
 type SsoTarget = "/payin" | "/trading";
@@ -32,6 +55,8 @@ type SsoTarget = "/payin" | "/trading";
 export function OlympPartnerAccount() {
   const queryClient = useQueryClient();
   const [pendingTarget, setPendingTarget] = useState<SsoTarget | null>(null);
+  const [email, setEmail] = useState("");
+  const [country, setCountry] = useState("NG");
 
   const { data: status, isLoading } = useQuery<OlympPartnerStatus>({
     queryKey: ["olymp-partner-status"],
@@ -40,7 +65,8 @@ export function OlympPartnerAccount() {
   });
 
   const createAccount = useMutation({
-    mutationFn: async () => (await api.post("/olymp-partner/account")).data,
+    mutationFn: async (payload: { email: string; country: string }) =>
+      (await api.post("/olymp-partner/account", payload)).data,
     onSuccess: () => {
       toast.success("Your Olymp Trade account is ready.");
       void queryClient.invalidateQueries({ queryKey: ["olymp-partner-status"] });
@@ -61,6 +87,9 @@ export function OlympPartnerAccount() {
 
   const accounts = status?.accounts ?? [];
   const realAccount = accounts.find((account) => account.type === "real");
+  // Falls back to the suggested address until the user types their own, so a
+  // background refetch can't clobber what they've entered.
+  const emailValue = email || status?.suggestedEmail || "";
 
   return (
     <div className="dashboard-solid-panel rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-6">
@@ -103,33 +132,70 @@ export function OlympPartnerAccount() {
             </div>
           </div>
 
-          <Button
-            onClick={() => createAccount.mutate()}
-            disabled={createAccount.isPending}
-            className="mt-4 w-full bg-blue-600 text-white hover:bg-blue-500 sm:w-auto"
+          <form
+            className="mt-4 space-y-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              createAccount.mutate({ email: emailValue.trim(), country });
+            }}
           >
-            {createAccount.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating your account…
-              </>
-            ) : (
-              <>
-                Create my Olymp account
-                <ArrowUpRight className="ml-1.5 h-4 w-4" />
-              </>
-            )}
-          </Button>
+            <div className="grid gap-4 sm:grid-cols-[1.4fr_1fr]">
+              <div>
+                <Label htmlFor="olymp-email" className="text-xs">Email for your Olymp account</Label>
+                <Input
+                  id="olymp-email"
+                  type="email"
+                  required
+                  value={emailValue}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  className="mt-1.5"
+                />
+                <p className="mt-1.5 text-[11px] leading-4 text-muted-foreground">
+                  Must not already be registered with Olymp Trade.
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="olymp-country" className="text-xs">Country</Label>
+                <select
+                  id="olymp-country"
+                  value={country}
+                  onChange={(event) => setCountry(event.target.value)}
+                  className="mt-1.5 h-10 w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm text-foreground outline-none focus:border-blue-400/50"
+                >
+                  {COUNTRIES.map((item) => (
+                    <option key={item.code} value={item.code} className="bg-[#0a0f16]">
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={createAccount.isPending || !emailValue.trim()}
+              className="w-full bg-blue-600 text-white hover:bg-blue-500 sm:w-auto"
+            >
+              {createAccount.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating your account…
+                </>
+              ) : (
+                <>
+                  Create my Olymp account
+                  <ArrowUpRight className="ml-1.5 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </form>
 
           {createAccount.isError ? (
             <div className="mt-3 flex gap-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-3 text-xs leading-5 text-amber-200/90">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>
-                {(createAccount.error as Error).message}
-                {(createAccount.error as Error).message.toLowerCase().includes("already exists")
-                  ? " If that's your own Olymp account, connect it from the main NOJAI dashboard instead."
-                  : null}
-              </span>
+              <span>{(createAccount.error as Error).message}</span>
             </div>
           ) : null}
         </div>

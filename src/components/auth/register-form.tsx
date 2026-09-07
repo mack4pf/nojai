@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -182,6 +182,12 @@ export function RegisterForm({ selectedPlan, referralCode }: RegisterFormProps) 
   const [isNavigating, setIsNavigating] = useState(false);
 
   const [registeredEmail, setRegisteredEmail] = useState("");
+  // On olymp.nojai.io the broker is a given, so asking which platform they
+  // want is noise — that step is skipped and the answer preset instead.
+  const [isOlympSite, setIsOlympSite] = useState(false);
+  useEffect(() => {
+    setIsOlympSite(window.location.hostname.startsWith("olymp."));
+  }, []);
 
   const [source, setSource] = useState<Source | null>(null);
   const [interestedPlatforms, setInterestedPlatforms] = useState<PlatformInterest[]>([]);
@@ -223,6 +229,7 @@ export function RegisterForm({ selectedPlan, referralCode }: RegisterFormProps) 
 
       setUserName(values.name.split(" ")[0]);
       setRegisteredEmail(values.email);
+      if (isOlympSite) setInterestedPlatforms(["olymp_trade"]);
       setPhase("onboarding");
       setSurveyStep(1);
     } catch (err) {
@@ -256,7 +263,10 @@ export function RegisterForm({ selectedPlan, referralCode }: RegisterFormProps) 
     router.refresh();
   }
 
-  const TOTAL_STEPS = 5;
+  // Step 3 ("which platforms") is dropped on the Olymp subdomain.
+  const activeSteps = isOlympSite ? [1, 2, 4, 5] : [1, 2, 3, 4, 5];
+  const stepIndex = Math.max(0, activeSteps.indexOf(surveyStep));
+  const isLastStep = stepIndex === activeSteps.length - 1;
 
   function canContinue() {
     if (surveyStep === 1) return true;
@@ -276,7 +286,7 @@ export function RegisterForm({ selectedPlan, referralCode }: RegisterFormProps) 
   }
 
   function handleContinue() {
-    if (surveyStep < TOTAL_STEPS) setSurveyStep((s) => s + 1);
+    if (!isLastStep) setSurveyStep(activeSteps[stepIndex + 1]!);
     else finishSurvey();
   }
 
@@ -372,7 +382,7 @@ export function RegisterForm({ selectedPlan, referralCode }: RegisterFormProps) 
   }
 
   // Onboarding phase
-  const progressPct = surveyStep === 1 ? 0 : ((surveyStep - 1) / (TOTAL_STEPS - 1)) * 100;
+  const progressPct = (stepIndex / (activeSteps.length - 1)) * 100;
 
   return (
     <div className="w-full">
@@ -381,7 +391,7 @@ export function RegisterForm({ selectedPlan, referralCode }: RegisterFormProps) 
           {surveyStep > 1 ? (
             <button
               type="button"
-              onClick={() => setSurveyStep((s) => Math.max(1, s - 1))}
+              onClick={() => setSurveyStep(activeSteps[Math.max(0, stepIndex - 1)]!)}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-muted-foreground transition-colors hover:border-white/20 hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -395,7 +405,7 @@ export function RegisterForm({ selectedPlan, referralCode }: RegisterFormProps) 
                 Step 2 of 2 — Setup
               </span>
               {surveyStep > 1 && (
-                <span className="text-[11px] text-muted-foreground/60">{surveyStep - 1} / {TOTAL_STEPS - 1}</span>
+                <span className="text-[11px] text-muted-foreground/60">{stepIndex} / {activeSteps.length - 1}</span>
               )}
             </div>
             <div className="h-1 w-full overflow-hidden rounded-full bg-white/[0.08]">
@@ -525,7 +535,7 @@ export function RegisterForm({ selectedPlan, referralCode }: RegisterFormProps) 
           onClick={handleContinue}
           disabled={!canContinue() || isNavigating}
         >
-          {isNavigating ? "Taking you in…" : surveyStep === TOTAL_STEPS ? (
+          {isNavigating ? "Taking you in…" : isLastStep ? (
             <><span>Finish Setup</span><Sparkles className="h-4 w-4" /></>
           ) : (
             <><span>{surveyStep === 1 ? "Let’s Go" : "Continue"}</span><ChevronRight className="h-4 w-4" /></>
