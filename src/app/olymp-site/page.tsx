@@ -6,7 +6,6 @@ import {
   ArrowRight,
   CheckCircle2,
   Clock,
-  ExternalLink,
   Gift,
   LineChart,
   Lock,
@@ -37,12 +36,12 @@ export const revalidate = 0;
 export const metadata: Metadata = {
   title: "NOJAI for Olymp Trade — Free Automated Trading Bot",
   description:
-    "Register on Olymp Trade through NOJAI's partner link, deposit, and get free 24/7 automated trading — no subscription required.",
+    "Open your Olymp Trade account in one click from NOJAI, deposit, and get free 24/7 automated trading — no subscription required.",
   alternates: { canonical: "https://olymp.nojai.io" },
   openGraph: {
     title: "NOJAI for Olymp Trade — Free Automated Trading Bot",
     description:
-      "Register on Olymp Trade through NOJAI's partner link, deposit, and get free 24/7 automated trading — no subscription required.",
+      "Open your Olymp Trade account in one click from NOJAI, deposit, and get free 24/7 automated trading — no subscription required.",
     url: "https://olymp.nojai.io",
     images: [{ url: "/autobot-assets/olymptrade.jpeg", width: 1200, height: 630, alt: "NOJAI for Olymp Trade" }],
   },
@@ -62,24 +61,24 @@ const FALLBACK_SETTINGS: OlympFreeSettings = {
 
 const steps = [
   {
-    icon: ExternalLink,
-    title: "Register on Olymp Trade",
-    copy: "Create your account using the NOJAI partner link below and enter the bonus code at signup.",
+    icon: ArrowRight,
+    title: "Create your free NOJAI account",
+    copy: "Email and password, under a minute. No card, no subscription.",
+  },
+  {
+    icon: Sparkles,
+    title: "We open your Olymp Trade account",
+    copy: "One click from your dashboard. No forms to fill, and no Olymp password to remember — we handle the whole registration for you.",
   },
   {
     icon: Wallet,
     title: "Make your deposit",
-    copy: "Fund your new Olymp Trade account. Your money stays with Olymp Trade — NOJAI never touches your deposit.",
+    copy: "Fund it straight from your dashboard, already logged in. Your money goes into your own Olymp Trade account — NOJAI never touches it.",
   },
   {
     icon: ShieldCheck,
-    title: "Submit for free access",
-    copy: "Log in to NOJAI, open your dashboard, and send your Olymp email, account ID, and deposit amount for a quick manual review.",
-  },
-  {
-    icon: Sparkles,
-    title: "Bot trades for you",
-    copy: "Once approved, connect your account and NOJAI executes signals on it automatically — no subscription needed for this tier.",
+    title: "The bot trades for you",
+    copy: "NOJAI executes signals on your account automatically, 24/7. Free — no monthly subscription on this tier.",
   },
 ];
 
@@ -130,7 +129,12 @@ const faqs = [
   {
     question: "What if I already have an Olymp Trade account?",
     answer:
-      "You can still submit it for review — registering through the NOJAI partner link and bonus code is what qualifies an account, so a pre-existing account may need to be a fresh one registered via the link above.",
+      "The one-click setup opens a brand new account for you, so it can't be used if you already have an Olymp Trade account on the same email. You can either sign up for NOJAI with a different email address, or connect your existing account manually from the main NOJAI dashboard.",
+  },
+  {
+    question: "Do I need an Olymp Trade password?",
+    answer:
+      "No. We create and manage the account for you, and your dashboard has buttons that log you straight into Olymp Trade — to deposit or to view your trades. You never type an Olymp password, and NOJAI never stores one.",
   },
   {
     question: "Can I stop the bot or disconnect my account?",
@@ -161,21 +165,20 @@ export default async function OlympSitePage() {
                 Automated Olymp Trade bot — no monthly fee.
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
-                Join through our partner link, make the minimum deposit, get approved. No monthly subscription.
-                Deposit goes to your own Olymp Trade account, not to NOJAI.
+                Create your Olymp Trade account in one click, right from NOJAI — no forms, no Olymp password.
+                Deposit into your own account, and the bot trades it for you. No monthly subscription.
               </p>
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button asChild size="lg" className="bg-emerald-600 text-white hover:bg-emerald-500">
-                  <Link href={settings.affiliateLink} target="_blank" rel="noreferrer">
-                    Register on Olymp Trade
-                    <ExternalLink className="ml-2 h-4 w-4" />
+                  <Link href="/auth/register">
+                    Get started free
+                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
                 <Button asChild size="lg" variant="outline">
-                  <Link href="/auth/register">
-                    Get free access
-                    <ArrowRight className="ml-2 h-4 w-4" />
+                  <Link href="/#how-it-works">
+                    See how it works
                   </Link>
                 </Button>
               </div>
@@ -200,25 +203,33 @@ export default async function OlympSitePage() {
               </div>
               <div className="flex flex-col gap-4 p-6 sm:p-8">
                 <Button asChild size="lg" className="h-auto w-full flex-col gap-1 rounded-2xl bg-emerald-600 py-4 text-white hover:bg-emerald-500">
-                  <Link href={settings.affiliateLink} target="_blank" rel="noreferrer">
+                  <Link href="/auth/register">
                     <span className="flex items-center gap-2 text-base font-bold">
                       Join Olymp Trade today
-                      <ExternalLink className="h-4 w-4" />
+                      <ArrowRight className="h-4 w-4" />
                     </span>
-                    <span className="text-xs font-normal text-white/80">Use the NOJAI partner link — takes under a minute</span>
+                    <span className="text-xs font-normal text-white/80">We open your account for you — takes under a minute</span>
                   </Link>
                 </Button>
 
                 <div className="rounded-2xl border border-blue-500/25 bg-black/20 p-5">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500/15 text-blue-300">
-                      <Gift className="h-5 w-5" />
-                    </span>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Bonus code</p>
-                      <p className="mt-1 font-display text-3xl font-black text-blue-300">{settings.bonusCode}</p>
-                    </div>
-                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                    What you get
+                  </p>
+                  <ul className="mt-3 space-y-2.5 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2.5">
+                      <Gift className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />
+                      <span>Account opened for you — no forms, no Olymp password</span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <Lock className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />
+                      <span>Your deposit stays in your own Olymp account</span>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <Clock className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />
+                      <span>Bot trades 24/7 — cancel or pause anytime</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -341,19 +352,14 @@ export default async function OlympSitePage() {
               <div>
                 <p className="text-sm font-semibold text-blue-300">Ready when you are</p>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                  Register on Olymp Trade, deposit, then create a free NOJAI account to submit your details for approval.
+                  Create a free NOJAI account and we&apos;ll open your Olymp Trade account for you. Deposit, and
+                  the bot starts trading — no subscription.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Button asChild variant="outline">
-                  <Link href={settings.affiliateLink} target="_blank" rel="noreferrer">
-                    Register on Olymp
-                    <ExternalLink className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
                 <Button asChild className="bg-emerald-600 text-white hover:bg-emerald-500">
                   <Link href="/auth/register">
-                    Create NOJAI account
+                    Get started free
                     <CheckCircle2 className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
