@@ -226,6 +226,19 @@ export function OlympPartnerAccount() {
         </div>
       ) : (
         <div className="mt-6 space-y-4">
+          <dl className="grid gap-x-6 gap-y-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 text-sm sm:grid-cols-2">
+            {status.email ? (
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-muted-foreground">Registered email</dt>
+                <dd className="truncate font-medium">{status.email}</dd>
+              </div>
+            ) : null}
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="text-muted-foreground">Olymp account ID</dt>
+              <dd className="font-medium">{status.olympUserId}</dd>
+            </div>
+          </dl>
+
           {accounts.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
               {accounts.map((account) => (
@@ -238,6 +251,9 @@ export function OlympPartnerAccount() {
                   </p>
                   <p className="mt-1 font-display text-2xl font-semibold">
                     {formatCurrency(account.balance, account.currency)}
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {account.currency} · #{account.id}
                   </p>
                 </div>
               ))}
