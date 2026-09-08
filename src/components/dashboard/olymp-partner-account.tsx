@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 
@@ -26,6 +27,8 @@ interface OlympPartnerStatus {
   email?: string;
   suggestedEmail?: string;
   createdAt?: string;
+  tradingEnabled?: boolean;
+  baseAmount?: number;
   accounts?: OlympPartnerAccountSummary[];
   accountsError?: string;
 }
@@ -75,6 +78,7 @@ export function OlympPartnerAccount() {
   const [pendingTarget, setPendingTarget] = useState<SsoTarget | null>(null);
   const [email, setEmail] = useState("");
   const [country, setCountry] = useState("NG");
+  const [amount, setAmount] = useState("");
 
   const { data: status, isLoading } = useQuery<OlympPartnerStatus>({
     queryKey: ["olymp-partner-status"],
@@ -87,6 +91,22 @@ export function OlympPartnerAccount() {
       (await api.post("/olymp-partner/account", payload)).data,
     onSuccess: () => {
       toast.success("Your Olymp Trade account is ready.");
+      void queryClient.invalidateQueries({ queryKey: ["olymp-partner-status"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const updateSettings = useMutation({
+    mutationFn: async (payload: { tradingEnabled?: boolean; baseAmount?: number }) =>
+      (await api.patch("/olymp-partner/settings", payload)).data,
+    onSuccess: (_data, variables) => {
+      toast.success(
+        variables.tradingEnabled === undefined
+          ? "Trade amount saved."
+          : variables.tradingEnabled
+            ? "Automated trading is on."
+            : "Automated trading is off.",
+      );
       void queryClient.invalidateQueries({ queryKey: ["olymp-partner-status"] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -109,6 +129,8 @@ export function OlympPartnerAccount() {
   // background refetch can't clobber what they've entered.
   const emailValue = email || status?.suggestedEmail || "";
   const emailIsDisposable = emailValue.includes("@") && isDisposableEmail(emailValue);
+  // Falls back to the saved amount until edited, so a refetch can't wipe typing.
+  const amountValue = amount !== "" ? amount : String(status?.baseAmount ?? 1);
 
   return (
     <div className="dashboard-solid-panel rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-6">
@@ -301,6 +323,50 @@ export function OlympPartnerAccount() {
           <p className="text-[11px] leading-5 text-muted-foreground">
             These open Olymp already logged in — you never need an Olymp password.
           </p>
+
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Automated trading</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  {status.tradingEnabled
+                    ? "The bot is trading this account with real money."
+                    : "Off. Turn this on to let the bot trade your account with real money."}
+                </p>
+              </div>
+              <Switch
+                checked={Boolean(status.tradingEnabled)}
+                disabled={updateSettings.isPending}
+                onCheckedChange={(checked) => updateSettings.mutate({ tradingEnabled: checked })}
+              />
+            </div>
+
+            <div className="mt-4 flex items-end gap-3">
+              <div className="w-32">
+                <Label htmlFor="olymp-amount" className="text-xs">Amount per trade</Label>
+                <Input
+                  id="olymp-amount"
+                  type="number"
+                  min={1}
+                  step="any"
+                  value={amountValue}
+                  onChange={(event) => setAmount(event.target.value)}
+                  className="mt-1.5"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={updateSettings.isPending || Number(amountValue) <= 0 || Number(amountValue) === status.baseAmount}
+                onClick={() => updateSettings.mutate({ baseAmount: Number(amountValue) })}
+              >
+                Save
+              </Button>
+            </div>
+            <p className="mt-2 text-[11px] leading-4 text-muted-foreground">
+              In your account&apos;s own currency. The bot skips a signal if your balance is lower than this.
+            </p>
+          </div>
         </div>
       )}
     </div>
