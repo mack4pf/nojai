@@ -49,6 +49,24 @@ const COUNTRIES = [
   { code: "TR", label: "Turkey" },
 ];
 
+/**
+ * Olymp refuses throwaway email providers at registration, and only says so
+ * with a generic error that names no field. Flagging the common ones here
+ * gives immediate feedback; the server enforces the same rule.
+ */
+const DISPOSABLE_DOMAINS = new Set([
+  "yopmail.com", "yopmail.fr", "yopmail.net", "mailinator.com", "guerrillamail.com",
+  "sharklasers.com", "grr.la", "10minutemail.com", "tempmail.com", "temp-mail.org",
+  "tempmailo.com", "minuteinbox.com", "throwawaymail.com", "fakeinbox.com", "trashmail.com",
+  "getnada.com", "dispostable.com", "maildrop.cc", "mailnesia.com", "emailondeck.com",
+  "mohmal.com", "moakt.com", "tempr.email", "discard.email", "mailcatch.com", "mail.tm",
+]);
+
+function isDisposableEmail(email: string): boolean {
+  const domain = email.split("@")[1]?.trim().toLowerCase();
+  return domain ? DISPOSABLE_DOMAINS.has(domain) : false;
+}
+
 /** Olymp SSO links are one-time and expire in 5 minutes, so they're fetched at click time, never cached. */
 type SsoTarget = "/payin" | "/trading";
 
@@ -90,6 +108,7 @@ export function OlympPartnerAccount() {
   // Falls back to the suggested address until the user types their own, so a
   // background refetch can't clobber what they've entered.
   const emailValue = email || status?.suggestedEmail || "";
+  const emailIsDisposable = emailValue.includes("@") && isDisposableEmail(emailValue);
 
   return (
     <div className="dashboard-solid-panel rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 sm:p-6">
@@ -151,9 +170,15 @@ export function OlympPartnerAccount() {
                   placeholder="you@example.com"
                   className="mt-1.5"
                 />
-                <p className="mt-1.5 text-[11px] leading-4 text-muted-foreground">
-                  Must not already be registered with Olymp Trade.
-                </p>
+                {emailIsDisposable ? (
+                  <p className="mt-1.5 text-[11px] leading-4 text-amber-300">
+                    Olymp Trade doesn&apos;t accept temporary email addresses — use a personal one.
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-[11px] leading-4 text-muted-foreground">
+                    Use a real address you can access. It must not already be registered with Olymp Trade.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -175,7 +200,7 @@ export function OlympPartnerAccount() {
 
             <Button
               type="submit"
-              disabled={createAccount.isPending || !emailValue.trim()}
+              disabled={createAccount.isPending || !emailValue.trim() || emailIsDisposable}
               className="w-full bg-blue-600 text-white hover:bg-blue-500 sm:w-auto"
             >
               {createAccount.isPending ? (
