@@ -448,8 +448,35 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
                   <p className="text-sm font-semibold">{account.name || account.email || `Olymp #${account.accountId}`}</p>
                   <p className="text-[11px] text-muted-foreground">ID: {account.accountId} · {account.accountGroup}</p>
                 </div>
-                <Badge variant={account.status === "connected" ? "success" : "warning"}>{account.status}</Badge>
+                <Badge variant={account.needsReauth ? "destructive" : account.status === "connected" ? "success" : "warning"}>
+                  {account.needsReauth ? "reconnect needed" : account.status}
+                </Badge>
               </div>
+
+              {account.needsReauth && (
+                // A lapsed Olymp session can't recover on its own, so this has
+                // to read as an action the user must take — not as the
+                // transient "disconnected" that it used to be shown as.
+                <div className="rounded-xl border border-destructive/40 bg-destructive/[0.08] p-3">
+                  <p className="text-xs font-semibold text-destructive">Your Olymp session has expired</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                    {account.needsReauthReason
+                      ? `${account.needsReauthReason}. `
+                      : "Olymp signs sessions out roughly every 48 hours. "}
+                    This account is still linked but <span className="font-semibold">cannot place trades</span> until you
+                    reconnect it below.
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => setShowConnectForm(true)}
+                  >
+                    Reconnect account
+                  </Button>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 <div className="dashboard-solid-panel rounded-xl border border-white/[0.04] bg-white/[0.02] p-2.5">

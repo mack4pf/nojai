@@ -116,6 +116,15 @@ export interface OlympAccount {
   currency?: string;
   lastConnected?: string;
   status: "connected" | "disconnected";
+  /**
+   * The stored Olymp credential expired or was rejected and could not be
+   * renewed automatically. The account is still linked but cannot trade until
+   * the user reconnects it — distinct from a transient disconnect, which
+   * recovers on its own.
+   */
+  needsReauth?: boolean;
+  needsReauthReason?: string;
+  tokenExpiresAt?: string | null;
 }
 
 export interface EOAccount {

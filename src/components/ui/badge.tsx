@@ -12,6 +12,9 @@ const badgeVariants = cva(
         outline: "border border-border text-foreground",
         success: "bg-success/15 text-success",
         warning: "bg-warning/15 text-warning",
+        // For states that need the user to act, not just to be informed —
+        // stronger than `warning`, which reads as "keep an eye on this".
+        destructive: "bg-destructive/15 text-destructive",
       },
     },
     defaultVariants: {

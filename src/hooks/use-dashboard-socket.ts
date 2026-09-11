@@ -167,6 +167,18 @@ export function useDashboardSocket(enabled = true) {
       queryClient.invalidateQueries({ queryKey: queryKeys.trades() });
     });
 
+    // Olymp expires sessions roughly every 48 hours and offers no way for us
+    // to renew them silently. This is the only warning the user gets that
+    // their bot has stopped trading, so it's surfaced as a sticky toast
+    // rather than one that disappears while they're away from the screen.
+    socket.on("olymp-reauth-required", (data: { accountId: number; reason?: string }) => {
+      toast.error("Olymp session expired — reconnect required", {
+        description: `Olymp account #${data.accountId} can no longer place trades until you reconnect it.`,
+        duration: Infinity,
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.olympAccounts });
+    });
+
     return () => {
       socket?.disconnect();
       socket = null;
