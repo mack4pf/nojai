@@ -9,7 +9,6 @@ import { CheckCircle2, ChevronDown, ChevronUp, Crown, Radar, Shield } from "luci
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
-import { MetaTrader5Icon } from "@/components/icons/metatrader5-icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { EmailNotice } from "@/components/ui/email-notice";
@@ -38,7 +37,6 @@ function isPaidPlanTier(value: PlanTier): value is Exclude<PlanTier, "NONE"> {
 }
 
 type PaidPlanTier = Exclude<PlanTier, "NONE">;
-type ProductChoice = "binary" | "forex";
 
 const PLAN_RANK: Record<string, number> = { NONE: 0, STANDARD: 1, PRO: 2, VIP: 3 };
 const BINARY_DEFAULT_ASSETS = ["EURUSD"];
@@ -56,11 +54,6 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
   const [showCodePanel, setShowCodePanel] = useState(false);
   const [codeInput, setCodeInput] = useState("");
   const [verified, setVerified] = useState<VerifyResult | null>(null);
-  const [productByPlan, setProductByPlan] = useState<Record<string, ProductChoice>>({
-    STANDARD: "binary",
-    PRO: "binary",
-  });
-  const [accessCodeProduct, setAccessCodeProduct] = useState<ProductChoice>("binary");
 
   const verifyMutation = useMutation({
     mutationFn: async () => {
@@ -84,7 +77,7 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
       const isVipCode = verified!.plan.toLowerCase() === "vip";
       const res = await api.post("/user/access-code/redeem", {
         code: verified!.code,
-        ...(isVipCode ? {} : { product: accessCodeProduct }),
+        ...(isVipCode ? {} : { product: "binary" }),
       });
       return res.data;
     },
@@ -125,7 +118,7 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
   async function initializePayment(plan: Exclude<PlanTier, "NONE">, provider: "flutterwave" | "crypto") {
     try {
       const endpoint = provider === "flutterwave" ? "/payment/initialize/flutterwave" : "/payment/initialize/crypto";
-      const product = plan === "VIP" ? undefined : productByPlan[plan] ?? "binary";
+      const product = plan === "VIP" ? undefined : "binary";
       const response = await api.post(endpoint, { plan: plan.toLowerCase(), ...(product ? { product } : {}) });
       const url = response.data?.authorization_url ?? response.data?.checkout_url ?? response.data?.authorizationUrl ?? response.data?.paymentUrl ?? response.data?.url;
       if (!url) throw new Error("Payment URL missing from response");
@@ -282,49 +275,24 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
 
                 {tier !== "VIP" && !isCurrent && !isLocked && currentPlanTier !== "VIP" ? (
                   <div className="mt-5 rounded-xl border border-white/[0.06] bg-black/10 p-3">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Choose product</p>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      {([
-                        { value: "binary" as const, label: "Binary Options", note: `Default asset: ${BINARY_DEFAULT_ASSETS.join(", ")}` },
-                        { value: "forex" as const, label: "Forex / MT5", note: `Defaults: ${MT5_DEFAULT_ASSETS.join(", ")}` },
-                      ]).map((option) => {
-                        const selected = (productByPlan[tier] ?? "binary") === option.value;
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => setProductByPlan((prev) => ({ ...prev, [tier]: option.value }))}
-                            className={`rounded-lg border px-3 py-2 text-left transition-colors ${
-                              selected
-                                ? "border-primary/40 bg-primary/10 text-foreground"
-                                : "border-white/[0.06] bg-white/[0.02] text-muted-foreground hover:text-foreground"
-                            }`}
-                          >
-                            <div className="mb-1.5 flex items-center gap-1.5">
-                              {option.value === "binary" ? (
-                                <div className="flex -space-x-1.5">
-                                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
-                                    <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={12} height={12} className="h-full w-full object-contain" />
-                                  </div>
-                                  <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
-                                    <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={12} height={12} className="h-full w-full object-contain" />
-                                  </div>
-                                  <div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
-                                    <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={12} height={12} className="h-full w-full rounded-full object-cover" />
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
-                                  <MetaTrader5Icon className="h-full w-full" stroke="#011118" />
-                                </div>
-                              )}
-                              <span className="block text-xs font-semibold">{option.label}</span>
-                            </div>
-                            <span className="block text-[10px] text-muted-foreground">{option.note}</span>
-                          </button>
-                        );
-                      })}
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Included</p>
+                    <div className="mt-2.5 flex items-center gap-2">
+                      <div className="flex -space-x-1.5">
+                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
+                          <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={12} height={12} className="h-full w-full object-contain" />
+                        </div>
+                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
+                          <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={12} height={12} className="h-full w-full object-contain" />
+                        </div>
+                        <div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
+                          <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={12} height={12} className="h-full w-full rounded-full object-cover" />
+                        </div>
+                      </div>
+                      <span className="text-xs font-semibold">Binary Options</span>
                     </div>
+                    <p className="mt-2 text-[10px] text-muted-foreground">
+                      Default asset: {BINARY_DEFAULT_ASSETS.join(", ")}. Forex / MT5 is available on the VIP plan.
+                    </p>
                   </div>
                 ) : tier === "VIP" && !isCurrent ? (
                   <div className="mt-5 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-3 text-xs text-emerald-200">
@@ -399,52 +367,27 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                 <p className="text-xs text-muted-foreground">Redeem by: {formatDate(verified.expiresAt)}</p>
               </div>
 
-              {/* Product selector — non-VIP codes require a choice */}
+              {/* Non-VIP codes are binary-only — MT5 is a VIP feature */}
               {verified.plan.toLowerCase() !== "vip" ? (
                 <div className="rounded-xl border border-white/[0.06] bg-black/10 p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">What are you subscribing for?</p>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    {([
-                      { value: "binary" as const, label: "Binary Options", note: `IQ / ExpertOption / Olymp · ${BINARY_DEFAULT_ASSETS.join(", ")}` },
-                      { value: "forex" as const, label: "Forex / MT5", note: `MT5 defaults: ${MT5_DEFAULT_ASSETS.join(", ")}` },
-                    ]).map((option) => {
-                      const selected = accessCodeProduct === option.value;
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => setAccessCodeProduct(option.value)}
-                          className={`rounded-lg border px-3 py-2.5 text-left transition-colors ${
-                            selected
-                              ? "border-primary/40 bg-primary/10 text-foreground ring-1 ring-primary/20"
-                              : "border-white/[0.06] bg-white/[0.02] text-muted-foreground hover:text-foreground"
-                          }`}
-                        >
-                          <div className="mb-1.5 flex items-center gap-1.5">
-                            {option.value === "binary" ? (
-                              <div className="flex -space-x-1.5">
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
-                                  <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={12} height={12} className="h-full w-full object-contain" />
-                                </div>
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
-                                  <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={12} height={12} className="h-full w-full object-contain" />
-                                </div>
-                                <div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
-                                  <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={12} height={12} className="h-full w-full rounded-full object-cover" />
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
-                                <MetaTrader5Icon className="h-full w-full" stroke="#011118" />
-                              </div>
-                            )}
-                            <span className="block text-xs font-semibold">{option.label}</span>
-                          </div>
-                          <span className="block text-[10px] text-muted-foreground">{option.note}</span>
-                        </button>
-                      );
-                    })}
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Includes</p>
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <div className="flex -space-x-1.5">
+                      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
+                        <Image src="/autobot-assets/iq-option-small.svg" alt="IQ Option" width={12} height={12} className="h-full w-full object-contain" />
+                      </div>
+                      <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
+                        <Image src="/autobot-assets/experoptionlogo.png" alt="ExpertOption" width={12} height={12} className="h-full w-full object-contain" />
+                      </div>
+                      <div className="flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-0.5 shadow-sm ring-2 ring-background">
+                        <Image src="/autobot-assets/olymptrade.jpeg" alt="Olymp Trade" width={12} height={12} className="h-full w-full rounded-full object-cover" />
+                      </div>
+                    </div>
+                    <span className="text-xs font-semibold">Binary Options</span>
                   </div>
+                  <p className="mt-2 text-[10px] text-muted-foreground">
+                    Default asset: {BINARY_DEFAULT_ASSETS.join(", ")}. Forex / MT5 is available on the VIP plan.
+                  </p>
                 </div>
               ) : (
                 <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-3 text-xs text-emerald-200">
@@ -458,7 +401,7 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                   onClick={() => redeemMutation.mutate()}
                   disabled={redeemMutation.isPending}
                 >
-                  {redeemMutation.isPending ? "Redeeming..." : `Redeem — ${verified.plan.toLowerCase() === "vip" ? "Full Access" : accessCodeProduct === "forex" ? "Forex / MT5" : "Binary Options"}`}
+                  {redeemMutation.isPending ? "Redeeming..." : `Redeem — ${verified.plan.toLowerCase() === "vip" ? "Full Access" : "Binary Options"}`}
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => { setVerified(null); setCodeInput(""); }}>
                   Change Code
