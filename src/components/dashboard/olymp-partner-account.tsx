@@ -28,6 +28,8 @@ interface OlympPartnerStatus {
   suggestedEmail?: string;
   createdAt?: string;
   tradingEnabled?: boolean;
+  /** Which balance the bot trades. Defaults to demo until the user opts into real money. */
+  accountGroup?: "real" | "demo";
   baseAmount?: number;
   accounts?: OlympPartnerAccountSummary[];
   accountsError?: string;
@@ -97,16 +99,22 @@ export function OlympPartnerAccount() {
   });
 
   const updateSettings = useMutation({
-    mutationFn: async (payload: { tradingEnabled?: boolean; baseAmount?: number }) =>
+    mutationFn: async (payload: { tradingEnabled?: boolean; baseAmount?: number; accountGroup?: "real" | "demo" }) =>
       (await api.patch("/olymp-partner/settings", payload)).data,
     onSuccess: (_data, variables) => {
-      toast.success(
-        variables.tradingEnabled === undefined
-          ? "Trade amount saved."
-          : variables.tradingEnabled
-            ? "Automated trading is on."
-            : "Automated trading is off.",
-      );
+      if (variables.accountGroup) {
+        // Moving to real money deserves a blunter confirmation than a
+        // settings-saved nudge -- it changes whose money is at stake.
+        toast.success(
+          variables.accountGroup === "real"
+            ? "Switched to real money. The bot will now trade your deposited funds."
+            : "Switched to practice. The bot will trade your demo balance only.",
+        );
+      } else if (variables.tradingEnabled === undefined) {
+        toast.success("Trade amount saved.");
+      } else {
+        toast.success(variables.tradingEnabled ? "Automated trading is on." : "Automated trading is off.");
+      }
       void queryClient.invalidateQueries({ queryKey: ["olymp-partner-status"] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -125,6 +133,12 @@ export function OlympPartnerAccount() {
 
   const accounts = status?.accounts ?? [];
   const realAccount = accounts.find((account) => account.type === "real");
+  // The bot trades whichever balance is selected, so that's the one whose
+  // funding state the page should be reacting to -- warning about an empty
+  // real balance while the bot is on demo would be noise.
+  const activeGroup: "real" | "demo" = status?.accountGroup === "real" ? "real" : "demo";
+  const activeAccount = accounts.find((account) => account.type === activeGroup);
+  const isReal = activeGroup === "real";
   // Falls back to the suggested address until the user types their own, so a
   // background refetch can't clobber what they've entered.
   const emailValue = email || status?.suggestedEmail || "";
@@ -286,7 +300,7 @@ export function OlympPartnerAccount() {
             </p>
           ) : null}
 
-          {realAccount && realAccount.balance <= 0 ? (
+          {isReal && realAccount && realAccount.balance <= 0 ? (
             <div className="flex gap-2 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-3 text-xs leading-5 text-amber-200/90">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span>Make a deposit to start trading. The money stays in your Olymp account.</span>
@@ -325,13 +339,58 @@ export function OlympPartnerAccount() {
           </p>
 
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+            {/* Practice vs real money. Demo is the default so a user can
+                watch the bot work for a few days before anything is at
+                stake, and switching to real is a deliberate, separate act. */}
+            <div className="mb-4">
+              <p className="text-sm font-medium">Trading mode</p>
+              <div className="mt-2.5 grid grid-cols-2 gap-2">
+                {([
+                  { value: "demo" as const, label: "Practice", note: "Olymp's demo balance. Nothing at risk." },
+                  { value: "real" as const, label: "Real money", note: "Trades your own deposited funds." },
+                ]).map((option) => {
+                  const selected = activeGroup === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      disabled={updateSettings.isPending}
+                      onClick={() => updateSettings.mutate({ accountGroup: option.value })}
+                      className={`rounded-lg border px-3 py-2 text-left transition-colors disabled:opacity-60 ${
+                        selected
+                          ? option.value === "real"
+                            ? "border-amber-500/40 bg-amber-500/10 text-foreground"
+                            : "border-primary/40 bg-primary/10 text-foreground"
+                          : "border-white/[0.06] bg-white/[0.02] text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <span className="block text-xs font-semibold">{option.label}</span>
+                      <span className="mt-0.5 block text-[10px] leading-4 text-muted-foreground">{option.note}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {activeAccount ? (
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Trading the {isReal ? "real" : "practice"} balance:{" "}
+                  <span className="font-semibold text-foreground">
+                    {formatCurrency(activeAccount.balance, activeAccount.currency)}
+                  </span>
+                </p>
+              ) : null}
+            </div>
+
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-sm font-medium">Automated trading</p>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
                   {status.tradingEnabled
-                    ? "The bot is trading this account with real money."
-                    : "Off. Turn this on to let the bot trade your account with real money."}
+                    ? isReal
+                      ? "The bot is trading this account with real money."
+                      : "The bot is trading your practice balance. No real money is at risk."
+                    : isReal
+                      ? "Off. Turn this on to let the bot trade your account with real money."
+                      : "Off. Turn this on to let the bot trade your practice balance."}
                 </p>
               </div>
               <Switch
