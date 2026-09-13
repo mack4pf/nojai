@@ -120,13 +120,27 @@ export function OlympPartnerAccount() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+  // Olymp allows only 3 login links per hour. A blocked or unnoticed popup
+  // invites blind re-clicking, so the buttons stay down briefly after one
+  // opens and say why -- the server reuses the link within this window, but
+  // the user still needs to see that something happened.
+  const [ssoCooldown, setSsoCooldown] = useState(false);
+
   const openSso = useMutation({
     mutationFn: async (path: SsoTarget) => (await api.post("/olymp-partner/sso-link", { path })).data as { url: string },
     onMutate: (path: SsoTarget) => setPendingTarget(path),
     onSettled: () => setPendingTarget(null),
     onSuccess: (data) => {
       // Opened in a new tab so the user keeps their NOJAI dashboard.
-      window.open(data.url, "_blank", "noopener,noreferrer");
+      const opened = window.open(data.url, "_blank", "noopener,noreferrer");
+      if (!opened) {
+        // Popup blocked: without this the click looks like it did nothing,
+        // which is exactly what makes people click again and burn links.
+        toast.error("Your browser blocked the Olymp tab. Allow popups for this site, then try again.");
+        return;
+      }
+      setSsoCooldown(true);
+      window.setTimeout(() => setSsoCooldown(false), 8000);
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -310,7 +324,7 @@ export function OlympPartnerAccount() {
           <div className="flex flex-wrap gap-2">
             <Button
               onClick={() => openSso.mutate("/payin")}
-              disabled={openSso.isPending}
+              disabled={openSso.isPending || ssoCooldown}
               className="bg-blue-600 text-white hover:bg-blue-500"
             >
               {pendingTarget === "/payin" ? (
@@ -323,7 +337,7 @@ export function OlympPartnerAccount() {
             <Button
               variant="outline"
               onClick={() => openSso.mutate("/trading")}
-              disabled={openSso.isPending}
+              disabled={openSso.isPending || ssoCooldown}
             >
               {pendingTarget === "/trading" ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -335,7 +349,9 @@ export function OlympPartnerAccount() {
           </div>
 
           <p className="text-[11px] leading-5 text-muted-foreground">
-            These open Olymp already logged in — you never need an Olymp password.
+            {ssoCooldown
+              ? "Opening Olymp in a new tab — check your other tabs if you don't see it."
+              : "These open Olymp already logged in — you never need an Olymp password. Olymp allows 3 of these per hour."}
           </p>
 
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
