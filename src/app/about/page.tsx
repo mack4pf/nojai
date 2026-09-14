@@ -18,7 +18,6 @@ export const metadata: Metadata = {
 
 import { MarketingShell } from "@/components/layout/marketing-shell";
 import { FounderProfile } from "@/components/marketing/founder-profile";
-import { VideoResources } from "@/components/marketing/video-resources";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -124,12 +123,6 @@ export default function AboutPage() {
       </section>
 
       <FounderProfile />
-
-      <VideoResources
-        eyebrow="Free Videos"
-        title="Start learning with the free IQ Option course and free script"
-        description="These videos explain the basics and show the free script setup."
-      />
 
       <section className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-2">
