@@ -120,30 +120,48 @@ export function OlympPartnerAccount() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  // Olymp allows only 3 login links per hour. A blocked or unnoticed popup
-  // invites blind re-clicking, so the buttons stay down briefly after one
-  // opens and say why -- the server reuses the link within this window, but
-  // the user still needs to see that something happened.
+  // The job of these buttons is to land the user on Olymp. A one-click login
+  // is a convenience on top of that, so nothing here surfaces a failure to
+  // reach for it -- the server always answers with somewhere to go, and the
+  // worst case is the user signing in themselves rather than a dead button.
   const [ssoCooldown, setSsoCooldown] = useState(false);
 
-  const openSso = useMutation({
-    mutationFn: async (path: SsoTarget) => (await api.post("/olymp-partner/sso-link", { path })).data as { url: string },
-    onMutate: (path: SsoTarget) => setPendingTarget(path),
-    onSettled: () => setPendingTarget(null),
-    onSuccess: (data) => {
-      // Opened in a new tab so the user keeps their NOJAI dashboard.
-      const opened = window.open(data.url, "_blank", "noopener,noreferrer");
-      if (!opened) {
-        // Popup blocked: without this the click looks like it did nothing,
-        // which is exactly what makes people click again and burn links.
-        toast.error("Your browser blocked the Olymp tab. Allow popups for this site, then try again.");
-        return;
-      }
-      setSsoCooldown(true);
-      window.setTimeout(() => setSsoCooldown(false), 8000);
-    },
-    onError: (error: Error) => toast.error(error.message),
-  });
+  const openSso = (path: SsoTarget) => {
+    // Opened synchronously inside the click handler. Calling window.open
+    // after an await is treated as a popup by most browsers and silently
+    // blocked, which is what made this button look broken.
+    const tab = window.open("", "_blank", "noopener,noreferrer");
+    if (tab) {
+      tab.document.write(
+        "<title>Opening Olymp Trade…</title>" +
+        "<body style=\"margin:0;display:grid;place-items:center;height:100vh;" +
+        "font:15px system-ui,sans-serif;background:#0b1220;color:#e6edf7\">" +
+        "Opening Olymp Trade…</body>",
+      );
+    }
+
+    setPendingTarget(path);
+    setSsoCooldown(true);
+    window.setTimeout(() => setSsoCooldown(false), 8000);
+
+    api
+      .post("/olymp-partner/sso-link", { path })
+      .then((res) => {
+        const url = (res.data as { url?: string })?.url;
+        if (!url) throw new Error("no url");
+        if (tab) tab.location.replace(url);
+        else window.location.href = url;
+      })
+      .catch(() => {
+        // Even a total failure should not strand the user: send them to
+        // Olymp's own site, which is where they were trying to go.
+        const fallback = "https://olymptrade.com/";
+        if (tab) tab.location.replace(fallback);
+        else window.location.href = fallback;
+      })
+      .finally(() => setPendingTarget(null));
+  };
+
 
   const accounts = status?.accounts ?? [];
   const realAccount = accounts.find((account) => account.type === "real");
@@ -323,8 +341,8 @@ export function OlympPartnerAccount() {
 
           <div className="flex flex-wrap gap-2">
             <Button
-              onClick={() => openSso.mutate("/payin")}
-              disabled={openSso.isPending || ssoCooldown}
+              onClick={() => openSso("/payin")}
+              disabled={ssoCooldown}
               className="bg-blue-600 text-white hover:bg-blue-500"
             >
               {pendingTarget === "/payin" ? (
@@ -336,8 +354,8 @@ export function OlympPartnerAccount() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => openSso.mutate("/trading")}
-              disabled={openSso.isPending || ssoCooldown}
+              onClick={() => openSso("/trading")}
+              disabled={ssoCooldown}
             >
               {pendingTarget === "/trading" ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
