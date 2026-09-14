@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 };
 
 import { MarketingShell } from "@/components/layout/marketing-shell";
+import { FounderProfile } from "@/components/marketing/founder-profile";
 import { VideoResources } from "@/components/marketing/video-resources";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,12 +66,35 @@ export default function AboutPage() {
     },
   };
 
+  // Search engines weigh named, accountable authorship heavily on financial
+  // sites. Naming the person behind the strategies is the honest signal here,
+  // and it is the same claim the section makes to readers.
+  const founderJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: "Nathaniel Onoja",
+    jobTitle: "Founder",
+    description:
+      "Founder of NOJAI. Trading since 2018, building and testing the strategies NOJAI executes.",
+    url: `${siteUrl}/about`,
+    image: `${siteUrl}/founder/nathaniel-suit-portrait.jpg`,
+    worksFor: {
+      "@type": "Organization",
+      name: "NOJAI",
+      url: siteUrl,
+    },
+  };
+
   return (
     <MarketingShell>
       <section className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(aboutJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(founderJsonLd) }}
         />
         <div className="grid gap-12 lg:items-center">
           <div>
@@ -98,6 +122,8 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+
+      <FounderProfile />
 
       <VideoResources
         eyebrow="Free Videos"
