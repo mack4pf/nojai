@@ -131,11 +131,22 @@ export function OlympPartnerAccount() {
   const [ssoCooldown, setSsoCooldown] = useState(false);
 
   const openSso = (path: SsoTarget) => {
-    // Opened synchronously inside the click handler. Calling window.open
-    // after an await is treated as a popup by most browsers and silently
-    // blocked, which is what made this button look broken.
-    const tab = window.open("", "_blank", "noopener,noreferrer");
+    // Opened synchronously inside the click handler: calling window.open
+    // after an await is treated as a popup and silently blocked, which is
+    // what made this button look broken.
+    //
+    // No "noopener" here -- it makes window.open return null by design, so we
+    // opened a tab we then had no reference to, could never navigate, and
+    // left sitting blank while the current page redirected instead. The
+    // opener link is severed below rather than at open time.
+    const tab = window.open("", "_blank");
     if (tab) {
+      // Same protection noopener gives, without losing the handle.
+      try {
+        tab.opener = null;
+      } catch {
+        // Older browsers disallow the assignment; the tab is ours either way.
+      }
       tab.document.write(
         "<title>Opening Olymp Trade…</title>" +
         "<body style=\"margin:0;display:grid;place-items:center;height:100vh;" +
