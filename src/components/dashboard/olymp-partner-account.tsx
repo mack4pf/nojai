@@ -79,6 +79,7 @@ export function OlympPartnerAccount() {
   const queryClient = useQueryClient();
   const [pendingTarget, setPendingTarget] = useState<SsoTarget | null>(null);
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [country, setCountry] = useState("NG");
   const [amount, setAmount] = useState("");
 
@@ -89,10 +90,13 @@ export function OlympPartnerAccount() {
   });
 
   const createAccount = useMutation({
-    mutationFn: async (payload: { email: string; country: string }) =>
+    mutationFn: async (payload: { email: string; country: string; password: string }) =>
       (await api.post("/olymp-partner/account", payload)).data,
     onSuccess: () => {
-      toast.success("Your Olymp Trade account is ready.");
+      toast.success("Your Olymp Trade account is ready. Sign in to Olymp with the email and password you chose.");
+      // Don't leave the broker password sitting in component state once it
+      // has served its purpose.
+      setPassword("");
       void queryClient.invalidateQueries({ queryKey: ["olymp-partner-status"] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -213,8 +217,9 @@ export function OlympPartnerAccount() {
             <div className="flex gap-3">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />
               <div className="text-sm leading-6 text-muted-foreground">
-                We&apos;ll create your Olymp Trade account for you in one click. No forms, no password to
-                remember, and your deposit always goes to your own account — never to NOJAI.
+                We&apos;ll create your Olymp Trade account for you. Pick a password and you can sign in to
+                Olymp anywhere — including their mobile app. Your deposit always goes to your own account,
+                never to NOJAI.
               </div>
             </div>
           </div>
@@ -223,7 +228,7 @@ export function OlympPartnerAccount() {
             className="mt-4 space-y-4"
             onSubmit={(event) => {
               event.preventDefault();
-              createAccount.mutate({ email: emailValue.trim(), country });
+              createAccount.mutate({ email: emailValue.trim(), country, password });
             }}
           >
             <div className="grid gap-4 sm:grid-cols-[1.4fr_1fr]">
@@ -266,9 +271,31 @@ export function OlympPartnerAccount() {
               </div>
             </div>
 
+            <div>
+              <Label htmlFor="olymp-password" className="text-xs">Password for your Olymp account</Label>
+              <Input
+                id="olymp-password"
+                type="password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="At least 8 characters"
+                className="mt-1.5"
+                autoComplete="new-password"
+              />
+              {/* Stated plainly because it is the only copy of this password
+                  that will ever exist on our side -- we don't store it. */}
+              <p className="mt-1.5 text-[11px] leading-4 text-muted-foreground">
+                This is your <span className="font-medium text-foreground">Olymp Trade</span> password, not your
+                NOJAI one. Use it to sign in to the Olymp app or website. We don&apos;t store it, so save it
+                somewhere safe.
+              </p>
+            </div>
+
             <Button
               type="submit"
-              disabled={createAccount.isPending || !emailValue.trim() || emailIsDisposable}
+              disabled={createAccount.isPending || !emailValue.trim() || emailIsDisposable || password.length < 8}
               className="w-full bg-blue-600 text-white hover:bg-blue-500 sm:w-auto"
             >
               {createAccount.isPending ? (
@@ -365,6 +392,15 @@ export function OlympPartnerAccount() {
               Open Olymp Trade
             </Button>
           </div>
+
+          <details className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+            <summary className="cursor-pointer text-xs font-medium">Signing in to the Olymp app</summary>
+            <p className="mt-2 text-[11px] leading-5 text-muted-foreground">
+              Use the email above and the password you chose when you created the account. If you created it
+              before passwords were offered — or you&apos;ve forgotten it — open Olymp and use
+              &ldquo;Forgot password&rdquo; with that email to set a new one. It won&apos;t affect the bot.
+            </p>
+          </details>
 
           <p className="text-[11px] leading-5 text-muted-foreground">
             {ssoCooldown
