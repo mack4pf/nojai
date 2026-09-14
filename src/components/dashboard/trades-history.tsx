@@ -127,7 +127,11 @@ export function TradesHistory({ initialBroker = "all", lockedBroker, hideHeader 
 
   const hasBinary = Boolean(profile?.subscription?.access?.binary);
   const hasForex = Boolean(profile?.subscription?.access?.forex);
-  const hasOlympAccess = hasBinary || Boolean(profile?.olympTradeFreeAccess);
+  // A Partner-created account is Olymp access by itself: no plan, no manual
+  // approval. Without this, users the bot trades for were shown no history.
+  const hasOlympAccess = hasBinary
+    || Boolean(profile?.olympTradeFreeAccess)
+    || Boolean(profile?.olympPartnerLinked);
 
   const { data, isLoading } = useQuery({
     queryKey: queryKeys.trades({ page, limit, broker: brokerFilter }),

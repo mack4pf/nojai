@@ -9,6 +9,11 @@ export default async function OlympSiteDashboardLayout({ children }: { children:
   const hasActiveSubscription = Boolean(profile?.subscription?.active);
   const plan = profile?.subscription?.plan ?? profile?.plan ?? session.user.plan ?? "NONE";
 
+  // Accounts on this subdomain are created through the Partner API and are
+  // live the moment they exist -- there is no approval step here any more.
+  // The old fallback label called every one of them "NOT APPROVED".
+  const roleLabel = hasActiveSubscription ? plan : hasOlympFreeAccess ? "OLYMP FREE" : "OLYMP";
+
   const items = [
     { href: "/dashboard", label: "Dashboard", icon: "broker", mobileBottom: true },
     { href: "/dashboard/history", label: "History", icon: "trades", mobileBottom: true },
@@ -18,7 +23,7 @@ export default async function OlympSiteDashboardLayout({ children }: { children:
     <AppShell
       items={items}
       sessionName={profile?.name ?? session.user.name}
-      roleLabel={hasOlympFreeAccess ? "OLYMP FREE" : hasActiveSubscription ? plan : "NOT APPROVED"}
+      roleLabel={roleLabel}
       showSupportChat
     >
       {children}

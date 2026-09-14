@@ -199,6 +199,8 @@ export interface UserProfile {
   eoAccounts?: EOAccount[];
   olympAccounts?: OlympAccount[];
   olympTradeFreeAccess?: boolean;
+  /** An Olymp account created for this user through the Partner API — access in its own right, no plan or approval needed. */
+  olympPartnerLinked?: boolean;
   olympTradeFreeAccessApprovedAt?: string | null;
   subscriptionId?: string;
   subscriptionExpiresAt?: string;
