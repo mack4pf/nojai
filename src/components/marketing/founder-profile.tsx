@@ -68,12 +68,14 @@ export function FounderProfile() {
               </div>
             </div>
 
-            {/* Staggered so it reads as a contact sheet, not a tidy gallery grid. */}
+            {/* 4:5 matches the source files exactly, so nothing is cropped and
+                the photographer's credit survives. Staggered so the row reads
+                as a contact sheet rather than a tidy gallery grid. */}
             <div className="mt-4 grid grid-cols-3 gap-3">
               {[PHOTOS.full, PHOTOS.leather, PHOTOS.stairs].map((photo, index) => (
                 <div
                   key={photo.src}
-                  className={`relative aspect-[3/4] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] ${
+                  className={`relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] ${
                     index === 1 ? "translate-y-4" : ""
                   }`}
                 >
