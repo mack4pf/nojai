@@ -103,17 +103,13 @@ export function OlympPartnerAccount() {
   });
 
   const updateSettings = useMutation({
-    mutationFn: async (payload: { tradingEnabled?: boolean; baseAmount?: number; accountGroup?: "real" | "demo" }) =>
+    mutationFn: async (payload: { tradingEnabled?: boolean; baseAmount?: number; accountGroup?: "real" }) =>
       (await api.patch("/olymp-partner/settings", payload)).data,
     onSuccess: (_data, variables) => {
       if (variables.accountGroup) {
         // Moving to real money deserves a blunter confirmation than a
         // settings-saved nudge -- it changes whose money is at stake.
-        toast.success(
-          variables.accountGroup === "real"
-            ? "Switched to real money. The bot will now trade your deposited funds."
-            : "Switched to practice. The bot will trade your demo balance only.",
-        );
+        toast.success("Switched to real money. The bot will now trade your deposited funds.");
       } else if (variables.tradingEnabled === undefined) {
         toast.success("Trade amount saved.");
       } else {
@@ -420,58 +416,44 @@ export function OlympPartnerAccount() {
           </p>
 
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
-            {/* Practice vs real money. Demo is the default so a user can
-                watch the bot work for a few days before anything is at
-                stake, and switching to real is a deliberate, separate act. */}
-            <div className="mb-4">
-              <p className="text-sm font-medium">Trading mode</p>
-              <div className="mt-2.5 grid grid-cols-2 gap-2">
-                {([
-                  { value: "demo" as const, label: "Practice", note: "Olymp's demo balance. Nothing at risk." },
-                  { value: "real" as const, label: "Real money", note: "Trades your own deposited funds." },
-                ]).map((option) => {
-                  const selected = activeGroup === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      disabled={updateSettings.isPending}
-                      onClick={() => updateSettings.mutate({ accountGroup: option.value })}
-                      className={`rounded-lg border px-3 py-2 text-left transition-colors disabled:opacity-60 ${
-                        selected
-                          ? option.value === "real"
-                            ? "border-amber-500/40 bg-amber-500/10 text-foreground"
-                            : "border-primary/40 bg-primary/10 text-foreground"
-                          : "border-white/[0.06] bg-white/[0.02] text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <span className="block text-xs font-semibold">{option.label}</span>
-                      <span className="mt-0.5 block text-[10px] leading-4 text-muted-foreground">{option.note}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {activeAccount ? (
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  Trading the {isReal ? "real" : "practice"} balance:{" "}
-                  <span className="font-semibold text-foreground">
-                    {formatCurrency(activeAccount.balance, activeAccount.currency)}
-                  </span>
+            {/* Practice trading is suspended. An account still carrying it
+                is not promoted automatically -- the user makes that call,
+                because it moves the bot onto their own funds. */}
+            {!isReal ? (
+              <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/[0.07] p-4">
+                <p className="text-sm font-semibold text-amber-200">Practice trading has ended</p>
+                <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                  The bot is paused on this account. Switching to real money means it trades the funds in
+                  your Olymp account, and losses are real.
                 </p>
-              ) : null}
-            </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="mt-3 bg-amber-500 text-black hover:bg-amber-400"
+                  disabled={updateSettings.isPending}
+                  onClick={() => updateSettings.mutate({ accountGroup: "real" })}
+                >
+                  Switch to real money
+                </Button>
+              </div>
+            ) : null}
+
+            {activeAccount ? (
+              <p className="mb-4 text-[11px] text-muted-foreground">
+                Trading balance:{" "}
+                <span className="font-semibold text-foreground">
+                  {formatCurrency(activeAccount.balance, activeAccount.currency)}
+                </span>
+              </p>
+            ) : null}
 
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-sm font-medium">Automated trading</p>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
                   {status.tradingEnabled
-                    ? isReal
-                      ? "The bot is trading this account with real money."
-                      : "The bot is trading your practice balance. No real money is at risk."
-                    : isReal
-                      ? "Off. Turn this on to let the bot trade your account with real money."
-                      : "Off. Turn this on to let the bot trade your practice balance."}
+                    ? "The bot is trading this account with real money."
+                    : "Off. Turn this on to let the bot trade your account with real money."}
                 </p>
               </div>
               <Switch
