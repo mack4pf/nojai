@@ -17,6 +17,7 @@ export default async function OlympSiteDashboardLayout({ children }: { children:
   const items = [
     { href: "/dashboard", label: "Dashboard", icon: "broker", mobileBottom: true },
     { href: "/dashboard/history", label: "History", icon: "trades", mobileBottom: true },
+    { href: "/dashboard/settings", label: "Settings", icon: "settings", mobileBottom: true },
   ];
 
   return (
