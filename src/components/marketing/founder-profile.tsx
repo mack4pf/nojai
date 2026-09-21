@@ -10,12 +10,10 @@ import { LineChart, ShieldCheck, Wallet } from "lucide-react";
  * failing is what earns the reader's trust.
  */
 
-const PHOTOS = {
-  /** Lead portrait — the most direct eye contact of the four. */
-  lead: { src: "/founder/nathaniel-suit-portrait.jpg", alt: "Nathaniel Onoja, founder of NOJAI" },
-  full: { src: "/founder/nathaniel-suit-full.jpg", alt: "Nathaniel Onoja" },
-  leather: { src: "/founder/nathaniel-leather-portrait.jpg", alt: "Nathaniel Onoja" },
-  stairs: { src: "/founder/nathaniel-leather-stairs.jpg", alt: "Nathaniel Onoja" },
+/** One portrait, the most direct eye contact of the set. */
+const PHOTO = {
+  src: "/founder/nathaniel-suit-portrait.jpg",
+  alt: "Nathaniel Onoja, founder of NOJAI",
 };
 
 const PRINCIPLES = [
@@ -39,55 +37,36 @@ const PRINCIPLES = [
 export function FounderProfile() {
   return (
     <section className="relative overflow-hidden border-y border-white/[0.06] bg-[hsl(220_28%_8%)]">
-      {/* Warm wash picking up the gold in the photography, so the images feel
-          lit by the page rather than pasted onto it. */}
+      {/* Warm wash picking up the gold in the portrait, so it feels lit by
+          the page rather than pasted onto it. */}
       <div
         aria-hidden
         className="pointer-events-none absolute -top-1/3 right-0 h-[720px] w-[720px] rounded-full bg-primary/[0.07] blur-[140px]"
       />
 
       <div className="relative mx-auto max-w-7xl px-6 py-20 lg:px-8 lg:py-28">
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
+        <div className="grid gap-10 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-14">
           {/* ---------- Photography ---------- */}
           <div className="lg:sticky lg:top-24 lg:self-start">
-            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.02] shadow-2xl shadow-black/40">
+            {/* Deliberately small and cropped close: one portrait at a
+                confident size reads better than a gallery, and the section is
+                carried by the words rather than the photography. */}
+            <div className="relative aspect-[3/4] w-full max-w-[300px] overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.02] shadow-2xl shadow-black/40">
               <Image
-                src={PHOTOS.lead.src}
-                alt={PHOTOS.lead.alt}
+                src={PHOTO.src}
+                alt={PHOTO.alt}
                 fill
                 priority
-                sizes="(min-width: 1024px) 42vw, 100vw"
+                sizes="(min-width: 1024px) 300px, 70vw"
                 className="object-cover object-top"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/5 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 p-5">
-                <p className="font-display text-lg font-semibold tracking-tight text-white">
+              <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/5 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 p-4">
+                <p className="font-display text-base font-semibold tracking-tight text-white">
                   Nathaniel Onoja
                 </p>
-                <p className="text-[13px] text-white/70">Founder &amp; Strategy, NOJAI</p>
+                <p className="text-[12px] text-white/70">Founder and Strategist, NOJAI</p>
               </div>
-            </div>
-
-            {/* 4:5 matches the source files exactly, so nothing is cropped and
-                the photographer's credit survives. Staggered so the row reads
-                as a contact sheet rather than a tidy gallery grid. */}
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              {[PHOTOS.full, PHOTOS.leather, PHOTOS.stairs].map((photo, index) => (
-                <div
-                  key={photo.src}
-                  className={`relative aspect-[4/5] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] ${
-                    index === 1 ? "translate-y-4" : ""
-                  }`}
-                >
-                  <Image
-                    src={photo.src}
-                    alt={photo.alt}
-                    fill
-                    sizes="(min-width: 1024px) 14vw, 30vw"
-                    className="object-cover object-top transition-transform duration-500 hover:scale-[1.06]"
-                  />
-                </div>
-              ))}
             </div>
           </div>
 
