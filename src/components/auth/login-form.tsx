@@ -9,6 +9,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { signIn } from "next-auth/react";
+
+import { clearSessionCache, waitForSession } from "@/lib/api";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -57,6 +59,13 @@ export function LoginForm() {
       toast.error(result.error);
       return;
     }
+
+    // Wait until the new session is actually readable before navigating.
+    // Going straight to the dashboard let its first requests fire before the
+    // client session had caught up: they went out unauthenticated, drew a 401
+    // and bounced the user back to this page, over and over.
+    clearSessionCache();
+    await waitForSession();
 
     toast.success("Welcome back");
     router.push("/dashboard");

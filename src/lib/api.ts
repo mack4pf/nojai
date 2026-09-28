@@ -147,11 +147,63 @@ export const api = axios.create({
   },
 });
 
-api.interceptors.request.use(async (config) => {
-  const session = await getSession();
+/**
+ * getSession() is a network call to /api/auth/session, and this interceptor
+ * runs before every request — so an unmemoised call here doubled the request
+ * count of the whole app. The token itself only changes at sign-in and
+ * sign-out, both of which clear this.
+ */
+let sessionCache: { token: string | null; at: number } | null = null;
+const SESSION_CACHE_MS = 30_000;
 
-  if (session?.accessToken) {
-    config.headers.Authorization = `Bearer ${session.accessToken}`;
+export function clearSessionCache(): void {
+  sessionCache = null;
+}
+
+async function resolveAccessToken(): Promise<string | null> {
+  if (sessionCache && Date.now() - sessionCache.at < SESSION_CACHE_MS) {
+    return sessionCache.token;
+  }
+  const session = await getSession();
+  const token = session?.accessToken ?? null;
+  sessionCache = { token, at: Date.now() };
+  return token;
+}
+
+/**
+ * Polls until the client session carries an access token, so a caller can
+ * navigate knowing the next request will be authenticated. Gives up after a
+ * couple of seconds rather than blocking the UI: the interceptor's own forced
+ * re-read is the backstop.
+ */
+export async function waitForSession(timeoutMs = 2500): Promise<string | null> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    clearSessionCache();
+    const token = await resolveAccessToken();
+    if (token) return token;
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  return null;
+}
+
+api.interceptors.request.use(async (config) => {
+  let token = await resolveAccessToken();
+
+  // Immediately after sign-in the cached client session can still be the old
+  // one, which sent the request unauthenticated, drew a 401, and bounced the
+  // user straight back to the login page they had just come from. One forced
+  // re-read closes that window.
+  if (!token) {
+    clearSessionCache();
+    token = await resolveAccessToken();
+  }
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+    // Marks the request as having carried credentials, so a 401 on it means
+    // the token was rejected rather than never sent.
+    config.headers["x-nojai-authed"] = "1";
   }
 
   return config;
@@ -166,22 +218,55 @@ let isHandlingExpiredSession = false;
  * failed" toast on whatever action the user happened to be doing. Treat any
  * 401 from the backend as a dead session: sign out and bounce to login.
  */
+/** Guards against bouncing to login repeatedly when something keeps 401ing. */
+const BOUNCE_KEY = "nojai:auth-bounce";
+const BOUNCE_COOLDOWN_MS = 30_000;
+
+function recentlyBounced(): boolean {
+  try {
+    const last = Number(window.sessionStorage.getItem(BOUNCE_KEY) ?? 0);
+    if (Number.isFinite(last) && Date.now() - last < BOUNCE_COOLDOWN_MS) return true;
+    window.sessionStorage.setItem(BOUNCE_KEY, String(Date.now()));
+    return false;
+  } catch {
+    // Private browsing can throw on sessionStorage; proceed without the guard.
+    return false;
+  }
+}
+
 function handleExpiredSession() {
   if (isHandlingExpiredSession || typeof window === "undefined") return;
-  if (window.location.pathname.startsWith("/auth/login")) return;
+  // Any auth page, not just login: bouncing someone off /auth/check-email or
+  // /auth/register mid-flow is its own broken loop.
+  if (window.location.pathname.startsWith("/auth/")) return;
+  // A reload storm helps nobody. If we already sent the user to login moments
+  // ago and they are somehow back here 401ing again, stop rather than loop.
+  if (recentlyBounced()) return;
 
   isHandlingExpiredSession = true;
-  void signOut({ redirect: false }).finally(() => {
-    window.location.href = "/auth/login?session=expired";
-  });
+  clearSessionCache();
+  void signOut({ redirect: false })
+    .catch(() => undefined)
+    .finally(() => {
+      window.location.href = "/auth/login?session=expired";
+    });
 }
 
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error?.response?.status === 401) {
-      handleExpiredSession();
-      return Promise.reject(new Error("Your session has expired. Please log in again."));
+      // Only a request that actually carried a token tells us the session is
+      // dead. One sent without credentials — the sign-in race, or a session
+      // predating access tokens — means we never asked properly, and tearing
+      // the session down for that is what produced the login loop.
+      const sentCredentials = Boolean(error?.config?.headers?.["x-nojai-authed"]);
+      if (sentCredentials) {
+        handleExpiredSession();
+        return Promise.reject(new Error("Your session has expired. Please log in again."));
+      }
+      clearSessionCache();
+      return Promise.reject(new Error("Not signed in. Please try again."));
     }
 
     const message =

@@ -14,6 +14,7 @@ import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { clearSessionCache, waitForSession } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -220,12 +221,17 @@ export function RegisterForm({ selectedPlan, referralCode }: RegisterFormProps) 
         password: values.password,
         redirect: false,
       });
-      setIsSubmitting(false);
-
       if (loginResult?.error) {
+        setIsSubmitting(false);
         toast.error(loginResult.error);
         return;
       }
+
+      // Same race as the login form: the survey POST that follows needs the
+      // new session to be readable, or it goes out unauthenticated.
+      clearSessionCache();
+      await waitForSession();
+      setIsSubmitting(false);
 
       setUserName(values.name.split(" ")[0]);
       setRegisteredEmail(values.email);
