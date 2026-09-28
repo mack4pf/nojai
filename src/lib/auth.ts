@@ -23,6 +23,23 @@ const useSecureCookies = process.env.NODE_ENV === "production";
 // localhost keeps NextAuth's normal host-only cookie behavior.
 const cookieDomain = process.env.AUTH_COOKIE_DOMAIN || (useSecureCookies ? ".nojai.io" : undefined);
 
+/**
+ * Deliberately NOT NextAuth's default name.
+ *
+ * Adding `domain: .nojai.io` to a cookie that had been host-only did not
+ * replace the old one — a cookie is identified by name *and* scope, so
+ * browsers kept both and sent both, and the server read whichever came first.
+ * For anyone signed in before that change that was the stale host-only one,
+ * which no login could overwrite: they were bounced back to the sign-in page
+ * forever while new users saw nothing wrong.
+ *
+ * A distinct name sidesteps the collision entirely. The orphaned cookie stops
+ * being read and expires on its own.
+ */
+export const SESSION_COOKIE_NAME = useSecureCookies
+  ? "__Secure-nojai.session-token"
+  : "nojai.session-token";
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   useSecureCookies,
@@ -35,7 +52,7 @@ export const authOptions: NextAuthOptions = {
   cookies: cookieDomain
     ? {
         sessionToken: {
-          name: useSecureCookies ? "__Secure-next-auth.session-token" : "next-auth.session-token",
+          name: SESSION_COOKIE_NAME,
           options: {
             httpOnly: true,
             sameSite: "lax",
