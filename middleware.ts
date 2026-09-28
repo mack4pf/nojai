@@ -26,10 +26,18 @@ const LEGACY_COOKIE_NAMES = ["__Secure-next-auth.session-token", "next-auth.sess
 function clearLegacyCookies(req: NextRequest, res: NextResponse): NextResponse {
   for (const name of LEGACY_COOKIE_NAMES) {
     if (!req.cookies.has(name)) continue;
-    // Expired twice: once host-only and once for the parent domain, since a
-    // deletion only matches a cookie of the same scope.
-    res.cookies.set({ name, value: "", path: "/", maxAge: 0 });
-    res.cookies.set({ name, value: "", path: "/", maxAge: 0, domain: ".nojai.io" });
+
+    // Written as raw headers rather than through res.cookies.set(), which
+    // keys by name and so collapses the two scopes into one. Both are needed:
+    // a deletion only matches a cookie of the same scope, and the host-only
+    // copy is the one that was shadowing the session.
+    //
+    // The Secure attribute is required, not cosmetic — browsers reject any
+    // Set-Cookie for a __Secure- prefixed name that lacks it, which silently
+    // turned the first version of this cleanup into a no-op.
+    const secure = name.startsWith("__Secure-") ? "; Secure" : "";
+    res.headers.append("Set-Cookie", `${name}=; Path=/; Max-Age=0; SameSite=Lax${secure}`);
+    res.headers.append("Set-Cookie", `${name}=; Path=/; Max-Age=0; SameSite=Lax; Domain=.nojai.io${secure}`);
   }
   return res;
 }
