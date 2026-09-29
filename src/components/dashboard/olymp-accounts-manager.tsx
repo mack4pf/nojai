@@ -6,6 +6,8 @@ import { CheckCircle, Copy, ExternalLink, Eye, EyeOff, Info, Loader2, RefreshCw,
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { OlympAccountSetup } from "@/components/dashboard/olymp-account-setup";
+import { OlympPartnerAccount } from "@/components/dashboard/olymp-partner-account";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
@@ -235,6 +237,11 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
           )}
         </div>
       </div>
+
+      {/* Placed above the token/password flow because these are the
+          connections that actually hold: neither needs a broker credential
+          and nothing in them expires, so there is nothing to reconnect. */}
+      <OlympAccountSetup createForm={<OlympPartnerAccount />} />
 
       {!hasOlympAccess && (
         <div className="dashboard-solid-panel space-y-4 rounded-2xl border border-emerald-500/25 bg-white/[0.02] p-4">

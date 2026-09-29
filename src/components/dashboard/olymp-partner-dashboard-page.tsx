@@ -6,6 +6,7 @@ import { SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { BalanceChart } from "@/components/dashboard/balance-chart";
+import { OlympAccountSetup } from "@/components/dashboard/olymp-account-setup";
 import { OlympPartnerAccount } from "@/components/dashboard/olymp-partner-account";
 import { TradesHistory } from "@/components/dashboard/trades-history";
 import { api } from "@/lib/api";
@@ -89,7 +90,9 @@ export function OlympPartnerDashboardPage() {
         </Link>
       ) : null}
 
-      <OlympPartnerAccount />
+      {/* Asks which route the user needs before showing either one;
+          once an account is linked it renders the live card straight through. */}
+      <OlympAccountSetup createForm={<OlympPartnerAccount />} />
 
       {status?.linked ? (
         <>
