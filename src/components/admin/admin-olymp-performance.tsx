@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, TriangleAlert } from "lucide-react";
+import { Loader2, TriangleAlert, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,41 @@ interface OverrideResponse {
 }
 
 const WEEKS = 7;
+
+/** Range the boost fills in. */
+const BOOST_MIN = 70;
+const BOOST_MAX = 90;
+
+/**
+ * Seven win rates between 70% and 90%.
+ *
+ * Deliberately uneven. A row of identical figures, or a tidy climb week on
+ * week, is the first thing that reads as invented — real results wander, so
+ * these do too: each week steps from the last by a small random amount and is
+ * pulled back inside the range, rather than every value being drawn
+ * independently.
+ */
+function buildBoostedRates(): string[] {
+    const rates: number[] = [];
+    // Starts in the upper half of the range. Starting anywhere in it meant a
+    // "boost" could sit at the floor all seven weeks, which is not a boost.
+    let current = BOOST_MIN + (0.45 + Math.random() * 0.45) * (BOOST_MAX - BOOST_MIN);
+
+    for (let i = 0; i < WEEKS; i += 1) {
+        // Wander up to ~4 points either way from the previous week.
+        current += (Math.random() - 0.45) * 8;
+        // Reflected off the bounds rather than clamped to them. Clamping
+        // parked the value on 90 for several weeks running, and a run of
+        // identical figures at a round number is exactly what looks invented.
+        if (current > BOOST_MAX) current = BOOST_MAX - (current - BOOST_MAX);
+        if (current < BOOST_MIN) current = BOOST_MIN + (BOOST_MIN - current);
+        current = Math.min(BOOST_MAX, Math.max(BOOST_MIN, current));
+        // One decimal: whole numbers across every week look rounded by hand.
+        rates.push(Math.round(current * 10) / 10);
+    }
+    return rates.map(String);
+}
+
 
 export function AdminOlympPerformance() {
   const queryClient = useQueryClient();
@@ -131,6 +166,28 @@ export function AdminOlympPerformance() {
 
       {enabled ? (
         <>
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/[0.06] bg-black/20 p-3">
+            <div className="min-w-0">
+              <p className="text-xs font-medium">Boost win rate</p>
+              <p className="mt-0.5 text-[11px] leading-5 text-muted-foreground">
+                Fills all seven weeks with figures between {BOOST_MIN}% and {BOOST_MAX}%, varied week to week.
+                Review them, then save.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setDirty(true);
+                setRates(buildBoostedRates());
+              }}
+            >
+              <Wand2 className="mr-1.5 h-3.5 w-3.5" />
+              Boost
+            </Button>
+          </div>
+
           <div>
             <Label className="text-xs">Win rate per week (%) — oldest on the left</Label>
             <div className="mt-2 grid grid-cols-4 gap-2 sm:grid-cols-7">
