@@ -22,6 +22,7 @@ import { api } from "@/lib/api";
 interface OverrideResponse {
   enabled: boolean;
   weeklyWinRates: number[];
+  totalTrades?: number;
   measured?: {
     overallWinRate: number;
     totalTrades: number;
@@ -41,11 +42,13 @@ export function AdminOlympPerformance() {
 
   const [enabled, setEnabled] = useState(false);
   const [rates, setRates] = useState<string[]>(Array(WEEKS).fill(""));
+  const [totalTrades, setTotalTrades] = useState("");
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     if (!data || dirty) return;
     setEnabled(Boolean(data.enabled));
+    setTotalTrades(data.totalTrades ? String(data.totalTrades) : "");
     const stored = data.weeklyWinRates ?? [];
     setRates(
       Array.from({ length: WEEKS }, (_, i) => {
@@ -56,7 +59,7 @@ export function AdminOlympPerformance() {
   }, [data, dirty]);
 
   const save = useMutation({
-    mutationFn: async (payload: { enabled: boolean; weeklyWinRates: number[] }) =>
+    mutationFn: async (payload: { enabled: boolean; weeklyWinRates: number[]; totalTrades: number }) =>
       (await api.put("/admin/olymp-performance/override", payload)).data,
     onSuccess: () => {
       setDirty(false);
@@ -161,6 +164,24 @@ export function AdminOlympPerformance() {
             </p>
           </div>
 
+          <div>
+            <Label htmlFor="olymp-total-trades" className="text-xs">Number of trades shown</Label>
+            <Input
+              id="olymp-total-trades"
+              type="number"
+              min={0}
+              step={1}
+              value={totalTrades}
+              onChange={(event) => { setDirty(true); setTotalTrades(event.target.value.replace(/[^0-9]/g, "")); }}
+              placeholder="e.g. 1250"
+              className="mt-1.5 w-40"
+            />
+            <p className="mt-1.5 text-[11px] leading-5 text-muted-foreground">
+              Appears as &ldquo;Based on N closed trades&rdquo; under the headline rate. Leave empty to hide that
+              line — it reads as broken if it says zero.
+            </p>
+          </div>
+
           <p className="flex gap-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] p-3 text-[11px] leading-5 text-amber-200/90">
             <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
@@ -175,7 +196,7 @@ export function AdminOlympPerformance() {
         <Button
           type="button"
           disabled={!dirty || !canSave || save.isPending}
-          onClick={() => save.mutate({ enabled, weeklyWinRates: numeric })}
+          onClick={() => save.mutate({ enabled, weeklyWinRates: numeric, totalTrades: Number(totalTrades) || 0 })}
         >
           {save.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           Save

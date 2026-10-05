@@ -79,7 +79,11 @@ export function OlympPerformanceChart() {
 
   const relativeTime = useRelativeTime(data?.asOf);
   const chartData = data?.weeks ?? [];
-  const hasActivity = (data?.totalTrades ?? 0) > 0;
+  // Driven by whether there is a curve to draw. Keying this off the trade
+  // count meant a chart with seven weeks of data rendered its empty state
+  // because the count happened to be zero.
+  const hasActivity = (data?.weeks?.length ?? 0) > 0
+    && (data?.weeks ?? []).some((week) => week.winRate > 0);
 
   return (
     <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-6 sm:p-8">
@@ -102,9 +106,13 @@ export function OlympPerformanceChart() {
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Win rate — last 7 weeks</p>
           <p className="mt-1 font-display text-5xl font-black text-blue-300 sm:text-6xl">{data ? `${data.overallWinRate}%` : "—"}</p>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Based on {data ? data.totalTrades.toLocaleString() : "—"} real closed trades
-        </p>
+        {/* Omitted rather than printed as zero: "Based on 0 real closed
+            trades" beneath a win rate reads as a broken chart. */}
+        {data && data.totalTrades > 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Based on {data.totalTrades.toLocaleString()} closed trades
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-6">
