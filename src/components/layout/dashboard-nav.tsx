@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  ChevronDown,
   LayoutDashboard,
   MonitorSmartphone,
   CreditCard,
@@ -45,6 +46,8 @@ interface NavItem {
   badge?: string;
   locked?: boolean;
   mobileBottom?: boolean;
+  /** Nested entries. A parent with children is a group header, not a link. */
+  children?: NavItem[];
 }
 
 interface DashboardNavProps {
@@ -77,6 +80,64 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   alert: AlertOctagon,
   mail: Mail,
 };
+
+
+/**
+ * A nav entry that holds others.
+ *
+ * Opens itself when one of its children is the current page, so arriving by
+ * URL or refreshing never leaves the active item hidden inside a collapsed
+ * group with nothing to indicate where you are.
+ */
+function NavGroup({ item, currentPath, onNavigate }: { item: NavItem; currentPath: string; onNavigate?: () => void }) {
+  const Icon = ICON_MAP[item.icon ?? ""] ?? LayoutDashboard;
+  const children = item.children ?? [];
+  const hasActiveChild = children.some((child) => currentPath === child.href);
+  const [open, setOpen] = useState(hasActiveChild);
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className={cn(
+          "group flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-all",
+          hasActiveChild
+            ? "text-foreground"
+            : "text-muted-foreground hover:bg-white/[0.04] hover:text-foreground",
+        )}
+        aria-expanded={open}
+      >
+        <Icon className={cn("h-[18px] w-[18px] shrink-0", hasActiveChild ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+        <span className="flex-1 text-left">{item.label}</span>
+        <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")} />
+      </button>
+
+      {open ? (
+        <div className="mt-0.5 space-y-0.5 pl-4">
+          {children.map((child) => (
+            <Link
+              key={child.href}
+              href={child.href}
+              onClick={onNavigate}
+              className={cn(
+                "flex items-center gap-2.5 rounded-xl py-2 pl-4 pr-3 text-sm transition-colors",
+                // Rail down the left, so a nested item reads as belonging to
+                // the group rather than floating beside it.
+                "border-l border-white/[0.08]",
+                currentPath === child.href
+                  ? "border-primary/60 bg-white/[0.06] font-medium text-foreground"
+                  : "text-muted-foreground hover:border-white/20 hover:text-foreground",
+              )}
+            >
+              {child.label}
+            </Link>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function NavLink({ item, active, onClick }: { item: NavItem; active: boolean; onClick?: () => void }) {
   const Icon = ICON_MAP[item.icon ?? ""] ?? LayoutDashboard;
@@ -158,12 +219,21 @@ export function DashboardNav({ items, sessionName, roleLabel }: DashboardNavProp
 
             <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-2">
               {drawerItems.map((item) => (
-                <NavLink
-                  key={item.href}
-                  item={item}
-                  active={currentPath === item.href || (item.href !== "/dashboard" && currentPath.startsWith(item.href))}
-                  onClick={() => setMobileOpen(false)}
-                />
+                item.children?.length ? (
+                  <NavGroup
+                    key={item.href}
+                    item={item}
+                    currentPath={currentPath}
+                    onNavigate={() => setMobileOpen(false)}
+                  />
+                ) : (
+                  <NavLink
+                    key={item.href}
+                    item={item}
+                    active={currentPath === item.href || (item.href !== "/dashboard" && currentPath.startsWith(item.href))}
+                    onClick={() => setMobileOpen(false)}
+                  />
+                )
               ))}
             </nav>
 
@@ -218,7 +288,9 @@ export function DashboardNav({ items, sessionName, roleLabel }: DashboardNavProp
 
           <nav className="flex-1 space-y-0.5 px-3">
             {items.map((item) => (
-              <NavLink key={item.href} item={item} active={currentPath === item.href} />
+              item.children?.length
+                ? <NavGroup key={item.href} item={item} currentPath={currentPath} />
+                : <NavLink key={item.href} item={item} active={currentPath === item.href} />
             ))}
           </nav>
 

@@ -3,19 +3,15 @@
 import { useState } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 
-import { AdminOlympFree } from "@/components/admin/admin-olymp-free";
-import { AdminOlympPerformance } from "@/components/admin/admin-olymp-performance";
+import { AdminOlympPartnerUsers } from "@/components/admin/admin-olymp-partner-users";
 import { makeQueryClient } from "@/lib/query-client";
 
-export function OlympFreeClient() {
+export function OlympPartnerClient() {
   const [queryClient] = useState(() => makeQueryClient());
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="space-y-6">
-        <AdminOlympPerformance />
-        <AdminOlympFree />
-      </div>
+      <AdminOlympPartnerUsers />
     </QueryClientProvider>
   );
 }

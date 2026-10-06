@@ -23,7 +23,16 @@ const items = [
   { href: "/admin/signals", label: "Signals", icon: "zap" },
   { href: "/admin/payments", label: "Payments", icon: "wallet" },
   { href: "/admin/affiliates", label: "Affiliates", icon: "network" },
-  { href: "/admin/olymp-free", label: "Olymp Free", icon: "broker" },
+  {
+    // A group header, not a destination — the href is only its identity.
+    href: "/admin/olymp",
+    label: "Olymp",
+    icon: "broker",
+    children: [
+      { href: "/admin/olymp-free", label: "Olymp Free" },
+      { href: "/admin/olymp-partner", label: "Olymp Partner" },
+    ],
+  },
   { href: "/admin/support", label: "Support", icon: "message" },
   { href: "/admin/connected-accounts", label: "Broker Accounts", icon: "broker" },
   { href: "/admin/logs", label: "System Logs", icon: "terminal" },
