@@ -467,11 +467,17 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
                 <div className="rounded-xl border border-destructive/40 bg-destructive/[0.08] p-3">
                   <p className="text-xs font-semibold text-destructive">Your Olymp session has expired</p>
                   <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                    {account.needsReauthReason
-                      ? `${account.needsReauthReason}. `
-                      : "Olymp signs sessions out roughly every 48 hours. "}
-                    This account is still linked but <span className="font-semibold">cannot place trades</span> until you
-                    reconnect it below.
+                    Olymp signs these sessions out roughly every 48 hours, and we cannot renew one for you.
+                    This account is still linked but <span className="font-semibold">cannot place trades</span>.
+                  </p>
+                  {/* Points at connecting by account ID rather than at the
+                      token form, because pasting another token only buys
+                      another 48 hours — this is the third time this account
+                      has needed it. Connecting by ID has nothing that
+                      expires. */}
+                  <p className="mt-2 rounded-lg border border-white/[0.08] bg-black/20 p-2 text-[11px] leading-relaxed text-muted-foreground">
+                    <span className="font-semibold text-foreground">Connect with your Olymp account ID instead</span> —
+                    at the top of this page. It needs no token and never expires, so this stops happening.
                   </p>
                   <Button
                     type="button"
@@ -480,7 +486,7 @@ export function OlympAccountsManager({ profile }: OlympAccountsManagerProps) {
                     className="mt-2"
                     onClick={() => setShowConnectForm(true)}
                   >
-                    Reconnect account
+                    Paste a new token anyway
                   </Button>
                 </div>
               )}
