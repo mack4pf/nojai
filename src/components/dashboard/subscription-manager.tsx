@@ -225,6 +225,12 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
             const isHighlighted = normalizedSelectedPlan === tier;
             const isLower = (PLAN_RANK[tier] ?? 0) < (PLAN_RANK[currentPlanTier] ?? 0);
             const isLocked = isLower && !isCurrent;
+            const visibleFeatures = tier === "VIP"
+              ? plan.features
+              : plan.features.filter((feature) =>
+                !/choose\s+binary options bot or forex leverage\s*\/\s*mt5 access/i.test(feature)
+                && !/forex choice includes 1 mt5 account/i.test(feature),
+              );
 
             return (
               <div
@@ -265,7 +271,7 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
 
                 {/* Features */}
                 <ul className="mt-5 space-y-2">
-                  {plan.features.map((feature) => (
+                  {visibleFeatures.map((feature) => (
                     <li key={feature} className="flex items-start gap-2 text-sm text-muted-foreground">
                       <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/70" />
                       <span>{feature}</span>
