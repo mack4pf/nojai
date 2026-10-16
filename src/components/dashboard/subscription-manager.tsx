@@ -144,9 +144,15 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
           <p className="text-muted-foreground">
             Binary Options: <strong className="font-bold text-foreground">{BINARY_DEFAULT_ASSETS.join(", ")}</strong>
           </p>
-          <p className="text-muted-foreground">
-            MT5 Leverage: <strong className="font-bold text-foreground">{MT5_DEFAULT_ASSETS.join(", ")}</strong>
-          </p>
+          {/* Only for someone whose plan actually includes it. This panel is
+              above the plan cards and was shown to everyone, so Standard and
+              Pro users were being quoted default assets for a product their
+              plan cannot trade. */}
+          {currentProduct === "all" || currentProduct === "forex" ? (
+            <p className="text-muted-foreground">
+              MT5 Leverage: <strong className="font-bold text-foreground">{MT5_DEFAULT_ASSETS.join(", ")}</strong>
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -291,7 +297,7 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                       <span className="text-xs font-semibold">Binary Options</span>
                     </div>
                     <p className="mt-2 text-[10px] text-muted-foreground">
-                      Default asset: {BINARY_DEFAULT_ASSETS.join(", ")}. Forex / MT5 is available on the VIP plan.
+                      Default asset: {BINARY_DEFAULT_ASSETS.join(", ")}.
                     </p>
                   </div>
                 ) : tier === "VIP" && !isCurrent ? (
@@ -386,7 +392,7 @@ export function SubscriptionManager({ status, required, selectedPlan }: Subscrip
                     <span className="text-xs font-semibold">Binary Options</span>
                   </div>
                   <p className="mt-2 text-[10px] text-muted-foreground">
-                    Default asset: {BINARY_DEFAULT_ASSETS.join(", ")}. Forex / MT5 is available on the VIP plan.
+                    Default asset: {BINARY_DEFAULT_ASSETS.join(", ")}.
                   </p>
                 </div>
               ) : (
