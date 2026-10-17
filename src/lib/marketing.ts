@@ -79,7 +79,6 @@ export const publicPricingPlans = [
       "Signals included",
       "Binary Options on IQ Option, ExpertOption, and Olymp Trade",
       "Binary default asset: EURUSD",
-      "MT5 leverage defaults: BTCUSD, EURUSD, XAUUSD",
       "24/7 support about the bot",
     ],
   },
