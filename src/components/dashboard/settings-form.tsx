@@ -129,6 +129,10 @@ export function SettingsForm() {
   const plan = profile?.subscription?.plan ?? "NONE";
   const rank = PLAN_RANK[plan] ?? 0;
   const canCustomizeMartingale = rank >= PLAN_RANK.PRO;
+  // MT5 is VIP-only, so its preferences have no meaning on a plan that
+  // cannot trade it. The section was rendered to everyone, offering settings
+  // for a product the user has no access to.
+  const hasForex = Boolean(profile?.subscription?.access?.forex);
 
   return (
     <div className="space-y-8">
@@ -142,8 +146,8 @@ export function SettingsForm() {
       {/* Profile */}
       <ProfileSettingsForm />
 
-      {/* MT5 Signal Preferences */}
-      <Mt5SignalPreferences />
+      {/* MT5 Signal Preferences — only for plans that include MT5. */}
+      {hasForex && <Mt5SignalPreferences />}
 
       {/* Martingale */}
       {canCustomizeMartingale && (

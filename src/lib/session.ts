@@ -18,6 +18,21 @@ export async function requireSession(role?: "user" | "admin") {
   return session;
 }
 
+/**
+ * For pages that are part of the Forex/MT5 product.
+ *
+ * An active subscription is not enough: MT5 belongs to VIP, and the
+ * autotrade page only checked for a subscription — so a Standard or Pro user
+ * could open it by typing the URL, even with the nav entry hidden from them.
+ */
+export async function requireForexSubscription() {
+  const { session, profile } = await requireActiveSubscription();
+  if (!profile?.subscription?.access?.forex) {
+    redirect("/dashboard/subscription");
+  }
+  return { session, profile };
+}
+
 export async function requireActiveSubscription() {
   const session = await requireSession("user");
 

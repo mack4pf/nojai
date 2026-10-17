@@ -329,7 +329,7 @@ export function Mt5AutoTradeManager() {
             </div>
             <h1 className="mt-4 font-display text-2xl font-semibold tracking-tight sm:text-3xl">MetaTrader execution, inside NojAI.</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Connect your MT5 accounts, verify sync status, and automate your trades from TradingView signals. Standard and Pro support 1 MT5 account; VIP supports 2.
+              Connect your MT5 accounts, verify sync status, and automate your trades from TradingView signals.
             </p>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-4">

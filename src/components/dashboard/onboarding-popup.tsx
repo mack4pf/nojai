@@ -325,7 +325,7 @@ export function OnboardingPopup() {
                   Do you have a supported broker account?
                 </h2>
                 <p className="mt-1.5 text-sm text-white/45">
-                  NOJAI connects to IQ Option, Expert Option, or any MT5 broker to execute trades automatically.
+                  NOJAI connects to your broker and executes trades automatically.
                 </p>
 
                 <div className="mt-6 grid grid-cols-2 gap-3">
