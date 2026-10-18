@@ -681,12 +681,21 @@ export function LandingPage({ pricingPlans, reviews, courses = [] }: LandingPage
             const compareAt = plan.compareAtPrice && plan.compareAtPrice > plan.price ? plan.compareAtPrice : cfg.compareAt;
             const Icon = cfg.icon;
             const currency = getPlanCurrency(plan.currency);
+            // Appended to every card regardless of tier, which put MT5 and
+            // Forex on Standard and Pro no matter what the plan data said —
+            // so cleaning the stored features changed nothing here. The
+            // MT5 lines are now added only to the plan that includes MT5.
+            const isVipPlan = plan.tier === "VIP";
             const planFeatures = [
               ...(plan.features ?? []),
               "Binary Options on IQ Option, ExpertOption, and Olymp Trade",
               `Binary default asset: ${BINARY_DEFAULT_ASSETS.join(", ")}`,
-              `MT5 leverage defaults: ${MT5_DEFAULT_ASSETS.join(", ")}`,
-              "Binary Options & Forex support",
+              ...(isVipPlan
+                ? [
+                    `MT5 leverage defaults: ${MT5_DEFAULT_ASSETS.join(", ")}`,
+                    "Binary Options & Forex support",
+                  ]
+                : []),
               "Multi-broker account management",
             ].filter((feature, featureIndex, arr) => arr.findIndex((item) => item.toLowerCase() === feature.toLowerCase()) === featureIndex);
 
