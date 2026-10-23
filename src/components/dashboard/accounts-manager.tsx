@@ -718,7 +718,7 @@ export function AccountsManager() {
 
       {/* Olymp Trade Tab */}
       {activeTab === "olymp" && (
-        <OlympAccountsManager profile={profile} />
+        <OlympAccountsManager />
       )}
     </div>
   );

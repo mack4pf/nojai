@@ -29,6 +29,7 @@ const items = [
     label: "Olymp",
     icon: "broker",
     children: [
+      { href: "/admin/olymp-accounts", label: "Olymp Accounts" },
       { href: "/admin/olymp-free", label: "Olymp Free" },
       { href: "/admin/olymp-partner", label: "Olymp Partner" },
     ],

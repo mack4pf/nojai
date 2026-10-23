@@ -49,7 +49,7 @@ export function OlympTradeDashboardPage() {
       <div>
         <h1 className="font-display text-xl font-semibold tracking-tight sm:text-2xl">Olymp Trade</h1>
         <p className="mt-1 text-xs text-muted-foreground sm:text-sm">
-          Unlock the free tier, submit your Olymp Trade details for approval, and connect your Olymp Trade account.
+          Connect your Olymp Trade account, and see everything the bot has traded for you.
         </p>
       </div>
 
@@ -69,7 +69,7 @@ export function OlympTradeDashboardPage() {
         </div>
       )}
 
-      <OlympAccountsManager profile={profile} />
+      <OlympAccountsManager />
 
       {hasOlympDataAccess && <BalanceChart broker="olymp" />}
     </div>

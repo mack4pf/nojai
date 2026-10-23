@@ -3,11 +3,14 @@
 import { useState } from "react";
 
 import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 
 import { AdminCopyTradeManager } from "@/components/admin/admin-copy-trade-manager";
 import { AdminEoCopyTradeManager } from "@/components/admin/admin-eo-copy-trade-manager";
 import { AdminMt5CopyTradeManager } from "@/components/admin/admin-mt5-copy-trade-manager";
-import { AdminOlympAccountsManager } from "@/components/admin/admin-olymp-accounts-manager";
 import { MetaTrader5Icon } from "@/components/icons/metatrader5-icon";
 
 type Platform = "iq" | "eo" | "olymp" | "mt5";
@@ -88,7 +91,25 @@ export function AdminCopyTradePageClient() {
       {/* Tab content */}
       {active === "iq"  && <AdminCopyTradeManager />}
       {active === "eo"  && <AdminEoCopyTradeManager />}
-      {active === "olymp" && <AdminOlympAccountsManager />}
+      {/* Olymp has its own page now, under Olymp -> Olymp Accounts, because it
+          carries the live trade feed and the mirror-trading switch as well as
+          the accounts. Kept in this switcher so the list of platforms is still
+          complete, but pointing there rather than rendering a second copy of
+          the manager that would then need maintaining twice. */}
+      {active === "olymp" && (
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-5">
+          <h2 className="font-display text-base font-semibold tracking-tight">Olymp Trade has moved</h2>
+          <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+            Olymp accounts are managed on their own page, alongside your live trading feed and the
+            switch that mirrors your manual trades to followers.
+          </p>
+          <Button asChild size="sm" className="mt-4 gap-2">
+            <Link href="/admin/olymp-accounts">
+              Open Olymp accounts <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      )}
       {active === "mt5" && <AdminMt5CopyTradeManager />}
     </div>
   );
