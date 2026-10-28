@@ -30,11 +30,20 @@ interface AdminOlympAccount {
   status: "connected" | "disconnected";
   isConnected: boolean;
   lastConnected?: string | null;
+  /**
+   * Olymp ended the session and we cannot renew it. Reported separately from
+   * isConnected because the two need different actions: offline may recover on
+   * its own, this needs a fresh token pasted in. Reconnecting with the dead one
+   * just fails.
+   */
+  needsReauth?: boolean;
+  needsReauthReason?: string;
 }
 
 interface AdminOlympAccountsResponse {
   accounts: AdminOlympAccount[];
   connectedCount: number;
+  reauthRequiredCount?: number;
 }
 
 export function AdminOlympAccountsManager() {
@@ -331,7 +340,7 @@ export function AdminOlympAccountsManager() {
                         <Badge variant={account.accountGroup === "real" ? "success" : "outline"} className="text-[10px]">{account.accountGroup === "real" ? "Real" : "Demo"}</Badge>
                         <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
                           {account.isConnected ? <Wifi className="h-3 w-3 text-emerald-400" /> : <WifiOff className="h-3 w-3" />}
-                          {account.isConnected ? "Live" : "Offline"}
+                          {account.needsReauth ? "Session expired" : account.isConnected ? "Live" : "Offline"}
                         </span>
                         <span className="text-[10px] text-muted-foreground">ID {account.accountId}</span>
                       </div>
@@ -341,6 +350,19 @@ export function AdminOlympAccountsManager() {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
+
+                {account.needsReauth && (
+                  <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/[0.08] p-3">
+                    <p className="text-xs font-semibold text-destructive">This account needs a new token</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                      Olymp ended the session — they expire roughly every 48 hours and cannot be renewed
+                      from here, so <span className="font-semibold">Reconnect will not fix this</span>.
+                      Paste a fresh token with + Connect above. Until then this account places no trades,
+                      and nothing from it is mirrored to followers.
+                      {account.needsReauthReason ? ` (${account.needsReauthReason})` : ""}
+                    </p>
+                  </div>
+                )}
 
                 <div className="mt-4 grid gap-2 sm:grid-cols-4">
                   <div className="rounded-xl border border-white/[0.05] bg-black/10 p-3">
@@ -353,7 +375,7 @@ export function AdminOlympAccountsManager() {
                   </div>
                   <div className="rounded-xl border border-white/[0.05] bg-black/10 p-3">
                     <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Status</p>
-                    <p className={account.isConnected ? "mt-1 text-sm font-semibold text-emerald-300" : "mt-1 text-sm font-semibold text-muted-foreground"}>{account.isConnected ? "Live" : "Offline"}</p>
+                    <p className={account.needsReauth ? "mt-1 text-sm font-semibold text-destructive" : account.isConnected ? "mt-1 text-sm font-semibold text-emerald-300" : "mt-1 text-sm font-semibold text-muted-foreground"}>{account.needsReauth ? "Expired" : account.isConnected ? "Live" : "Offline"}</p>
                   </div>
                   <div className="rounded-xl border border-white/[0.05] bg-black/10 p-3">
                     <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Last</p>
@@ -365,7 +387,7 @@ export function AdminOlympAccountsManager() {
                   <Input type="number" min={1} value={draftBaseAmount} onChange={(e) => setDraftAmounts((prev) => ({ ...prev, [account.accountId]: Number(e.target.value) }))} />
                   <Button variant="outline" onClick={() => baseAmountMutation.mutate({ accountId: account.accountId, nextBaseAmount: draftBaseAmount })} disabled={baseAmountMutation.isPending || draftBaseAmount < 1}>Save amount</Button>
                   <Button variant="outline" onClick={() => refreshMutation.mutate(account.accountId)} disabled={refreshMutation.isPending}><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Refresh</Button>
-                  {!account.isConnected && (
+                  {!account.isConnected && !account.needsReauth && (
                     <Button variant="outline" onClick={() => reconnectMutation.mutate(account.accountId)} disabled={reconnectMutation.isPending}><RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Reconnect</Button>
                   )}
                 </div>

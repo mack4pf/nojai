@@ -28,6 +28,8 @@ import { formatCurrency } from "@/lib/utils";
  */
 
 const QUERY_KEY = ["admin-olymp-live-trades"];
+/** Shared with the accounts manager above, so this costs no extra request. */
+const ACCOUNTS_QUERY_KEY = ["admin-olymp-accounts"];
 
 type TradeOrigin = "manual" | "signal" | "mirror";
 
@@ -53,6 +55,11 @@ interface FeedResponse {
   mirrorEnabled: boolean;
 }
 
+interface AccountsResponse {
+  accounts: Array<{ accountId: number; isConnected: boolean; needsReauth?: boolean; accountGroup: "real" | "demo" }>;
+  connectedCount: number;
+}
+
 const ORIGIN_LABEL: Record<TradeOrigin, string> = {
   manual: "By hand",
   signal: "Signal",
@@ -76,6 +83,15 @@ export function AdminOlympLiveTrades() {
     queryFn: async () => (await api.get("/admin/olymp-accounts/trades?limit=100")).data as FeedResponse,
     // The socket is the real transport. This is a slow backstop in case it
     // drops, not the mechanism.
+    refetchInterval: 30_000,
+  });
+
+  // An empty feed has two very different causes — nothing has traded, or
+  // nothing is connected to trade. Saying which is the difference between
+  // waiting and fixing.
+  const { data: accounts } = useQuery<AccountsResponse>({
+    queryKey: ACCOUNTS_QUERY_KEY,
+    queryFn: async () => (await api.get("/admin/olymp-accounts")).data as AccountsResponse,
     refetchInterval: 30_000,
   });
 
@@ -132,6 +148,8 @@ export function AdminOlympLiveTrades() {
 
   const trades = data?.trades ?? [];
   const mirrorEnabled = Boolean(data?.mirrorEnabled);
+  const liveAccounts = (accounts?.accounts ?? []).filter((account) => account.isConnected && !account.needsReauth);
+  const hasRealLiveAccount = liveAccounts.some((account) => account.accountGroup === "real");
 
   const counts = useMemo(() => ({
     open: trades.filter((trade) => trade.status === "open").length,
@@ -195,6 +213,14 @@ export function AdminOlympLiveTrades() {
         )}
       </div>
 
+      {mirrorEnabled && !hasRealLiveAccount && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/[0.1] p-3 text-[11px] leading-5 text-amber-100">
+          <span className="font-semibold">Mirroring is on, but nothing can be mirrored.</span> No real-money
+          Olymp account of yours is connected right now, and only a confirmed real account is mirrored —
+          so followers will receive nothing until one is live.
+        </div>
+      )}
+
       <div className="grid grid-cols-3 gap-2">
         {[
           { label: "Open now", value: counts.open },
@@ -215,10 +241,22 @@ export function AdminOlympLiveTrades() {
       ) : trades.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 py-12 text-center">
           <Activity className="h-5 w-5 text-muted-foreground" />
-          <p className="mt-3 text-sm text-muted-foreground">Nothing yet</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Trades appear here the moment they are placed on a connected admin account.
-          </p>
+          {liveAccounts.length === 0 ? (
+            <>
+              <p className="mt-3 text-sm font-medium text-amber-300">No Olymp account is connected</p>
+              <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+                Nothing can be watched until one is. Connect an account above — if one shows
+                &quot;Session expired&quot;, it needs a fresh token rather than a reconnect.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="mt-3 text-sm text-muted-foreground">Nothing yet</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Trades appear here the moment they are placed on a connected admin account.
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-white/[0.06]">

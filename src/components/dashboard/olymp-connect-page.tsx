@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Copy, ExternalLink, Info, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Copy, ExternalLink, Info, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,17 @@ interface OlympFreeAccessInfo {
   };
 }
 
+interface OlympPartnerStatus {
+  linked: boolean;
+  olympUserId?: number;
+}
+
 export function OlympConnectPage() {
+  const { data: status, isLoading } = useQuery<OlympPartnerStatus>({
+    queryKey: ["olymp-partner-status"],
+    queryFn: async () => (await api.get("/olymp-partner/status")).data as OlympPartnerStatus,
+  });
+
   const { data: olympFreeAccess } = useQuery<OlympFreeAccessInfo>({
     queryKey: queryKeys.olympFreeAccess,
     queryFn: async () => (await api.get("/user/olymp-free-access")).data as OlympFreeAccessInfo,
@@ -49,15 +59,59 @@ export function OlympConnectPage() {
     toast.success("Olymp bonus code copied");
   }
 
+  const backLink = (
+    <Link
+      href="/dashboard/olymp-trade"
+      className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+    >
+      <ArrowLeft className="h-3.5 w-3.5" /> Back to Olymp Trade
+    </Link>
+  );
+
+  if (isLoading) {
+    return (
+      <div className="space-y-5">
+        {backLink}
+        <div className="flex items-center gap-2 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> Checking your Olymp account…
+        </div>
+      </div>
+    );
+  }
+
+  // Someone who is already connected should not be read a page about
+  // connecting, or left to work out whether they are done.
+  if (status?.linked) {
+    return (
+      <div className="space-y-5">
+        {backLink}
+        <div className="dashboard-solid-panel rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.05] p-5 sm:p-6">
+          <div className="flex items-start gap-2.5">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+            <div>
+              <h1 className="font-display text-lg font-semibold tracking-tight">
+                Your Olymp account is connected
+              </h1>
+              <p className="mt-1.5 text-xs leading-5 text-muted-foreground sm:text-sm">
+                Account #{status.olympUserId}. There is nothing left to do here — your settings, balance
+                and trades are on the Olymp Trade page.
+              </p>
+              <Button asChild className="mt-4 gap-2">
+                <Link href="/dashboard/olymp-trade">
+                  Go to Olymp Trade <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       <div>
-        <Link
-          href="/dashboard/olymp-trade"
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" /> Back to Olymp Trade
-        </Link>
+        {backLink}
         <h1 className="mt-3 font-display text-xl font-semibold tracking-tight sm:text-2xl">
           Connect your Olymp account
         </h1>
