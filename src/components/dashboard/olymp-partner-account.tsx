@@ -417,7 +417,7 @@ export function OlympPartnerAccount() {
           <p className="text-[11px] leading-5 text-muted-foreground">
             {ssoCooldown
               ? "Opening Olymp in a new tab — check your other tabs if you don't see it."
-              : "These open Olymp already logged in — you never need an Olymp password. Olymp allows 3 of these per hour."}
+              : "These open Olymp already logged in — you never need an Olymp password."}
           </p>
 
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
@@ -465,29 +465,6 @@ export function OlympPartnerAccount() {
                 checked={Boolean(status.tradingEnabled)}
                 disabled={updateSettings.isPending}
                 onCheckedChange={(checked) => updateSettings.mutate({ tradingEnabled: checked })}
-              />
-            </div>
-
-            {/* Separate from automated trading because it is a different
-                decision: that one follows a strategy, this one follows a
-                person. Shown as unavailable rather than hidden when trading is
-                off, so turning it on is an obvious next step instead of a
-                setting that silently does nothing. */}
-            <div className="mt-4 flex items-start justify-between gap-4 border-t border-white/[0.06] pt-4">
-              <div className="min-w-0">
-                <p className="text-sm font-medium">Follow the NOJAI trader</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  {!status.tradingEnabled
-                    ? "Turn on automated trading first — copied trades use the same account."
-                    : status.copyAdminEnabled
-                      ? "When our trader places a trade by hand, the same trade is placed on your account at your own amount."
-                      : "Off. Turn this on to copy trades our trader places by hand, as well as the usual signals."}
-                </p>
-              </div>
-              <Switch
-                checked={Boolean(status.copyAdminEnabled)}
-                disabled={updateSettings.isPending || !status.tradingEnabled}
-                onCheckedChange={(checked) => updateSettings.mutate({ copyAdminEnabled: checked })}
               />
             </div>
 

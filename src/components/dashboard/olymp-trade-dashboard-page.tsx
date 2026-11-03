@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { BalanceChart } from "@/components/dashboard/balance-chart";
 import { OlympAccountsManager } from "@/components/dashboard/olymp-accounts-manager";
+import { OlympFollowTrader } from "@/components/dashboard/olymp-follow-trader";
 import { api, normalizeUserProfile } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import { formatCurrency } from "@/lib/utils";
@@ -35,7 +36,19 @@ export function OlympTradeDashboardPage() {
     queryFn: async () => normalizeUserProfile((await api.get("/user/profile")).data) as UserProfile | null,
   });
 
-  const hasOlympDataAccess = Boolean(profile?.subscription?.active || profile?.olympTradeFreeAccess);
+  const { data: partnerStatus } = useQuery<{ linked: boolean }>({
+    queryKey: ["olymp-partner-status"],
+    queryFn: async () => (await api.get("/olymp-partner/status")).data as { linked: boolean },
+  });
+
+  // Having connected an Olymp account is itself the qualification now.
+  // This used to require a subscription or the free-tier approval flag, but
+  // that flag could only ever be set by an admin approving a submission, and
+  // submissions are gone — so a user who connected an account would have been
+  // shown no stats at all, with no way left to earn them.
+  const hasOlympDataAccess = Boolean(
+    profile?.subscription?.active || profile?.olympTradeFreeAccess || partnerStatus?.linked,
+  );
   const { data: returns } = useQuery<OlympReturns>({
     queryKey: ["olymp-trade-page-returns"],
     queryFn: async () => (await api.get("/user/returns?broker=olymp")).data as OlympReturns,
@@ -68,6 +81,8 @@ export function OlympTradeDashboardPage() {
           ))}
         </div>
       )}
+
+      <OlympFollowTrader />
 
       <OlympAccountsManager />
 

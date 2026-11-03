@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { BalanceChart } from "@/components/dashboard/balance-chart";
 import { OlympAccountSetup } from "@/components/dashboard/olymp-account-setup";
 import { OlympPartnerAccount } from "@/components/dashboard/olymp-partner-account";
+import { OlympFollowTrader } from "@/components/dashboard/olymp-follow-trader";
 import { TradesHistory } from "@/components/dashboard/trades-history";
 import { api } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
@@ -92,6 +93,8 @@ export function OlympPartnerDashboardPage() {
 
       {/* Asks which route the user needs before showing either one;
           once an account is linked it renders the live card straight through. */}
+      <OlympFollowTrader />
+
       <OlympAccountSetup createForm={<OlympPartnerAccount />} />
 
       {status?.linked ? (
