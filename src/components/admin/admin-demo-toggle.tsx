@@ -28,21 +28,17 @@ export function AdminDemoToggle() {
   };
 
   return (
-    <div
-      className={
-        on
-          ? "mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-2 text-sm"
-          : "mb-4 flex items-center justify-end gap-2 text-xs text-muted-foreground"
-      }
-    >
-      {on && (
-        <span className="font-medium text-amber-700 dark:text-amber-300">
-          Demo data — these users, payments and profits are sample data, not real customers.
-        </span>
-      )}
-      <label className="flex items-center gap-2">
-        <span>Demo data</span>
-        <Switch checked={on} onCheckedChange={toggle} aria-label="Show demo data" />
+    <div className="mb-3 flex items-center justify-end">
+      <label
+        className={
+          on
+            ? "flex items-center gap-1.5 rounded-full border border-amber-500/50 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-300"
+            : "flex items-center gap-1.5 text-[11px] text-muted-foreground"
+        }
+        title={on ? "Showing sample demo data, not real customers" : "Show sample demo data"}
+      >
+        <span>{on ? "Demo" : "Demo data"}</span>
+        <Switch className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span[data-state=checked]]:translate-x-3" checked={on} onCheckedChange={toggle} aria-label="Show demo data" />
       </label>
     </div>
   );
