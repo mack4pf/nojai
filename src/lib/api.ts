@@ -15,6 +15,7 @@ import type {
   UserProfile,
 } from "@/types";
 import { normalizeArray, normalizeRecord } from "@/lib/utils";
+import { isAdminDemoMode } from "@/lib/admin-demo-mode";
 
 const DEFAULT_API_BASE_URL = "http://localhost:5000/api";
 const DEFAULT_BACKEND_URL = "http://localhost:5000";
@@ -204,6 +205,11 @@ api.interceptors.request.use(async (config) => {
     // Marks the request as having carried credentials, so a 401 on it means
     // the token was rejected rather than never sent.
     config.headers["x-nojai-authed"] = "1";
+  }
+
+  // Admin "Demo data" switch: the backend answers admin reads from the demo DB.
+  if (isAdminDemoMode() && (config.url ?? "").startsWith("/admin")) {
+    config.headers["x-nojai-demo"] = "1";
   }
 
   return config;
