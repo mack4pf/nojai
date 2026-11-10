@@ -107,8 +107,8 @@ export function AdminPaymentsManager() {
         (p) =>
           p.userId?.email.toLowerCase().includes(normalizedSearch) ||
           p.userId?.fullName?.toLowerCase().includes(normalizedSearch) ||
-          // The Reference column is hidden for now. A reference typed in full
-          // still matches here, so unhiding it later changes nothing else.
+          // The reference is no longer printed -- the Confirmed column stands
+          // in for it -- but one typed in full still matches here.
           p.paymentReference?.toLowerCase().includes(normalizedSearch) ||
           p.label.toLowerCase().includes(normalizedSearch) ||
           (p.plan?.toLowerCase() ?? "").includes(normalizedSearch),
@@ -189,7 +189,7 @@ export function AdminPaymentsManager() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[680px] text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <thead>
                 <tr className="border-b border-white/[0.07] text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   <th className="px-5 py-4">Date</th>
@@ -199,9 +199,7 @@ export function AdminPaymentsManager() {
                   <th className="px-5 py-4">Method</th>
                   <th className="px-5 py-4">Status</th>
                   <th className="px-5 py-4">Expires</th>
-                  {/* Reference is hidden for now. The field still arrives from
-                      the API and is still searchable; restoring the column
-                      means putting this header and its cell back. */}
+                  <th className="px-5 py-4">Confirmed</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.05]">
@@ -265,6 +263,18 @@ export function AdminPaymentsManager() {
                     {/* Expires */}
                     <td className="px-5 py-4 text-xs text-muted-foreground">
                       {payment.endDate ? formatDate(payment.endDate, "MMM d, yyyy") : "—"}
+                    </td>
+
+                    {/* Confirmed. Stands in for the gateway reference, which is
+                        hidden for now: it says a reference is on file without
+                        printing it. The old column is one line away -- render
+                        payment.paymentReference here instead. */}
+                    <td className="px-5 py-4 text-xs">
+                      {payment.paymentReference ? (
+                        <span className="text-emerald-300">True</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </td>
                   </tr>
                 ))}
