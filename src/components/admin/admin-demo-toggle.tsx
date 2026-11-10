@@ -37,7 +37,7 @@ export function AdminDemoToggle() {
         }
         title={on ? "Showing sample demo data, not real customers" : "Show sample demo data"}
       >
-        <span>{on ? "admin active" : "Demo data"}</span>
+        <span>{on ? "Demo" : "Demo data"}</span>
         <Switch className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span[data-state=checked]]:translate-x-3" checked={on} onCheckedChange={toggle} aria-label="Show demo data" />
       </label>
     </div>
