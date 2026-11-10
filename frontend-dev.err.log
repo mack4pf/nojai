@@ -1,0 +1,25 @@
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+[browser] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render. 
+    at AdminSupportInbox.useEffect (src/components/admin/admin-support-inbox.tsx:188:5)
+  186 |   const [orderedIds, setOrderedIds] = useState<string[]>([]);
+  187 |   useEffect(() => {
+> 188 |     setOrderedIds((prevOrder) => {
+      |     ^
+  189 |       const currentIds = new Set(conversations.map((c) => c._id));
+  190 |       const kept = prevOrder.filter((id) => currentIds.has(id));
+  191 |       const known = new Set(kept); (src/components/admin/admin-support-inbox.tsx:188:5)
+[browser] Maximum update depth exceeded. This can happen when a component calls setState inside useEffect, but useEffect either doesn't have a dependency array, or one of the dependencies changes on every render. 
+    at AdminSupportInbox.useEffect (src/components/admin/admin-support-inbox.tsx:188:5)
+  186 |   const [orderedIds, setOrderedIds] = useState<string[]>([]);
+  187 |   useEffect(() => {
+> 188 |     setOrderedIds((prevOrder) => {
+      |     ^
+  189 |       const currentIds = new Set(conversations.map((c) => c._id));
+  190 |       const kept = prevOrder.filter((id) => currentIds.has(id));
+  191 |       const known = new Set(kept); (src/components/admin/admin-support-inbox.tsx:188:5)
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload when ./node_modules/next/dist/client/image-component.js changed. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
