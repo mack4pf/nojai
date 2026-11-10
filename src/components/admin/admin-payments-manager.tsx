@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,7 +81,7 @@ export function AdminPaymentsManager() {
   const [statusFilter, setStatusFilter] = useState<PaymentStatus>("all");
   const [search, setSearch] = useState("");
 
-  const { data, isLoading, isError, refetch, isFetching } = useQuery({
+  const { data, isLoading, isError, isFetching } = useQuery({
     queryKey: ["admin-payments", page, statusFilter],
     queryFn: async () => {
       const res = await api.get<PaymentsResponse>("/admin/revenue", {
@@ -107,6 +107,8 @@ export function AdminPaymentsManager() {
         (p) =>
           p.userId?.email.toLowerCase().includes(normalizedSearch) ||
           p.userId?.fullName?.toLowerCase().includes(normalizedSearch) ||
+          // The Reference column is hidden for now. A reference typed in full
+          // still matches here, so unhiding it later changes nothing else.
           p.paymentReference?.toLowerCase().includes(normalizedSearch) ||
           p.label.toLowerCase().includes(normalizedSearch) ||
           (p.plan?.toLowerCase() ?? "").includes(normalizedSearch),
@@ -122,7 +124,7 @@ export function AdminPaymentsManager() {
   return (
     <div className="space-y-5">
       {/* Summary cards */}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">Total payments</p>
           <p className="mt-2 font-display text-3xl font-bold">{total}</p>
@@ -138,12 +140,6 @@ export function AdminPaymentsManager() {
         <div className="rounded-3xl border border-amber-500/20 bg-amber-500/[0.04] p-5">
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-400">Pending</p>
           <p className="mt-2 font-display text-3xl font-bold text-amber-300">{pending.length}</p>
-        </div>
-        <div className="flex items-center justify-end rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-            <RefreshCw className={`mr-2 h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
         </div>
       </div>
 
@@ -171,7 +167,7 @@ export function AdminPaymentsManager() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search email, name, reference..."
+            placeholder="Search email, name, plan..."
           />
         </div>
       </div>
@@ -185,7 +181,7 @@ export function AdminPaymentsManager() {
         ) : isError ? (
           <div className="flex items-center gap-2 p-5 text-sm text-destructive">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            Failed to load payments. Try refreshing.
+            Failed to load payments.
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
@@ -193,7 +189,7 @@ export function AdminPaymentsManager() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[680px] text-sm">
               <thead>
                 <tr className="border-b border-white/[0.07] text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                   <th className="px-5 py-4">Date</th>
@@ -203,7 +199,9 @@ export function AdminPaymentsManager() {
                   <th className="px-5 py-4">Method</th>
                   <th className="px-5 py-4">Status</th>
                   <th className="px-5 py-4">Expires</th>
-                  <th className="px-5 py-4">Reference</th>
+                  {/* Reference is hidden for now. The field still arrives from
+                      the API and is still searchable; restoring the column
+                      means putting this header and its cell back. */}
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.05]">
@@ -267,19 +265,6 @@ export function AdminPaymentsManager() {
                     {/* Expires */}
                     <td className="px-5 py-4 text-xs text-muted-foreground">
                       {payment.endDate ? formatDate(payment.endDate, "MMM d, yyyy") : "—"}
-                    </td>
-
-                    {/* Reference */}
-                    <td className="px-5 py-4">
-                      {payment.paymentReference ? (
-                        <span className="rounded bg-white/[0.06] px-2 py-1 font-mono text-[11px] text-muted-foreground">
-                          {payment.paymentReference.length > 18
-                            ? `${payment.paymentReference.slice(0, 18)}…`
-                            : payment.paymentReference}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
                     </td>
                   </tr>
                 ))}
