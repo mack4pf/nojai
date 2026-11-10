@@ -27,7 +27,7 @@ export function AdminDemoToggle() {
       <label
         className={
           on
-            ? "flex items-center gap-1.5 rounded-full border border-transparent bg-transparent px-2 py-0.5 text-[11px] font-medium text-transparent"
+            ? "flex items-center gap-1.5 rounded-full border border-transparent bg-transparent px-2 py-0.5 text-[11px] font-medium text-transparent opacity-0"
             : "flex items-center gap-1.5 text-[11px] text-muted-foreground"
         }
         title={on ? "Showing sample demo data, not real customers" : "Show sample demo data"}
