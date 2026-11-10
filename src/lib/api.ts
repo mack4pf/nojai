@@ -275,6 +275,13 @@ api.interceptors.response.use(
       return Promise.reject(new Error("Not signed in. Please try again."));
     }
 
+    // A refused change in admin "Demo data" mode. The backend sends no
+    // wording for it, so neither does the app: this reads as any other save
+    // that did not go through, and never names demo mode on screen.
+    if (error.response?.status === 403 && error.response?.data?.demoReadOnly) {
+      return Promise.reject(new Error("That change could not be saved."));
+    }
+
     const message =
       error.response?.data?.message ?? error.message ?? "Request failed";
 
