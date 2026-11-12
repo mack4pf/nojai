@@ -15,7 +15,6 @@ import type {
   UserProfile,
 } from "@/types";
 import { normalizeArray, normalizeRecord } from "@/lib/utils";
-import { isAdminDemoMode } from "@/lib/admin-demo-mode";
 
 const DEFAULT_API_BASE_URL = "http://localhost:5000/api";
 const DEFAULT_BACKEND_URL = "http://localhost:5000";
@@ -207,11 +206,6 @@ api.interceptors.request.use(async (config) => {
     config.headers["x-nojai-authed"] = "1";
   }
 
-  // Admin "Demo data" switch: the backend answers admin reads from the demo DB.
-  if (isAdminDemoMode() && (config.url ?? "").startsWith("/admin")) {
-    config.headers["x-nojai-demo"] = "1";
-  }
-
   return config;
 });
 
@@ -273,13 +267,6 @@ api.interceptors.response.use(
       }
       clearSessionCache();
       return Promise.reject(new Error("Not signed in. Please try again."));
-    }
-
-    // A refused change in admin "Demo data" mode. The backend sends no
-    // wording for it, so neither does the app: this reads as any other save
-    // that did not go through, and never names demo mode on screen.
-    if (error.response?.status === 403 && error.response?.data?.demoReadOnly) {
-      return Promise.reject(new Error("That change could not be saved."));
     }
 
     const message =

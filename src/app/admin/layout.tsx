@@ -1,4 +1,3 @@
-import { AdminDemoToggle } from "@/components/admin/admin-demo-toggle";
 import { AppShell } from "@/components/layout/app-shell";
 import { requireSession } from "@/lib/session";
 
@@ -49,7 +48,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       roleLabel="ADMIN"
       items={items}
     >
-      <AdminDemoToggle />
       {children}
     </AppShell>
   );
