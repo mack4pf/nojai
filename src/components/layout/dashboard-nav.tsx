@@ -30,6 +30,7 @@ import {
   Terminal,
   AlertOctagon,
   Mail,
+  Video,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -79,6 +80,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   mt5: MetaTrader5Icon,
   alert: AlertOctagon,
   mail: Mail,
+  video: Video,
 };
 
 
