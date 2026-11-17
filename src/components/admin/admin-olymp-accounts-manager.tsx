@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, EyeOff, Info, Loader2, Plus, RefreshCw, Trash2, Wifi, WifiOff } from "lucide-react";
+import { Eye, EyeOff, Info, Loader2, Plus, RefreshCw, Trash2, TrendingDown, TrendingUp, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,36 @@ interface AdminOlympAccount {
   needsReauthReason?: string;
 }
 
+/** What the backend reports back from one Buy or Sell press. */
+interface AdminTradeResult {
+  tradeId: string;
+  asset: string;
+  direction: "call" | "put";
+  amount: number;
+  durationSecs: number;
+  accountGroup: string;
+  mirrored: boolean;
+  followers: {
+    attempted: number;
+    placed: number;
+    failed: number;
+    /** Why nothing was attempted. Without it, zero followers reads the same
+        whether nobody opted in or Olymp will not trade the instrument. */
+    reason?: "no-eligible-users" | "pair-not-tradeable";
+  };
+  skipped?: "mirror-off" | "account-not-real" | "mirror-failed";
+  error?: string;
+}
+
+/** What the admin is about to place, per account. */
+interface TradeDraft {
+  ticker: string;
+  amount: number;
+  durationSecs: number;
+}
+
+const DURATIONS = [60, 120, 300, 900];
+
 interface AdminOlympAccountsResponse {
   accounts: AdminOlympAccount[];
   connectedCount: number;
@@ -61,6 +91,9 @@ export function AdminOlympAccountsManager() {
   const [accountGroup, setAccountGroup] = useState<"real" | "demo">("real");
   const [draftAmounts, setDraftAmounts] = useState<Record<number, number>>({});
   const [accountToDisconnect, setAccountToDisconnect] = useState<AdminOlympAccount | null>(null);
+  const [tradeDrafts, setTradeDrafts] = useState<Record<number, TradeDraft>>({});
+  /** Which button is in flight, so only that one spins. */
+  const [tradePending, setTradePending] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery<AdminOlympAccountsResponse>({
     queryKey: QUERY_KEY,
@@ -139,6 +172,51 @@ export function AdminOlympAccountsManager() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEY });
     },
     onError: (err: any) => toast.error(err?.response?.data?.message ?? "Failed to update base amount"),
+  });
+
+  /**
+   * Buy or sell on the admin's own account, which also copies the trade to
+   * the followers who opted in.
+   *
+   * The toast says what actually reached them rather than just "done": a
+   * trade that filled on this account but copied to nobody is the normal
+   * outcome while mirroring is switched off, and silently reading as success
+   * is how that goes unnoticed.
+   */
+  const tradeMutation = useMutation({
+    mutationFn: async ({ accountId, direction, draft }: { accountId: number; direction: "buy" | "sell"; draft: TradeDraft }) => {
+      const res = await api.post<AdminTradeResult>(`/admin/olymp-accounts/${accountId}/trade`, {
+        direction,
+        ticker: draft.ticker.trim().toUpperCase(),
+        amount: draft.amount,
+        durationSecs: draft.durationSecs,
+      });
+      return res.data;
+    },
+    onSuccess: (result) => {
+      const side = result.direction === "call" ? "Buy" : "Sell";
+      const headline = `${side} ${result.asset} placed`;
+      if (result.mirrored) {
+        const { placed, attempted, failed } = result.followers;
+        toast.success(headline, {
+          description: attempted > 0
+            ? `Copied to ${placed} of ${attempted} follower${attempted === 1 ? "" : "s"}${failed > 0 ? ` — ${failed} failed` : ""}.`
+            : result.followers.reason === "pair-not-tradeable"
+              ? `Your trade is live, but Olymp does not list ${result.asset} for copy trading right now, so no follower was copied.`
+              : "No follower has opted in yet, so this traded your account only.",
+        });
+      } else if (result.skipped === "mirror-off") {
+        toast.success(headline, { description: "Your account only — mirroring is switched off." });
+      } else if (result.skipped === "account-not-real") {
+        toast.success(headline, { description: "Your account only — followers are never copied from a practice account." });
+      } else {
+        toast.warning(headline, { description: result.error ?? "Your trade is live, but copying to followers failed." });
+      }
+      queryClient.invalidateQueries({ queryKey: QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["admin-olymp-live-trades"] });
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message ?? err?.message ?? "Failed to place the trade"),
+    onSettled: () => setTradePending(null),
   });
 
   const disconnectMutation = useMutation({
@@ -327,6 +405,8 @@ export function AdminOlympAccountsManager() {
         ) : (
           accounts.map((account) => {
             const draftBaseAmount = draftAmounts[account.accountId] ?? account.baseAmount;
+            const draft: TradeDraft = tradeDrafts[account.accountId] ?? { ticker: "", amount: account.baseAmount, durationSecs: 60 };
+            const canTrade = account.isConnected && !account.needsReauth && draft.ticker.trim().length > 0 && draft.amount >= 1;
             return (
               <div key={account.accountId} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
                 <div className="flex items-start justify-between gap-3">
@@ -381,6 +461,80 @@ export function AdminOlympAccountsManager() {
                     <p className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Last</p>
                     <p className="mt-1 text-xs font-semibold">{account.lastConnected ? formatDate(account.lastConnected) : "-"}</p>
                   </div>
+                </div>
+
+                {/* Trade from here. Placing it on this account is also what
+                    sends it to the followers, so the two cannot drift apart
+                    the way a separate "broadcast" button would. */}
+                <div className="mt-4 border-t border-white/[0.06] pt-4">
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="min-w-[8rem] flex-1">
+                      <Label className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Instrument</Label>
+                      <Input
+                        className="mt-1"
+                        placeholder="EURUSD"
+                        value={draft.ticker}
+                        onChange={(e) => setTradeDrafts((prev) => ({ ...prev, [account.accountId]: { ...draft, ticker: e.target.value.toUpperCase() } }))}
+                      />
+                    </div>
+                    <div className="w-24">
+                      <Label className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Amount</Label>
+                      <Input
+                        className="mt-1"
+                        type="number"
+                        min={1}
+                        value={draft.amount}
+                        onChange={(e) => setTradeDrafts((prev) => ({ ...prev, [account.accountId]: { ...draft, amount: Number(e.target.value) } }))}
+                      />
+                    </div>
+                    <div className="w-28">
+                      <Label className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Expiry</Label>
+                      <select
+                        className="mt-1 h-10 w-full rounded-md border border-white/[0.08] bg-black/20 px-3 text-sm text-foreground"
+                        value={draft.durationSecs}
+                        onChange={(e) => setTradeDrafts((prev) => ({ ...prev, [account.accountId]: { ...draft, durationSecs: Number(e.target.value) } }))}
+                      >
+                        {DURATIONS.map((secs) => (
+                          <option key={secs} value={secs}>{secs < 60 ? `${secs}s` : `${secs / 60}m`}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <Button
+                      className="bg-emerald-600 text-white hover:bg-emerald-500"
+                      disabled={!canTrade || tradeMutation.isPending}
+                      onClick={() => {
+                        setTradePending(`${account.accountId}:buy`);
+                        tradeMutation.mutate({ accountId: account.accountId, direction: "buy", draft });
+                      }}
+                    >
+                      {tradePending === `${account.accountId}:buy`
+                        ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        : <TrendingUp className="mr-1.5 h-3.5 w-3.5" />}
+                      Buy
+                    </Button>
+                    <Button
+                      className="bg-red-600 text-white hover:bg-red-500"
+                      disabled={!canTrade || tradeMutation.isPending}
+                      onClick={() => {
+                        setTradePending(`${account.accountId}:sell`);
+                        tradeMutation.mutate({ accountId: account.accountId, direction: "sell", draft });
+                      }}
+                    >
+                      {tradePending === `${account.accountId}:sell`
+                        ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        : <TrendingDown className="mr-1.5 h-3.5 w-3.5" />}
+                      Sell
+                    </Button>
+                  </div>
+                  <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+                    {!account.isConnected
+                      ? "Connect this account before trading from here."
+                      : !draft.ticker.trim()
+                        ? "Enter an instrument to trade."
+                        : account.accountGroup === "real"
+                          ? `Places ${formatCurrency(draft.amount, account.currency ?? "USD")} on this account and copies it to followers who opted in.`
+                          : `Practice account — places ${formatCurrency(draft.amount, account.currency ?? "USD")} here only. Followers are never copied from a practice account.`}
+                  </p>
                 </div>
 
                 <div className="mt-4 grid gap-3 border-t border-white/[0.06] pt-4 sm:grid-cols-[1fr_auto_auto_auto]">
