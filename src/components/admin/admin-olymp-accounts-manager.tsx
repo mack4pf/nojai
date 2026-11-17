@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Eye, EyeOff, Info, Loader2, Plus, RefreshCw, Trash2, TrendingDown, TrendingUp, Wifi, WifiOff } from "lucide-react";
@@ -68,7 +68,40 @@ interface TradeDraft {
   durationSecs: number;
 }
 
-const DURATIONS = [60, 120, 300, 900];
+/** One instrument the admin can trade, as the backend reports it. */
+interface OlympPairOption {
+  id: string;
+  title: string;
+  group: string;
+  payoutPercent?: number;
+  minDurationSecs: number;
+  maxDurationSecs: number;
+  /** Expiries this pair accepts. Computed server-side so the two cannot drift. */
+  durationChoices: number[];
+  isOpen: boolean;
+  opensAt?: string;
+  closesAt?: string;
+}
+
+interface OlympPairsResponse {
+  pairs: OlympPairOption[];
+  unavailable?: boolean;
+  message?: string;
+}
+
+/** Offered when the catalogue could not be loaded and the admin types a name. */
+const FALLBACK_DURATIONS = [60, 120, 180, 300, 600, 900, 1800, 3600];
+
+function formatDuration(secs: number): string {
+  if (secs < 60) return `${secs}s`;
+  if (secs < 3600) return secs % 60 === 0 ? `${secs / 60}m` : `${Math.floor(secs / 60)}m ${secs % 60}s`;
+  return secs % 3600 === 0 ? `${secs / 3600}h` : `${Math.floor(secs / 3600)}h ${Math.round((secs % 3600) / 60)}m`;
+}
+
+/** Title-cases whatever Olymp calls the category, for the optgroup label. */
+function groupLabel(group: string): string {
+  return group.replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 interface AdminOlympAccountsResponse {
   accounts: AdminOlympAccount[];
@@ -100,6 +133,31 @@ export function AdminOlympAccountsManager() {
     queryFn: async () => (await api.get("/admin/olymp-accounts")).data,
     refetchInterval: 30_000,
   });
+
+  /**
+   * The instrument catalogue. Cached hard on purpose: it is the same list for
+   * every account on the page and it changes on the hour at most, so a trader
+   * clicking between accounts should never wait for it.
+   */
+  const { data: pairData } = useQuery<OlympPairsResponse>({
+    queryKey: ["admin-olymp-pairs"],
+    queryFn: async () => (await api.get<OlympPairsResponse>("/admin/olymp-accounts/pairs")).data,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+  });
+  const pairs = pairData?.pairs ?? [];
+  const pairsById = useMemo(() => new Map(pairs.map((pair) => [pair.id, pair])), [pairs]);
+  const pairsByGroup = useMemo(() => {
+    const groups = new Map<string, OlympPairOption[]>();
+    for (const pair of pairs) {
+      const list = groups.get(pair.group);
+      if (list) list.push(pair);
+      else groups.set(pair.group, [pair]);
+    }
+    return [...groups.entries()];
+  }, [pairs]);
+  const catalogueUnavailable = Boolean(pairData?.unavailable) || pairs.length === 0;
 
   const accounts = data?.accounts ?? [];
   const connectedCount = data?.connectedCount ?? accounts.filter((account) => account.isConnected).length;
@@ -406,6 +464,14 @@ export function AdminOlympAccountsManager() {
           accounts.map((account) => {
             const draftBaseAmount = draftAmounts[account.accountId] ?? account.baseAmount;
             const draft: TradeDraft = tradeDrafts[account.accountId] ?? { ticker: "", amount: account.baseAmount, durationSecs: 60 };
+            const selectedPair = pairsById.get(draft.ticker.trim().toUpperCase());
+            const durationChoices = selectedPair?.durationChoices ?? FALLBACK_DURATIONS;
+            // A pair's limits are not the same as the last pair's, so an
+            // expiry carried over from a previous selection may no longer be
+            // valid. Show the nearest one it does accept.
+            const effectiveDuration = durationChoices.includes(draft.durationSecs)
+              ? draft.durationSecs
+              : durationChoices.reduce((best, secs) => (Math.abs(secs - draft.durationSecs) < Math.abs(best - draft.durationSecs) ? secs : best), durationChoices[0] ?? 60);
             const canTrade = account.isConnected && !account.needsReauth && draft.ticker.trim().length > 0 && draft.amount >= 1;
             return (
               <div key={account.accountId} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
@@ -468,14 +534,50 @@ export function AdminOlympAccountsManager() {
                     the way a separate "broadcast" button would. */}
                 <div className="mt-4 border-t border-white/[0.06] pt-4">
                   <div className="flex flex-wrap items-end gap-2">
-                    <div className="min-w-[8rem] flex-1">
-                      <Label className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Instrument</Label>
-                      <Input
-                        className="mt-1"
-                        placeholder="EURUSD"
-                        value={draft.ticker}
-                        onChange={(e) => setTradeDrafts((prev) => ({ ...prev, [account.accountId]: { ...draft, ticker: e.target.value.toUpperCase() } }))}
-                      />
+                    <div className="min-w-[12rem] flex-1">
+                      <Label className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                        Instrument{pairs.length > 0 ? ` (${pairs.length})` : ""}
+                      </Label>
+                      {catalogueUnavailable ? (
+                        <Input
+                          className="mt-1"
+                          placeholder="EURUSD"
+                          value={draft.ticker}
+                          onChange={(e) => setTradeDrafts((prev) => ({ ...prev, [account.accountId]: { ...draft, ticker: e.target.value.toUpperCase() } }))}
+                        />
+                      ) : (
+                        <select
+                          className="mt-1 h-10 w-full rounded-md border border-white/[0.08] bg-black/20 px-3 text-sm text-foreground"
+                          value={draft.ticker}
+                          onChange={(e) => {
+                            const next = pairsById.get(e.target.value);
+                            setTradeDrafts((prev) => ({
+                              ...prev,
+                              [account.accountId]: {
+                                ...draft,
+                                ticker: e.target.value,
+                                // Snap the expiry into what the new pair takes.
+                                durationSecs: next && !next.durationChoices.includes(draft.durationSecs)
+                                  ? (next.durationChoices.find((secs) => secs >= draft.durationSecs) ?? next.durationChoices[0] ?? 60)
+                                  : draft.durationSecs,
+                              },
+                            }));
+                          }}
+                        >
+                          <option value="">Choose an instrument…</option>
+                          {pairsByGroup.map(([group, groupPairs]) => (
+                            <optgroup key={group} label={groupLabel(group)}>
+                              {groupPairs.map((pair) => (
+                                <option key={pair.id} value={pair.id}>
+                                  {pair.title}
+                                  {pair.payoutPercent ? ` · ${Math.round(pair.payoutPercent)}%` : ""}
+                                  {pair.isOpen ? "" : " · closed now"}
+                                </option>
+                              ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                      )}
                     </div>
                     <div className="w-24">
                       <Label className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Amount</Label>
@@ -491,11 +593,11 @@ export function AdminOlympAccountsManager() {
                       <Label className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Expiry</Label>
                       <select
                         className="mt-1 h-10 w-full rounded-md border border-white/[0.08] bg-black/20 px-3 text-sm text-foreground"
-                        value={draft.durationSecs}
+                        value={effectiveDuration}
                         onChange={(e) => setTradeDrafts((prev) => ({ ...prev, [account.accountId]: { ...draft, durationSecs: Number(e.target.value) } }))}
                       >
-                        {DURATIONS.map((secs) => (
-                          <option key={secs} value={secs}>{secs < 60 ? `${secs}s` : `${secs / 60}m`}</option>
+                        {durationChoices.map((secs) => (
+                          <option key={secs} value={secs}>{formatDuration(secs)}</option>
                         ))}
                       </select>
                     </div>
@@ -504,7 +606,7 @@ export function AdminOlympAccountsManager() {
                       disabled={!canTrade || tradeMutation.isPending}
                       onClick={() => {
                         setTradePending(`${account.accountId}:buy`);
-                        tradeMutation.mutate({ accountId: account.accountId, direction: "buy", draft });
+                        tradeMutation.mutate({ accountId: account.accountId, direction: "buy", draft: { ...draft, durationSecs: effectiveDuration } });
                       }}
                     >
                       {tradePending === `${account.accountId}:buy`
@@ -517,7 +619,7 @@ export function AdminOlympAccountsManager() {
                       disabled={!canTrade || tradeMutation.isPending}
                       onClick={() => {
                         setTradePending(`${account.accountId}:sell`);
-                        tradeMutation.mutate({ accountId: account.accountId, direction: "sell", draft });
+                        tradeMutation.mutate({ accountId: account.accountId, direction: "sell", draft: { ...draft, durationSecs: effectiveDuration } });
                       }}
                     >
                       {tradePending === `${account.accountId}:sell`
@@ -530,10 +632,14 @@ export function AdminOlympAccountsManager() {
                     {!account.isConnected
                       ? "Connect this account before trading from here."
                       : !draft.ticker.trim()
-                        ? "Enter an instrument to trade."
-                        : account.accountGroup === "real"
-                          ? `Places ${formatCurrency(draft.amount, account.currency ?? "USD")} on this account and copies it to followers who opted in.`
-                          : `Practice account — places ${formatCurrency(draft.amount, account.currency ?? "USD")} here only. Followers are never copied from a practice account.`}
+                        ? catalogueUnavailable
+                          ? "Instrument list unavailable — type the name as Olymp spells it."
+                          : "Choose an instrument to trade."
+                        : selectedPair && !selectedPair.isOpen
+                          ? `${selectedPair.title} is outside its trading hours — Olymp will probably reject this.`
+                          : account.accountGroup === "real"
+                            ? `Places ${formatCurrency(draft.amount, account.currency ?? "USD")} for ${formatDuration(effectiveDuration)} on this account and copies it to followers who opted in.`
+                            : `Practice account — places ${formatCurrency(draft.amount, account.currency ?? "USD")} for ${formatDuration(effectiveDuration)} here only. Followers are never copied from a practice account.`}
                   </p>
                 </div>
 
