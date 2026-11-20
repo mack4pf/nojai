@@ -212,8 +212,6 @@ export function AdminOlympPartnerTrader() {
         });
       } else if (result.skipped === "mirror-off") {
         toast.success(headline, { description: "This account only — mirroring is switched off." });
-      } else if (result.skipped === "account-not-real") {
-        toast.success(headline, { description: "This account only — followers are never copied from a practice account." });
       } else {
         toast.warning(headline, { description: result.error ?? "Your deal is open, but copying to followers failed." });
       }
@@ -518,7 +516,7 @@ export function AdminOlympPartnerTrader() {
                         ? `${selectedPair.title} is outside its trading hours — Olymp will probably reject this.`
                         : draft.group === "real"
                           ? `Places ${formatCurrency(draft.amount, activeBalance.currency)} for ${formatDuration(effectiveDuration)} on this real account and copies it to followers who opted in.`
-                          : `Practice balance — places ${formatCurrency(draft.amount, activeBalance.currency)} for ${formatDuration(effectiveDuration)} here only. Followers are never copied from a practice account.`}
+                          : `Practice balance — places ${formatCurrency(draft.amount, activeBalance.currency)} for ${formatDuration(effectiveDuration)} here, and still copies to followers. Each follower trades their own balance, so a follower set to real stakes real money.`}
               </p>
             </div>
           );
