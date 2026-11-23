@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { AdminWebinarPayment } from "@/components/admin/admin-webinar-payment";
+import { AdminWebinarReminders } from "@/components/admin/admin-webinar-reminders";
 import { api } from "@/lib/api";
 
 const SLUG = "positioning-2027";
@@ -430,9 +432,13 @@ export function AdminWebinar() {
         <TabsList>
           <TabsTrigger value="content">Page content</TabsTrigger>
           <TabsTrigger value="registrations">Registrations</TabsTrigger>
+          <TabsTrigger value="reminders">Reminders</TabsTrigger>
+          <TabsTrigger value="payment">Payment</TabsTrigger>
         </TabsList>
         <TabsContent value="content" className="mt-4"><ContentEditor webinar={webinar} /></TabsContent>
         <TabsContent value="registrations" className="mt-4"><RegistrationsTable /></TabsContent>
+        <TabsContent value="reminders" className="mt-4"><AdminWebinarReminders slug={SLUG} registrationCount={stats.total} /></TabsContent>
+        <TabsContent value="payment" className="mt-4"><AdminWebinarPayment slug={SLUG} payment={(webinar as any).payment} siteUrl={SITE_URL} /></TabsContent>
       </Tabs>
     </div>
   );
