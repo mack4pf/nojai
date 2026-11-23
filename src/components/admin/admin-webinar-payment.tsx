@@ -32,6 +32,7 @@ interface WebinarPayment {
   bullets: string[];
   ctaText: string;
   successMessage: string;
+  whatsappGroupUrl?: string;
 }
 
 interface Purchase {
@@ -77,6 +78,7 @@ export function AdminWebinarPayment({
     bullets: payment?.bullets ?? [],
     ctaText: payment?.ctaText ?? "Pay and get access",
     successMessage: payment?.successMessage ?? "Payment received. Check your email for your login details.",
+    whatsappGroupUrl: payment?.whatsappGroupUrl ?? "",
   }));
 
   // The saved values win when the page refetches, so a save elsewhere is not
@@ -111,6 +113,7 @@ export function AdminWebinarPayment({
           amount: Number(next.amount),
           currency: next.currency,
           courseId: next.courseId ?? "",
+          whatsappGroupUrl: next.whatsappGroupUrl ?? "",
           headline: next.headline,
           subheadline: next.subheadline,
           bullets: next.bullets,
@@ -249,6 +252,19 @@ export function AdminWebinarPayment({
               value={form.successMessage}
               onChange={(e) => setForm((prev) => ({ ...prev, successMessage: e.target.value }))}
             />
+          </div>
+          <div className="sm:col-span-2">
+            <Label className="text-xs">Buyers&apos; WhatsApp group link</Label>
+            <Input
+              className="mt-1"
+              value={form.whatsappGroupUrl ?? ""}
+              onChange={(e) => setForm((prev) => ({ ...prev, whatsappGroupUrl: e.target.value }))}
+              placeholder="https://chat.whatsapp.com/…"
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Offered the moment a payment succeeds, and repeated in the receipt. Only people who have paid
+              ever see it — it is not the public channel on the landing page.
+            </p>
           </div>
         </div>
 
